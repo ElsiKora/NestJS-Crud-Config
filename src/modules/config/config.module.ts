@@ -1,6 +1,7 @@
 import type { DynamicModule, Provider, ValueProvider } from "@nestjs/common";
 import type { Type } from "@nestjs/common/interfaces";
 
+import { CacheModule } from "@nestjs/cache-manager";
 import { Global, Module } from "@nestjs/common";
 import { CRUD_CONFIG_PROPERTIES } from "@shared/constant/config";
 import { ICrudConfigAsyncModuleProperties, ICrudConfigProperties, ICrudConfigPropertiesFactory } from "@shared/interface/config";
@@ -32,6 +33,17 @@ export class CrudConfigModule {
 			useValue: options,
 		};
 
+		const imports: Array<DynamicModule> = [ConfigSectionModule.register(options), ConfigDataModule.register(options)];
+
+		if (options.cacheOptions?.isEnabled) {
+			imports.push(
+				CacheModule.register({
+					max: options.cacheOptions.maxCacheItems,
+					ttl: options.cacheOptions.maxCacheTTL,
+				}),
+			);
+		}
+
 		// We need to include the services in our providers to be able to export them
 		return {
 			exports: [
@@ -39,7 +51,7 @@ export class CrudConfigModule {
 				ConfigSectionModule, // Export modules instead of services directly
 				ConfigDataModule,
 			],
-			imports: [ConfigSectionModule.register(options), ConfigDataModule.register(options)],
+			imports,
 			module: CrudConfigModule,
 			providers: [propertiesProvider, CrudConfigService],
 		};

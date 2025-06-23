@@ -64,7 +64,7 @@ export default [
 		withRegexp: true,
 		withSonar: true,
 		withStylistic: true,
-		withTypescript: true,
+		withTypescriptStrict: true,
 		withUnicorn: true,
 		withYaml: true,
 	})),

@@ -1,13 +1,13 @@
-import { ConfigSectionModule } from "@modules/config";
-import { ConfigDataController } from "@modules/config/data/data.controller";
-import { ConfigDataService } from "@modules/config/data/data.service";
-import { ConfigData } from "@modules/config/data/entity/data.entity";
+import { ConfigSectionModule } from "../section";
 import { DynamicModule, Module, ValueProvider } from "@nestjs/common";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { CRUD_CONFIG_PROPERTIES } from "@shared/constant/config";
 import { ICrudConfigProperties } from "@shared/interface/config";
 
+import { ConfigDataController } from "./data.controller";
+import { ConfigDataService } from "./data.service";
+import { ConfigData } from "./entity/data.entity";
 import ConfigDataBeforeInsertListener from "./events/listener/beforeInsert.listener";
 import ConfigDataBeforeInsertSubscriber from "./events/subscriber/beforeInsert.subscriber";
 

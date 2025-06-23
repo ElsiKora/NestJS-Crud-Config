@@ -7,3 +7,4 @@ export { CrudConfigService } from "./config.service";
 export * from "./data";
 export type * from "./interface";
 export * from "./section";
+export type * from "./type";

@@ -48,6 +48,22 @@ export interface IConfigSectionEntityOptions {
 	tableName?: string;
 }
 
+export interface ICrudConfigCacheProperties {
+	/**
+	 * Whether to use a cache
+	 */
+	isEnabled?: boolean;
+	/**
+	 * Maximum number of cache items
+	 */
+	maxCacheItems?: number;
+
+	/**
+	 * Maximum time to live for cache items
+	 */
+	maxCacheTTL?: number;
+}
+
 /**
  * Interface for configuration properties
  */
@@ -56,6 +72,11 @@ export interface ICrudConfigProperties {
 	 * Default application name to use for config paths
 	 */
 	application?: string;
+
+	/**
+	 * Cache options
+	 */
+	cacheOptions?: ICrudConfigCacheProperties;
 
 	/**
 	 * The encryption key to use for encrypting/decrypting config values
@@ -82,7 +103,6 @@ export interface ICrudConfigProperties {
 	 */
 	shouldEncryptValues?: boolean;
 }
-
 /**
  * Interface for entity customization options
  */

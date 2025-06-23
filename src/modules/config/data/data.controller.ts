@@ -1,6 +1,7 @@
 import { ApiController, EApiControllerLoadRelationsStrategy, EApiRouteType, IApiControllerBase, IApiControllerProperties } from "@elsikora/nestjs-crud-automator";
-import { ConfigSectionService } from "@modules/config";
 import { ConfigData } from "@modules/config/data/entity/data.entity";
+
+import { ConfigSectionService } from "../section";
 
 import { ConfigDataService } from "./data.service";
 

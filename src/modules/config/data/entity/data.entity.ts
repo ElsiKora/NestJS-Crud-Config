@@ -133,16 +133,6 @@ export class ConfigData {
 	section!: ConfigSection;
 
 	/**
-	 * The section ID this configuration data belongs to
-	 */
-	@ApiPropertyDescribe({
-		description: "sectionId",
-		type: EApiPropertyDescribeType.UUID,
-	})
-	@Column({ nullable: false, type: "uuid" })
-	sectionId!: string;
-
-	/**
 	 * When the entry was last updated
 	 */
 	@ApiPropertyDescribe({
