@@ -1,3 +1,2 @@
-export { ConfigDataModule } from "./data.module";
-export { ConfigDataService } from "./data.service";
-export * from "./entity";
+// This file is no longer needed since we use dynamic entities
+// Previously exported static entities have been removed

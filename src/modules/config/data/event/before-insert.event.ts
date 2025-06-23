@@ -1,4 +1,5 @@
-import type { ConfigData } from "@modules/config/data/entity/data.entity";
+// Note: This event handler is designed to work with dynamic entities
+// The actual entity type will be determined at runtime
 import type { EntityManager } from "typeorm/entity-manager/EntityManager";
 
 /**
@@ -16,7 +17,8 @@ export default class ConfigDataEventBeforeInsert {
 	eventManager!: EntityManager;
 
 	/**
-	 * The ConfigData entity instance
+	 * The dynamic entity instance
+	 * Note: This will be a dynamically generated entity at runtime
 	 */
-	item!: ConfigData;
+	item!: any;
 }

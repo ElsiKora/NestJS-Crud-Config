@@ -1,4 +1,5 @@
-import { ConfigData } from "@modules/config/data/entity/data.entity";
+// Note: This listener is designed to work with dynamic entities
+// The actual entity type will be determined at runtime
 import { ConflictException, Injectable } from "@nestjs/common";
 import { OnEvent } from "@nestjs/event-emitter";
 import { Repository } from "typeorm";
@@ -24,8 +25,9 @@ export default class ConfigDataBeforeInsertListener {
 			const entity = payload.item;
 			const entityManager = payload.eventManager;
 
-			// Check if a ConfigData with the same environment and name already exists
-			const configDataRepository: Repository<ConfigData> = entityManager.getRepository(ConfigData);
+			// Check if a config with the same environment and name already exists
+			// Note: Using dynamic entity type that will be resolved at runtime
+			const configDataRepository: Repository<any> = entityManager.getRepository(entity.constructor);
 
 			const existingConfigData = await configDataRepository.findOne({
 				where: {

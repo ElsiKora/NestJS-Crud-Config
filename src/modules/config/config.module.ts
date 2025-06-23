@@ -7,12 +7,7 @@ import { CRUD_CONFIG_PROPERTIES } from "@shared/constant/config";
 import { ICrudConfigAsyncModuleProperties, ICrudConfigProperties, ICrudConfigPropertiesFactory } from "@shared/interface/config";
 
 import { CrudConfigService } from "./config.service";
-import { ConfigDataModule } from "./data/data.module";
-import { ConfigDataService } from "./data/data.service";
-import { ConfigData } from "./data/entity/data.entity";
-import { ConfigSection } from "./section/entity/section.entity";
-import { ConfigSectionModule } from "./section/section.module";
-import { ConfigSectionService } from "./section/section.service";
+// Dynamic entity imports will be handled by CrudConfigFullDynamicModule
 
 @Global()
 @Module({})
@@ -24,16 +19,14 @@ export class CrudConfigModule {
 	 * @returns {DynamicModule} The dynamic module configuration
 	 */
 	public static register(options: ICrudConfigProperties): DynamicModule {
-		// Initialize entity configurations
-		ConfigSection.updateEntityOptions(options);
-		ConfigData.updateEntityOptions(options);
+		// Entity configurations are now handled in CrudConfigFullDynamicModule
 
 		const propertiesProvider: ValueProvider<ICrudConfigProperties> = {
 			provide: CRUD_CONFIG_PROPERTIES,
 			useValue: options,
 		};
 
-		const imports: Array<DynamicModule> = [ConfigSectionModule.register(options), ConfigDataModule.register(options)];
+		const imports: Array<DynamicModule> = [];
 
 		if (options.cacheOptions?.isEnabled) {
 			imports.push(
@@ -48,8 +41,6 @@ export class CrudConfigModule {
 		return {
 			exports: [
 				CrudConfigService,
-				ConfigSectionModule, // Export modules instead of services directly
-				ConfigDataModule,
 			],
 			imports,
 			module: CrudConfigModule,
@@ -71,30 +62,13 @@ export class CrudConfigModule {
 			return typeof p === "object" && p !== null && "provide" in p && p.provide === CRUD_CONFIG_PROPERTIES;
 		});
 
-		// Create dynamic modules for section and data
-		const sectionModule = {
-			exports: [ConfigSectionService],
-			imports: properties.imports || [],
-			inject: properties.inject || [],
-			module: ConfigSectionModule,
-			providers: configPropertiesProviders,
-		} as DynamicModule;
-
-		const dataModule = {
-			exports: [ConfigDataService],
-			imports: properties.imports || [],
-			inject: properties.inject || [],
-			module: ConfigDataModule,
-			providers: configPropertiesProviders,
-		} as DynamicModule;
+		// Dynamic modules are handled in CrudConfigFullDynamicModule
 
 		return {
 			exports: [
 				CrudConfigService,
-				sectionModule, // Export the module reference instead of the service directly
-				dataModule, // Export the module reference instead of the service directly
 			],
-			imports: [...(properties.imports || []), sectionModule, dataModule],
+			imports: [...(properties.imports || [])],
 			module: CrudConfigModule,
 			providers,
 		};
@@ -116,9 +90,7 @@ export class CrudConfigModule {
 				useFactory: async (...arguments_: Array<any>): Promise<ICrudConfigProperties> => {
 					const options = await originalFactory(...arguments_);
 
-					// Apply entity configurations once options are resolved
-					ConfigSection.updateEntityOptions(options);
-					ConfigData.updateEntityOptions(options);
+					// Entity configurations are now handled in CrudConfigFullDynamicModule
 
 					return options;
 				},
@@ -133,9 +105,7 @@ export class CrudConfigModule {
 			useFactory: async (optionsFactory: ICrudConfigPropertiesFactory): Promise<ICrudConfigProperties> => {
 				const options = await optionsFactory.createOptions();
 
-				// Apply entity configurations once options are resolved
-				ConfigSection.updateEntityOptions(options);
-				ConfigData.updateEntityOptions(options);
+				// Entity configurations are now handled in CrudConfigFullDynamicModule
 
 				return options;
 			},

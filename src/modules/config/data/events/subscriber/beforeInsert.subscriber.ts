@@ -1,8 +1,9 @@
+// Note: This subscriber is designed to work with dynamic entities
+// The actual entity type will be determined at runtime
 import type { EntitySubscriberInterface, InsertEvent } from "typeorm";
 
 import { EErrorStringAction } from "@elsikora/nestjs-crud-automator";
 import { ErrorString } from "@elsikora/nestjs-crud-automator";
-import { ConfigData } from "@modules/config/data/entity/data.entity";
 import { HttpException, Inject, InternalServerErrorException } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { DataSource, EventSubscriber } from "typeorm";
@@ -11,9 +12,10 @@ import ConfigDataEventBeforeInsert from "../event/beforeInsert.event";
 
 /**
  * TypeORM subscriber for ConfigData beforeInsert event
+ * Note: Works with dynamically generated entities
  */
 @EventSubscriber()
-export default class ConfigDataBeforeInsertSubscriber implements EntitySubscriberInterface<ConfigData> {
+export default class ConfigDataBeforeInsertSubscriber implements EntitySubscriberInterface<any> {
 	constructor(
 		private readonly eventEmitter: EventEmitter2,
 		@Inject(DataSource) readonly connection: DataSource,
@@ -27,8 +29,8 @@ export default class ConfigDataBeforeInsertSubscriber implements EntitySubscribe
 	 * @param event The TypeORM event object
 	 * @returns Promise resolving to boolean indicating success
 	 */
-	beforeInsert(event: InsertEvent<ConfigData>): Promise<boolean> {
-		const configdata: ConfigData = event.entity;
+	beforeInsert(event: InsertEvent<any>): Promise<boolean> {
+		const configdata: any = event.entity;
 
 		// Create event payload
 		const payload: ConfigDataEventBeforeInsert = new ConfigDataEventBeforeInsert();
@@ -52,7 +54,8 @@ export default class ConfigDataBeforeInsertSubscriber implements EntitySubscribe
 
 					throw new InternalServerErrorException(
 						ErrorString({
-							entity: ConfigData,
+							// Using dynamic entity type
+							entity: event.entity.constructor,
 							type: EErrorStringAction.CREATING_ERROR,
 						}),
 					);
@@ -65,8 +68,12 @@ export default class ConfigDataBeforeInsertSubscriber implements EntitySubscribe
 
 	/**
 	 * Specify which entity this subscriber listens to
+	 * Note: Returns undefined to listen to all entities
+	 * The actual filtering will be done at runtime
 	 */
-	listenTo(): typeof ConfigData {
-		return ConfigData;
+	listenTo(): any {
+		// Return undefined to subscribe to all entities
+		// Filtering will be handled at runtime based on the entity type
+		return undefined;
 	}
 }

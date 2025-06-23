@@ -1,3 +1,2 @@
-export * from "./entity";
-export { ConfigSectionModule } from "./section.module";
-export { ConfigSectionService } from "./section.service";
+// This file is no longer needed since we use dynamic entities
+// Previously exported static entities have been removed

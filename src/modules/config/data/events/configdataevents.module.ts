@@ -1,6 +1,7 @@
+// Note: This module is designed to work with dynamic entities
+// The actual entity types and services will be determined at runtime
 import { ConfigDataController } from "@modules/config/data/data.controller";
 import { ConfigDataService } from "@modules/config/data/data.service";
-import { ConfigData } from "@modules/config/data/entity/data.entity";
 import { Module } from "@nestjs/common";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { TypeOrmModule } from "@nestjs/typeorm";
@@ -15,7 +16,8 @@ import ConfigDataBeforeInsertSubscriber from "./subscriber/beforeInsert.subscrib
 	controllers: [ConfigDataController],
 	exports: [ConfigDataService],
 	imports: [
-		TypeOrmModule.forFeature([ConfigData]),
+		// Note: Dynamic entities will be registered at runtime
+		// TypeOrmModule.forFeature() will be configured dynamically
 		// Register EventEmitterModule if not already registered in the app module
 		EventEmitterModule.forRoot({
 			// Configure other options as needed

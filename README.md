@@ -246,7 +246,13 @@ The `CrudConfigModule` accepts the following configuration options:
 
 **Note:** The module reuses the database connection from the parent application but registers its own entities. You don't need to include the config entities in your TypeORM configuration.
 
-**Important Note about Table Names:** The `tableName` customization in `entityOptions` only applies at application startup due to how TypeORM processes entity decorators. For scenarios requiring fully dynamic table names, you'll need to use TypeORM's `EntitySchema` approach instead.
+**Important Note about Table Names:** The `tableName` customization in `entityOptions` only applies at application startup due to how TypeORM processes entity decorators. For scenarios requiring fully dynamic table names at runtime, use the `CrudConfigDynamicModule` instead of the standard `CrudConfigModule`.
+
+**Dynamic Entities with Full Decorator Support:** The `CrudConfigDynamicModule` creates entities with full support for decorators including:
+- ✅ TypeORM decorators (@Entity, @Column, @ManyToOne, etc.)
+- ✅ ApiPropertyDescribe decorators for OpenAPI/Swagger documentation
+- ✅ Custom decorators for your specific needs
+- ✅ Proper metadata reflection for all decorators
 
 ## 📘 API Reference
 
