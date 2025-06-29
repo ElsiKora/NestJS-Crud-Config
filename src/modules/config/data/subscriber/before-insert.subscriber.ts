@@ -1,24 +1,26 @@
+import type { IConfigData } from "@modules/config/data";
 // Note: This subscriber is designed to work with dynamic entities
 // The actual entity type will be determined at runtime
 import type { EntitySubscriberInterface, InsertEvent } from "typeorm";
 
 import { EErrorStringAction } from "@elsikora/nestjs-crud-automator";
 import { ErrorString } from "@elsikora/nestjs-crud-automator";
+import { ConfigDataEventBeforeInsert } from "@modules/config/data";
 import { HttpException, Inject, InternalServerErrorException } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
+import { TOKEN_CONSTANT } from "@shared/constant";
 import { DataSource, EventSubscriber } from "typeorm";
-
-import ConfigDataEventBeforeInsert from "../event/beforeInsert.event";
 
 /**
  * TypeORM subscriber for ConfigData beforeInsert event
  * Note: Works with dynamically generated entities
  */
 @EventSubscriber()
-export default class ConfigDataBeforeInsertSubscriber implements EntitySubscriberInterface<any> {
+export class ConfigDataBeforeInsertSubscriber implements EntitySubscriberInterface<IConfigData> {
 	constructor(
 		private readonly eventEmitter: EventEmitter2,
 		@Inject(DataSource) readonly connection: DataSource,
+		@Inject(TOKEN_CONSTANT.CONFIG_DATA_SERVICE) readonly entity: IConfigData,
 	) {
 		// Register this subscriber with the DataSource
 		connection.subscribers.push(this);
@@ -29,23 +31,19 @@ export default class ConfigDataBeforeInsertSubscriber implements EntitySubscribe
 	 * @param event The TypeORM event object
 	 * @returns Promise resolving to boolean indicating success
 	 */
-	beforeInsert(event: InsertEvent<any>): Promise<boolean> {
-		const configdata: any = event.entity;
+	beforeInsert(event: InsertEvent<IConfigData>): Promise<boolean> {
+		const item: IConfigData = event.entity;
 
-		// Create event payload
 		const payload: ConfigDataEventBeforeInsert = new ConfigDataEventBeforeInsert();
-		payload.item = configdata;
+		payload.item = item;
 		payload.eventManager = event.manager;
 
-		// Emit event asynchronously and process results
 		return this.eventEmitter
-			.emitAsync("configdataevents.beforeInsert", payload)
+			.emitAsync("config-data.beforeInsert", payload)
 			.then((result: Array<{ error?: unknown; isSuccess: boolean }>) => {
-				// Check if all listeners succeeded
 				if (result.every((item: { error?: unknown; isSuccess: boolean }) => item.isSuccess)) {
 					return true;
 				} else {
-					// Find first error
 					const error: unknown = result.find((item: { error?: unknown; isSuccess: boolean }) => !item.isSuccess)?.error;
 
 					if (error instanceof HttpException) {
@@ -54,8 +52,7 @@ export default class ConfigDataBeforeInsertSubscriber implements EntitySubscribe
 
 					throw new InternalServerErrorException(
 						ErrorString({
-							// Using dynamic entity type
-							entity: event.entity.constructor,
+							entity: event.entity,
 							type: EErrorStringAction.CREATING_ERROR,
 						}),
 					);
@@ -71,6 +68,7 @@ export default class ConfigDataBeforeInsertSubscriber implements EntitySubscribe
 	 * Note: Returns undefined to listen to all entities
 	 * The actual filtering will be done at runtime
 	 */
+	// eslint-disable-next-line @elsikora/typescript/no-explicit-any
 	listenTo(): any {
 		// Return undefined to subscribe to all entities
 		// Filtering will be handled at runtime based on the entity type

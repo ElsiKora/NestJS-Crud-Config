@@ -44,6 +44,7 @@ const config = {
 		"test",
 		"tests",
 		".rollup.cache",
+		"examples/**/*",
 	],
 };
 

@@ -1,0 +1,10 @@
+{
+  "version": "v1",
+  "packages": {
+    "@elsikora/nestjs-crud-automator": {
+      "signature": "d15c30224016e1915ab052a9bf8f8c72",
+      "file": true,
+      "replaced": "^1.10.3"
+    }
+  }
+}

@@ -7,26 +7,26 @@ This guide explains how to properly set up the NestJS CRUD Config module with dy
 When using dynamic entities, you MUST configure TypeORM to include the dynamic entities. The module provides a static method to get the entities:
 
 ```typescript
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { CrudConfigFullDynamicModule } from '@modules/config';
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { CrudConfigFullDynamicModule } from "@modules/config";
 
 // First, register the CrudConfigFullDynamicModule to initialize entities
 const configOptions = {
-  entityOptions: {
-    tablePrefix: 'app_',
-    configSection: {
-      tableName: 'config_sections',
-      maxNameLength: 255,
-      maxDescriptionLength: 1000,
-    },
-    configData: {
-      tableName: 'config_data',
-      maxNameLength: 255,
-      maxValueLength: 10000,
-      maxEnvironmentLength: 50,
-      maxDescriptionLength: 1000,
-    },
-  },
+	entityOptions: {
+		tablePrefix: "app_",
+		configSection: {
+			tableName: "config_sections",
+			maxNameLength: 255,
+			maxDescriptionLength: 1000,
+		},
+		configData: {
+			tableName: "config_data",
+			maxNameLength: 255,
+			maxValueLength: 10000,
+			maxEnvironmentLength: 50,
+			maxDescriptionLength: 1000,
+		},
+	},
 };
 
 // Initialize the module first (this creates the entities)
@@ -34,22 +34,22 @@ CrudConfigFullDynamicModule.register(configOptions);
 
 // Then use the entities in TypeORM configuration
 @Module({
-  imports: [
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'user',
-      password: 'password',
-      database: 'mydb',
-      entities: [
-        ...CrudConfigFullDynamicModule.getEntities(), // Add dynamic entities
-        // ... your other entities
-      ],
-      synchronize: true,
-    }),
-    CrudConfigFullDynamicModule.register(configOptions), // Register the module
-  ],
+	imports: [
+		TypeOrmModule.forRoot({
+			type: "postgres",
+			host: "localhost",
+			port: 5432,
+			username: "user",
+			password: "password",
+			database: "mydb",
+			entities: [
+				...CrudConfigFullDynamicModule.getEntities(), // Add dynamic entities
+				// ... your other entities
+			],
+			synchronize: true,
+		}),
+		CrudConfigFullDynamicModule.register(configOptions), // Register the module
+	],
 })
 export class AppModule {}
 ```
@@ -60,39 +60,39 @@ If you need to configure TypeORM before the module is registered, use a getter f
 
 ```typescript
 @Module({
-  imports: [
-    TypeOrmModule.forRootAsync({
-      useFactory: () => {
-        // Initialize entities first
-        const configOptions = {
-          entityOptions: {
-            tablePrefix: 'app_',
-            // ... your config
-          },
-        };
-        
-        // This initializes the entities internally
-        CrudConfigFullDynamicModule.register(configOptions);
-        
-        return {
-          type: 'postgres',
-          host: 'localhost',
-          port: 5432,
-          username: 'user',
-          password: 'password',
-          database: 'mydb',
-          entities: [
-            ...CrudConfigFullDynamicModule.getEntities(),
-            // ... your other entities
-          ],
-          synchronize: true,
-        };
-      },
-    }),
-    CrudConfigFullDynamicModule.register({
-      // Same config as above
-    }),
-  ],
+	imports: [
+		TypeOrmModule.forRootAsync({
+			useFactory: () => {
+				// Initialize entities first
+				const configOptions = {
+					entityOptions: {
+						tablePrefix: "app_",
+						// ... your config
+					},
+				};
+
+				// This initializes the entities internally
+				CrudConfigFullDynamicModule.register(configOptions);
+
+				return {
+					type: "postgres",
+					host: "localhost",
+					port: 5432,
+					username: "user",
+					password: "password",
+					database: "mydb",
+					entities: [
+						...CrudConfigFullDynamicModule.getEntities(),
+						// ... your other entities
+					],
+					synchronize: true,
+				};
+			},
+		}),
+		CrudConfigFullDynamicModule.register({
+			// Same config as above
+		}),
+	],
 })
 export class AppModule {}
 ```

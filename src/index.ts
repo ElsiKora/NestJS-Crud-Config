@@ -12,15 +12,7 @@
 export * from "./modules/config";
 
 // Export constants and enums
-export * from "./shared/constant/config";
+export * from "./shared";
 
 export * from "./shared/enum";
-
-// Export interfaces
 export type * from "./shared/interface/config";
-
-// Export dynamic entity factories
-export * from "./shared/factory";
-
-// Export providers
-export * from "./shared/provider";

@@ -47,7 +47,7 @@
 		}
 	},
 	"dependencies": {
-		"@elsikora/nestjs-crud-automator": "^1.10.3",
+		"@elsikora/nestjs-crud-automator": "file:.yalc/@elsikora/nestjs-crud-automator",
 		"@nestjs/cache-manager": "^3.0.1",
 		"@nestjs/event-emitter": "^3.0.1"
 	},
