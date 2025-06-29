@@ -202,6 +202,53 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 export class AppModule {}
 ```
 
+### Encryption Support
+
+The module provides built-in AES-256-GCM encryption for sensitive configuration values:
+
+```typescript
+// Enable encryption globally
+CrudConfigModule.register({
+  shouldEncryptValues: true,
+  encryptionKey: process.env.CONFIG_ENCRYPTION_KEY, // 32+ character key
+  // ... other options
+})
+
+// Or use encryption selectively
+await configService.set({
+  section: 'database',
+  name: 'DB_PASSWORD',
+  shouldEncrypt: true, // Encrypt this specific value
+}, 'my-secret-password');
+
+// Retrieve and decrypt automatically
+const config = await configService.get({
+  section: 'database',
+  name: 'DB_PASSWORD',
+  shouldDecrypt: true, // Default is true
+});
+
+console.log(config.value); // Decrypted value
+console.log(config.isEncrypted); // true
+```
+
+#### Encryption Features
+
+- **AES-256-GCM encryption**: Industry-standard encryption with authentication
+- **Automatic encryption/decryption**: Seamless integration with get/set operations  
+- **Selective encryption**: Encrypt only sensitive values to optimize performance
+- **Key derivation**: Uses scrypt for secure key derivation with unique salts
+- **Safe storage**: Encrypted values are stored as base64-encoded strings
+
+#### Best Practices
+
+1. **Never hardcode encryption keys** - Use environment variables or secret managers
+2. **Use different keys per environment** - Separate keys for dev, staging, production
+3. **Encrypt only sensitive data** - Passwords, API keys, tokens, etc.
+4. **Set appropriate field lengths** - Encrypted values are ~2x longer than plaintext
+
+See the [encryption example](examples/encryption.example.ts) for detailed usage patterns.
+
 ### Working with Multiple Environments
 
 ```typescript
@@ -337,7 +384,7 @@ CREATE TABLE app_config_data (
 | Validation and constraints | ✅ Done |
 | NestJS CRUD Automator integration | ✅ Done |
 | TypeScript interfaces and types | ✅ Done |
-| Configuration encryption support | 🚧 In Progress |
+| Configuration encryption support | ✅ Done |
 | GraphQL API endpoints | 🚧 In Progress |
 | Configuration versioning and history | 🚧 In Progress |
 | Role-based access control (RBAC) | 🚧 In Progress |
@@ -395,7 +442,7 @@ async function migrateFromEnvVars() {
 
 ### How do I handle sensitive configuration data?
 
-The module provides built-in encryption support:
+The module provides built-in AES-256-GCM encryption support:
 
 ```typescript
 CrudConfigModule.register({
@@ -405,7 +452,23 @@ CrudConfigModule.register({
 })
 ```
 
-Sensitive values are automatically encrypted before storage and decrypted when retrieved.
+Sensitive values are automatically encrypted before storage and decrypted when retrieved. You can also encrypt specific values:
+
+```typescript
+// Encrypt specific value
+await configService.set({
+  section: 'api',
+  name: 'SECRET_KEY',
+  shouldEncrypt: true,
+}, 'my-secret-value');
+
+// Retrieve without decryption
+const encrypted = await configService.get({
+  section: 'api',
+  name: 'SECRET_KEY',
+  shouldDecrypt: false,
+});
+```
 
 ### Can I use this with microservices?
 
