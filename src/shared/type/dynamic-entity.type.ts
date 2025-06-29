@@ -1,1 +1,1 @@
-export type TDynamicEntity<T = any> = new (...arguments_: Array<any>) => T;
+export type TDynamicEntity<T = object> = new (...arguments_: Array<unknown>) => T;

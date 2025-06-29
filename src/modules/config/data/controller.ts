@@ -6,8 +6,8 @@ import { TDynamicEntity } from "@shared/type";
 
 /**
  * Factory to create dynamic ConfigData controller with the correct entity
- * @param entity The entity type to create controller for
- * @returns The dynamic controller class
+ * @param {TDynamicEntity} entity The entity type to create controller for
+ * @returns {Type} The dynamic controller class
  */
 export function createDynamicDataController(entity: TDynamicEntity): Type {
 	const config: IApiControllerProperties<typeof entity> = {

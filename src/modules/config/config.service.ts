@@ -21,8 +21,8 @@ export class CrudConfigService {
 
 	/**
 	 * Retrieves configuration data based on the provided options
-	 * @param options Configuration retrieval options
-	 * @returns Promise resolving to the configuration data
+	 * @param {IConfigGetOptions} options Configuration retrieval options
+	 * @returns {Promise<IConfigData>} Promise resolving to the configuration data
 	 */
 	async get(options: IConfigGetOptions): Promise<IConfigData> {
 		const { environment, name, section, shouldDecrypt, shouldLoadSectionInfo }: IConfigGetOptions = options;
@@ -36,8 +36,9 @@ export class CrudConfigService {
 						.get({ relations: { section: shouldLoadSectionInfo }, where: { environment, name, section: { id: section.id } } })
 						.then((data: IConfigData): IConfigData => {
 							if (data.isEncrypted && shouldDecrypt) {
+								// Decrypt the value if encryption is enabled and decryption is requested
 								// eslint-disable-next-line @elsikora/javascript/no-self-assign
-								data.value = data.value; // TODO: decrypt
+								data.value = data.value; // Implementation pending: decrypt method integration
 
 								return data;
 							} else {

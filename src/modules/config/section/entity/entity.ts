@@ -7,11 +7,12 @@ import { createDynamicEntityClass } from "@shared/utility";
 import { CreateDateColumn, UpdateDateColumn } from "typeorm";
 
 /**
- *
- * @param options
- * @param options.maxDescriptionLength
- * @param options.maxNameLength
- * @param options.tableName
+ * Creates a dynamic ConfigSection entity with TypeORM decorators
+ * @param {object} options - Configuration options for the entity
+ * @param {number} options.maxDescriptionLength - Maximum length for description field
+ * @param {number} options.maxNameLength - Maximum length for name field
+ * @param {string} options.tableName - Name of the database table
+ * @returns {TDynamicEntity} Dynamically created ConfigSection entity class
  */
 export function createConfigSectionEntity(options: { maxDescriptionLength: number; maxNameLength: number; tableName: string }): TDynamicEntity {
 	return createDynamicEntityClass({
@@ -44,7 +45,7 @@ export function createConfigSectionEntity(options: { maxDescriptionLength: numbe
 					format: EApiPropertyDateType.DATE_TIME,
 					identifier: EApiPropertyDateIdentifier.CREATED_AT,
 					type: EApiPropertyDescribeType.DATE,
-				}),
+				}) as PropertyDecorator,
 			],
 			description: [
 				ApiPropertyDescribe({
@@ -56,12 +57,12 @@ export function createConfigSectionEntity(options: { maxDescriptionLength: numbe
 					minLength: API_PROPERTY_CONSTRAINTS.MIN_NAME_LENGTH,
 					pattern: `/.{1,${options.maxDescriptionLength}}/`,
 					type: EApiPropertyDescribeType.STRING,
-				}),
+				}) as PropertyDecorator,
 			],
 			id: [
 				ApiPropertyDescribe({
 					type: EApiPropertyDescribeType.UUID,
-				}),
+				}) as PropertyDecorator,
 			],
 			name: [
 				ApiPropertyDescribe({
@@ -72,7 +73,7 @@ export function createConfigSectionEntity(options: { maxDescriptionLength: numbe
 					minLength: API_PROPERTY_CONSTRAINTS.MIN_NAME_LENGTH,
 					pattern: `/^[a-z0-9-]{1,${options.maxNameLength}}/`,
 					type: EApiPropertyDescribeType.STRING,
-				}),
+				}) as PropertyDecorator,
 			],
 			updatedAt: [
 				UpdateDateColumn(),
@@ -80,7 +81,7 @@ export function createConfigSectionEntity(options: { maxDescriptionLength: numbe
 					format: EApiPropertyDateType.DATE_TIME,
 					identifier: EApiPropertyDateIdentifier.UPDATED_AT,
 					type: EApiPropertyDescribeType.DATE,
-				}),
+				}) as PropertyDecorator,
 			],
 		},
 		name: "ConfigSection",

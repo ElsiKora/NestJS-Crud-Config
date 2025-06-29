@@ -6,10 +6,9 @@ import { Repository } from "typeorm";
 
 /**
  * Factory to create dynamic service classes with the correct entity decorator
- * @param entity The entity type to create service for
- * @param serviceName The name for the service class
- * @param name
- * @returns The dynamic service class
+ * @param {TDynamicEntity} entity The entity type to create service for
+ * @param {string} name The name for the service class
+ * @returns {Type} The dynamic service class
  */
 export function createDynamicService(entity: TDynamicEntity, name: string): Type {
 	@ApiService({ entity })

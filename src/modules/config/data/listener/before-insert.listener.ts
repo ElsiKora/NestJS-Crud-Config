@@ -15,8 +15,8 @@ export class ConfigDataBeforeInsertListener {
 
 	/**
 	 * Handle configdataevents.beforeInsert event
-	 * @param payload Event payload
-	 * @returns Object indicating success or failure
+	 * @param {ConfigDataEventBeforeInsert} payload Event payload
+	 * @returns {Promise<{ error?: unknown; isSuccess: boolean }>} Object indicating success or failure
 	 */
 	@OnEvent("config-data.beforeInsert")
 	async handleBeforeInsert(payload: ConfigDataEventBeforeInsert): Promise<{ error?: unknown; isSuccess: boolean }> {

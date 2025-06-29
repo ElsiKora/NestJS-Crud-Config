@@ -28,8 +28,8 @@ export class ConfigDataBeforeInsertSubscriber implements EntitySubscriberInterfa
 
 	/**
 	 * Handle the beforeInsert event
-	 * @param event The TypeORM event object
-	 * @returns Promise resolving to boolean indicating success
+	 * @param {InsertEvent<IConfigData>} event - The TypeORM insert event
+	 * @returns {Promise<boolean>} Promise resolving to boolean indicating success
 	 */
 	beforeInsert(event: InsertEvent<IConfigData>): Promise<boolean> {
 		const item: IConfigData = event.entity;
@@ -50,12 +50,8 @@ export class ConfigDataBeforeInsertSubscriber implements EntitySubscriberInterfa
 						throw error;
 					}
 
-					throw new InternalServerErrorException(
-						ErrorString({
-							entity: event.entity,
-							type: EErrorStringAction.CREATING_ERROR,
-						}),
-					);
+					// @ts-ignore - EErrorStringAction import issue with yalc package
+					throw new InternalServerErrorException(ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.CREATING_ERROR }));
 				}
 			})
 			.catch((error: unknown) => {
@@ -67,6 +63,7 @@ export class ConfigDataBeforeInsertSubscriber implements EntitySubscriberInterfa
 	 * Specify which entity this subscriber listens to
 	 * Note: Returns undefined to listen to all entities
 	 * The actual filtering will be done at runtime
+	 * @returns {any} The entity class or undefined to listen to all entities
 	 */
 	// eslint-disable-next-line @elsikora/typescript/no-explicit-any
 	listenTo(): any {

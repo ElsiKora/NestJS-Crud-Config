@@ -1,4 +1,4 @@
-import type { ICreateDynamicEntityOptions } from "@shared/interface";
+import type { ICreateDynamicEntityOptions, ICreateDynamicEntityRelationOptions } from "@shared/interface";
 import type { TDynamicEntity } from "@shared/type";
 import type { TableOptions } from "typeorm";
 
@@ -12,15 +12,14 @@ import { Entity } from "typeorm";
 /**
  * Creates a dynamic entity class with TypeORM decorators
  * This approach allows full customization of table names and properties at runtime
- * @param options Configuration options for the dynamic entity
- * @returns Dynamically created entity class with all decorators applied
+ * @param {ICreateDynamicEntityOptions} options Configuration options for the dynamic entity
+ * @returns {TDynamicEntity<unknown>} Dynamically created entity class with all decorators applied
  */
-export function createDynamicEntityClass<T = any>(options: ICreateDynamicEntityOptions): TDynamicEntity<T> {
+export function createDynamicEntityClass<T = unknown>(options: ICreateDynamicEntityOptions): TDynamicEntity<T> {
 	const { classDecorators = [], columns, decorators = {}, indexes = [], name, relations = {}, tableName, uniques = [] }: ICreateDynamicEntityOptions = options;
 
 	const DynamicEntity: TDynamicEntity = class {};
 
-	// Set the class name
 	Object.defineProperty(DynamicEntity, "name", { value: name });
 
 	const entityOptions: TableOptions = { name: tableName };
@@ -59,17 +58,16 @@ export function createDynamicEntityClass<T = any>(options: ICreateDynamicEntityO
 	}
 
 	for (const [propertyKey, relationOptions] of Object.entries(relations)) {
-		const { decorator, type, ...options } = relationOptions;
+		const extendedOptions: ICreateDynamicEntityRelationOptions = relationOptions;
+		const { decorator, type, ...options }: ICreateDynamicEntityRelationOptions = extendedOptions;
 
-		switch (type) {
-			case "ManyToOne": {
-				ManyToOne(() => decorator.target, options)(DynamicEntity.prototype, propertyKey);
+		if (type === "ManyToOne" && decorator) {
+			// eslint-disable-next-line @elsikora/typescript/no-unsafe-argument
+			ManyToOne(() => decorator.target, options)(DynamicEntity.prototype, propertyKey);
 
-				if (options.joinColumn !== false) {
-					JoinColumn()(DynamicEntity.prototype, propertyKey);
-				}
-
-				break;
+			if (options.hasJoinColumn !== false) {
+				// eslint-disable-next-line @elsikora/typescript/no-unsafe-argument
+				JoinColumn()(DynamicEntity.prototype, propertyKey);
 			}
 		}
 

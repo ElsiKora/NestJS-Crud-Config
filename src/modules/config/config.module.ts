@@ -11,7 +11,7 @@ import { TOKEN_CONSTANT } from "@shared/constant";
 import { CONFIG_DATA_DEFAULTS, CONFIG_SECTION_DEFAULTS } from "@shared/constant/config";
 import { ICrudConfigAsyncModuleProperties, ICrudConfigProperties, ICrudConfigPropertiesFactory } from "@shared/interface/config";
 import { TDynamicEntity } from "@shared/type";
-import { createDynamicService } from "@shared/utility/create-dynamic-service.utility";
+import { createDynamicService } from "@shared/utility";
 import { DataSource } from "typeorm";
 
 import { CrudConfigService } from "./config.service";
@@ -29,11 +29,10 @@ let globalDataEntity: null | TDynamicEntity = null;
 @Global()
 @Module({})
 export class CrudConfigModule implements OnModuleInit {
-	constructor() {}
-
 	/**
 	 * Initialize and get the dynamic entities (for use in TypeORM configuration)
-	 * @param options - The configuration options (optional if already registered)
+	 * @param {ICrudConfigProperties} [options] - The configuration options (optional if already registered)
+	 * @returns {Array<TDynamicEntity>} Array of dynamic entities
 	 */
 	public static getEntities(options?: ICrudConfigProperties): Array<TDynamicEntity> {
 		if (!globalSectionEntity || !globalDataEntity) {
@@ -65,8 +64,8 @@ export class CrudConfigModule implements OnModuleInit {
 
 	/**
 	 * Registers the module with full dynamic entity support including ApiPropertyDescribe
-	 * @param options Configuration options for the module
-	 * @returns Dynamic module configuration
+	 * @param {ICrudConfigProperties} options Configuration options for the module
+	 * @returns {DynamicModule} Dynamic module configuration
 	 */
 	public static register(options: ICrudConfigProperties): DynamicModule {
 		const prefix: string = options.entityOptions?.tablePrefix ?? "";
@@ -161,11 +160,11 @@ export class CrudConfigModule implements OnModuleInit {
 
 	/**
 	 * Registers the module asynchronously
-	 * @param properties Async configuration options
-	 * @returns Dynamic module configuration
+	 * @param {ICrudConfigAsyncModuleProperties} properties Async configuration options
+	 * @returns {DynamicModule} Dynamic module configuration
 	 */
 	public static registerAsync(properties: ICrudConfigAsyncModuleProperties): DynamicModule {
-		const configPropertiesProvider = this.createAsyncOptionsProvider(properties);
+		const configPropertiesProvider: Provider = this.createAsyncOptionsProvider(properties);
 
 		const dynamicProvidersFactory: Provider = {
 			inject: [TOKEN_CONSTANT.CONFIG_PROPERTIES],
@@ -194,8 +193,8 @@ export class CrudConfigModule implements OnModuleInit {
 
 	/**
 	 * Creates an async options provider based on the configuration properties
-	 * @param properties Async configuration properties
-	 * @returns Provider configuration
+	 * @param {ICrudConfigAsyncModuleProperties} properties Async configuration properties
+	 * @returns {Provider} Provider configuration
 	 */
 	private static createAsyncOptionsProvider(properties: ICrudConfigAsyncModuleProperties): Provider {
 		if (properties.useFactory) {
@@ -206,7 +205,7 @@ export class CrudConfigModule implements OnModuleInit {
 			};
 		}
 
-		const inject: Type<ICrudConfigPropertiesFactory> | undefined = properties.useExisting || properties.useClass;
+		const inject: Type<ICrudConfigPropertiesFactory> | undefined = properties.useExisting ?? properties.useClass;
 
 		return {
 			inject: inject ? [inject] : [],

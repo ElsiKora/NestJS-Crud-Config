@@ -1,1 +1,1 @@
-export { createDynamicEntityClass } from "./create-dynamic-entity.utility";
+export * from "./create-dynamic";

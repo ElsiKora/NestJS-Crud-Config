@@ -9,11 +9,11 @@ import type { ICrudConfigProperties } from "./properties.interface";
  */
 export interface ICrudConfigAsyncModuleProperties extends Pick<ModuleMetadata, "imports"> {
 	/** Optional array of dependencies to be injected into the factory function or class */
-	inject?: Array<any>;
+	inject?: Array<string | symbol | Type<unknown>>;
 	/** Optional class that implements ICrudConfigPropertiesFactory to be instantiated */
 	useClass?: Type<ICrudConfigPropertiesFactory>;
 	/** Optional existing provider implementing ICrudConfigPropertiesFactory to be used */
 	useExisting?: Type<ICrudConfigPropertiesFactory>;
 	/** Optional factory function that returns configuration properties */
-	useFactory?: (...arguments_: Array<any>) => ICrudConfigProperties | Promise<ICrudConfigProperties>;
+	useFactory?: (...arguments_: Array<unknown>) => ICrudConfigProperties | Promise<ICrudConfigProperties>;
 }

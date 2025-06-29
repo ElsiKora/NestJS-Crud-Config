@@ -7,14 +7,15 @@ import { createDynamicEntityClass } from "@shared/utility";
 import { CreateDateColumn, UpdateDateColumn } from "typeorm";
 
 /**
- *
- * @param options
- * @param options.configSectionEntity
- * @param options.maxDescriptionLength
- * @param options.maxEnvironmentLength
- * @param options.maxNameLength
- * @param options.maxValueLength
- * @param options.tableName
+ * Creates a dynamic ConfigData entity with TypeORM decorators
+ * @param {object} options - Configuration options for the entity
+ * @param {TDynamicEntity} options.configSectionEntity - The ConfigSection entity to create relation with
+ * @param {number} options.maxDescriptionLength - Maximum length for description field
+ * @param {number} options.maxEnvironmentLength - Maximum length for environment field
+ * @param {number} options.maxNameLength - Maximum length for name field
+ * @param {number} options.maxValueLength - Maximum length for value field
+ * @param {string} options.tableName - Name of the database table
+ * @returns {TDynamicEntity} Dynamically created ConfigData entity class
  */
 export function createConfigDataEntity(options: { configSectionEntity: TDynamicEntity; maxDescriptionLength: number; maxEnvironmentLength: number; maxNameLength: number; maxValueLength: number; tableName: string }): TDynamicEntity {
 	return createDynamicEntityClass({
@@ -62,7 +63,7 @@ export function createConfigDataEntity(options: { configSectionEntity: TDynamicE
 					format: EApiPropertyDateType.DATE_TIME,
 					identifier: EApiPropertyDateIdentifier.CREATED_AT,
 					type: EApiPropertyDescribeType.DATE,
-				}),
+				}) as PropertyDecorator,
 			],
 			description: [
 				ApiPropertyDescribe({
@@ -74,7 +75,7 @@ export function createConfigDataEntity(options: { configSectionEntity: TDynamicE
 					minLength: API_PROPERTY_CONSTRAINTS.MIN_STRING_LENGTH,
 					pattern: `/.{0,${options.maxDescriptionLength}}/`,
 					type: EApiPropertyDescribeType.STRING,
-				}),
+				}) as PropertyDecorator,
 			],
 			environment: [
 				ApiPropertyDescribe({
@@ -85,18 +86,18 @@ export function createConfigDataEntity(options: { configSectionEntity: TDynamicE
 					minLength: API_PROPERTY_CONSTRAINTS.MIN_NAME_LENGTH,
 					pattern: `/.{1,${options.maxEnvironmentLength}}/`,
 					type: EApiPropertyDescribeType.STRING,
-				}),
+				}) as PropertyDecorator,
 			],
 			id: [
 				ApiPropertyDescribe({
 					type: EApiPropertyDescribeType.UUID,
-				}),
+				}) as PropertyDecorator,
 			],
 			isEncrypted: [
 				ApiPropertyDescribe({
 					description: "isEncrypted",
 					type: EApiPropertyDescribeType.BOOLEAN,
-				}),
+				}) as PropertyDecorator,
 			],
 			name: [
 				ApiPropertyDescribe({
@@ -107,13 +108,13 @@ export function createConfigDataEntity(options: { configSectionEntity: TDynamicE
 					minLength: API_PROPERTY_CONSTRAINTS.MIN_NAME_LENGTH,
 					pattern: `/^[A-Za-z0-9_-]{1,${options.maxNameLength}}/`,
 					type: EApiPropertyDescribeType.STRING,
-				}),
+				}) as PropertyDecorator,
 			],
 			section: [
 				ApiPropertyDescribe({
 					description: "section",
 					type: EApiPropertyDescribeType.RELATION,
-				}),
+				}) as PropertyDecorator,
 			],
 			updatedAt: [
 				UpdateDateColumn(),
@@ -121,7 +122,7 @@ export function createConfigDataEntity(options: { configSectionEntity: TDynamicE
 					format: EApiPropertyDateType.DATE_TIME,
 					identifier: EApiPropertyDateIdentifier.UPDATED_AT,
 					type: EApiPropertyDescribeType.DATE,
-				}),
+				}) as PropertyDecorator,
 			],
 			value: [
 				ApiPropertyDescribe({
@@ -132,7 +133,7 @@ export function createConfigDataEntity(options: { configSectionEntity: TDynamicE
 					minLength: API_PROPERTY_CONSTRAINTS.MIN_STRING_LENGTH,
 					pattern: `/.{0,${options.maxValueLength}}/`,
 					type: EApiPropertyDescribeType.STRING,
-				}),
+				}) as PropertyDecorator,
 			],
 		},
 		name: "ConfigData",

@@ -1,1 +1,1 @@
-export type { ICreateDynamicEntityOptions } from "./create-dynamic-entity-options.interface";
+export type * from "./create-dynamic-entity";
