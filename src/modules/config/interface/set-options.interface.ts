@@ -1,3 +1,5 @@
+import type { EntityManager } from "typeorm/entity-manager/EntityManager";
+
 /**
  * Context options for configuration setting
  */
@@ -11,6 +13,11 @@ export interface IConfigSetOptions {
 	 * The environment for the configuration
 	 */
 	environment?: string;
+
+	/**
+	 * Entity manager for database operations
+	 */
+	eventManager?: EntityManager;
 
 	/**
 	 * The name of the configuration
@@ -28,7 +35,7 @@ export interface IConfigSetOptions {
 	section: string;
 
 	/**
-	 * Whether the value should be encrypted before saving
+	 * The value for the configuration
 	 */
-	shouldEncrypt?: boolean;
+	value: string;
 }

@@ -1,12 +1,12 @@
-import type { ICrudConfigProperties } from "./properties.interface";
+import type { IConfigOptions } from "@shared/interface";
 
 /**
  * Interface for a factory that creates Crud Config configuration properties.
  */
-export interface ICrudConfigPropertiesFactory {
+export interface IConfigPropertiesFactory {
 	/**
 	 * Creates configuration options for the Crud Config module.
-	 * @returns {ICrudConfigProperties | Promise<ICrudConfigProperties>} Configuration properties or a Promise resolving to properties
+	 * @returns {IConfigOptions | Promise<IConfigOptions>} Configuration properties or a Promise resolving to properties
 	 */
-	createOptions(): ICrudConfigProperties | Promise<ICrudConfigProperties>;
+	createOptions(): IConfigOptions | Promise<IConfigOptions>;
 }

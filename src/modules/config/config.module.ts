@@ -10,7 +10,7 @@ import { CacheModule } from "@nestjs/cache-manager";
 import { Global, Module } from "@nestjs/common";
 import { getDataSourceToken, getRepositoryToken } from "@nestjs/typeorm";
 import { CONFIG_DATA_CONSTANT, CONFIG_SECTION_CONSTANT, TOKEN_CONSTANT } from "@shared/constant";
-import { ICrudConfigAsyncModuleProperties, ICrudConfigProperties, ICrudConfigPropertiesFactory } from "@shared/interface/config";
+import { IConfigOptions, IConfigPropertiesFactory, ICrudConfigAsyncModuleProperties } from "@shared/interface/config";
 import { TDynamicEntity } from "@shared/type";
 import { createDynamicService } from "@shared/utility";
 import { DataSource } from "typeorm";
@@ -30,30 +30,11 @@ let globalDataEntity: null | TDynamicEntity = null;
 export class CrudConfigModule {
 	/**
 	 * Initialize and get the dynamic entities (for use in TypeORM configuration)
-	 * @param {ICrudConfigProperties} [options] - The configuration options (optional if already registered)
 	 * @returns {Array<TDynamicEntity>} Array of dynamic entities
 	 */
-	public static getEntities(options?: ICrudConfigProperties): Array<TDynamicEntity> {
+	public static getEntities(): Array<TDynamicEntity> {
 		if (!globalSectionEntity || !globalDataEntity) {
-			if (!options) {
-				throw new Error("CrudConfigModule must be registered before accessing entities, or provide options to initialize them");
-			}
-			const prefix: string = options.entityOptions?.tablePrefix ?? "";
-
-			globalSectionEntity = createConfigSectionEntity({
-				maxDescriptionLength: options.entityOptions?.configSection?.maxDescriptionLength ?? CONFIG_SECTION_CONSTANT.MAX_DESCRIPTION_LENGTH,
-				maxNameLength: options.entityOptions?.configSection?.maxNameLength ?? CONFIG_SECTION_CONSTANT.MAX_NAME_LENGTH,
-				tableName: prefix + (options.entityOptions?.configSection?.tableName ?? CONFIG_SECTION_CONSTANT.DEFAULT_TABLE_NAME),
-			});
-
-			globalDataEntity = createConfigDataEntity({
-				configSectionEntity: globalSectionEntity,
-				maxDescriptionLength: options.entityOptions?.configData?.maxDescriptionLength ?? CONFIG_DATA_CONSTANT.MAX_DESCRIPTION_LENGTH,
-				maxEnvironmentLength: options.entityOptions?.configData?.maxEnvironmentLength ?? CONFIG_DATA_CONSTANT.MAX_ENVIRONMENT_LENGTH,
-				maxNameLength: options.entityOptions?.configData?.maxNameLength ?? CONFIG_DATA_CONSTANT.MAX_NAME_LENGTH,
-				maxValueLength: options.entityOptions?.configData?.maxValueLength ?? CONFIG_DATA_CONSTANT.MAX_VALUE_LENGTH,
-				tableName: prefix + (options.entityOptions?.configData?.tableName ?? CONFIG_DATA_CONSTANT.DEFAULT_TABLE_NAME),
-			});
+			throw new Error("CrudConfigModule must be registered before accessing entities, or provide options to initialize them");
 		}
 
 		return [globalSectionEntity, globalDataEntity];
@@ -61,10 +42,10 @@ export class CrudConfigModule {
 
 	/**
 	 * Registers the module with full dynamic entity support including ApiPropertyDescribe
-	 * @param {ICrudConfigProperties} options Configuration options for the module
+	 * @param {IConfigOptions} options Configuration options for the module
 	 * @returns {DynamicModule} Dynamic module configuration
 	 */
-	public static register(options: ICrudConfigProperties): DynamicModule {
+	public static register(options: IConfigOptions): DynamicModule {
 		const prefix: string = options.entityOptions?.tablePrefix ?? "";
 
 		const sectionEntity: TDynamicEntity = createConfigSectionEntity({
@@ -86,7 +67,7 @@ export class CrudConfigModule {
 		globalDataEntity = dataEntity;
 
 		const propertiesProvider: Provider = {
-			provide: TOKEN_CONSTANT.CONFIG_PROPERTIES,
+			provide: TOKEN_CONSTANT.CONFIG_OPTIONS,
 			useValue: options,
 		};
 
@@ -161,9 +142,9 @@ export class CrudConfigModule {
 		const configPropertiesProvider: Provider = this.createAsyncOptionsProvider(properties);
 
 		const dynamicProvidersFactory: Provider = {
-			inject: [TOKEN_CONSTANT.CONFIG_PROPERTIES],
+			inject: [TOKEN_CONSTANT.CONFIG_OPTIONS],
 			provide: TOKEN_CONSTANT.DYNAMIC_PROVIDERS_FACTORY,
-			useFactory: (options: ICrudConfigProperties) => {
+			useFactory: (options: IConfigOptions) => {
 				return this.register(options);
 			},
 		};
@@ -178,7 +159,7 @@ export class CrudConfigModule {
 		}
 
 		return {
-			exports: [TOKEN_CONSTANT.CONFIG_PROPERTIES],
+			exports: [TOKEN_CONSTANT.CONFIG_OPTIONS],
 			imports: properties.imports ?? [],
 			module: CrudConfigModule,
 			providers,
@@ -194,17 +175,17 @@ export class CrudConfigModule {
 		if (properties.useFactory) {
 			return {
 				inject: properties.inject ?? [],
-				provide: TOKEN_CONSTANT.CONFIG_PROPERTIES,
+				provide: TOKEN_CONSTANT.CONFIG_OPTIONS,
 				useFactory: properties.useFactory,
 			};
 		}
 
-		const inject: Type<ICrudConfigPropertiesFactory> | undefined = properties.useExisting ?? properties.useClass;
+		const inject: Type<IConfigPropertiesFactory> | undefined = properties.useExisting ?? properties.useClass;
 
 		return {
 			inject: inject ? [inject] : [],
-			provide: TOKEN_CONSTANT.CONFIG_PROPERTIES,
-			useFactory: async (optionsFactory: ICrudConfigPropertiesFactory): Promise<ICrudConfigProperties> => {
+			provide: TOKEN_CONSTANT.CONFIG_OPTIONS,
+			useFactory: async (optionsFactory: IConfigPropertiesFactory): Promise<IConfigOptions> => {
 				return optionsFactory.createOptions();
 			},
 		};

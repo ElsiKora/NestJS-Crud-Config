@@ -7,7 +7,7 @@ export interface IConfigData {
 	id: string;
 	isEncrypted: boolean;
 	name: string;
-	section: IConfigSection;
+	section: IConfigSection | Partial<IConfigSection>;
 	updatedAt: Date;
 	value: string;
 }

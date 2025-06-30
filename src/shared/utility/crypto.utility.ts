@@ -1,20 +1,14 @@
+import type { CipherGCM, DecipherGCM } from "node:crypto";
+
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
+
+import { CRYPTO_CONSTANT } from "@shared/constant/crypto.constant";
 
 /**
  * Utility class for encrypting and decrypting configuration values
  * Uses AES-256-GCM for encryption with authentication
  */
 export class CryptoUtility {
-	private static readonly ALGORITHM = "aes-256-gcm";
-
-	private static readonly IV_LENGTH = 16;
-
-	private static readonly KEY_LENGTH = 32;
-
-	private static readonly SALT_LENGTH = 32;
-
-	private static readonly TAG_LENGTH = 16;
-
 	/**
 	 * Decrypts a value encrypted with AES-256-GCM
 	 * @param {string} encryptedValue - The encrypted value in format: salt:iv:authTag:encryptedData (base64 encoded)
@@ -24,25 +18,17 @@ export class CryptoUtility {
 	 */
 	public static decrypt(encryptedValue: string, encryptionKey: string): string {
 		try {
-			// Decode from base64
-			const combined = Buffer.from(encryptedValue, "base64");
+			const combined: Buffer = Buffer.from(encryptedValue, "base64");
+			const salt: Buffer = combined.subarray(0, CRYPTO_CONSTANT.SALT_LENGTH);
+			const iv: Buffer = combined.subarray(CRYPTO_CONSTANT.SALT_LENGTH, CRYPTO_CONSTANT.SALT_LENGTH + CRYPTO_CONSTANT.IV_LENGTH);
+			const authTag: Buffer = combined.subarray(CRYPTO_CONSTANT.SALT_LENGTH + CRYPTO_CONSTANT.IV_LENGTH, CRYPTO_CONSTANT.SALT_LENGTH + CRYPTO_CONSTANT.IV_LENGTH + CRYPTO_CONSTANT.TAG_LENGTH);
+			const encrypted: Buffer = combined.subarray(CRYPTO_CONSTANT.SALT_LENGTH + CRYPTO_CONSTANT.IV_LENGTH + CRYPTO_CONSTANT.TAG_LENGTH);
+			const key: Buffer = scryptSync(encryptionKey, salt, CRYPTO_CONSTANT.KEY_LENGTH);
+			const decipher: DecipherGCM = createDecipheriv(CRYPTO_CONSTANT.ALGORITHM, key, iv) as DecipherGCM;
 
-			// Extract components
-			const salt = combined.subarray(0, this.SALT_LENGTH);
-			const iv = combined.subarray(this.SALT_LENGTH, this.SALT_LENGTH + this.IV_LENGTH);
-
-			const authTag = combined.subarray(this.SALT_LENGTH + this.IV_LENGTH, this.SALT_LENGTH + this.IV_LENGTH + this.TAG_LENGTH);
-			const encrypted = combined.subarray(this.SALT_LENGTH + this.IV_LENGTH + this.TAG_LENGTH);
-
-			// Derive the key from the encryption key using the same salt
-			const key = scryptSync(encryptionKey, salt, this.KEY_LENGTH);
-
-			// Create decipher
-			const decipher = createDecipheriv(this.ALGORITHM, key, iv);
 			decipher.setAuthTag(authTag);
 
-			// Decrypt the value
-			const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+			const decrypted: Buffer = Buffer.concat([decipher.update(encrypted), decipher.final()]);
 
 			return decrypted.toString("utf8");
 		} catch (error) {
@@ -57,28 +43,14 @@ export class CryptoUtility {
 	 * @returns {string} Encrypted value in format: salt:iv:authTag:encryptedData (base64 encoded)
 	 */
 	public static encrypt(value: string, encryptionKey: string): string {
-		// Generate a random salt for key derivation
-		const salt = randomBytes(this.SALT_LENGTH);
+		const salt: Buffer = randomBytes(CRYPTO_CONSTANT.SALT_LENGTH);
+		const key: Buffer = scryptSync(encryptionKey, salt, CRYPTO_CONSTANT.KEY_LENGTH);
+		const iv: Buffer = randomBytes(CRYPTO_CONSTANT.IV_LENGTH);
+		const cipher: CipherGCM = createCipheriv(CRYPTO_CONSTANT.ALGORITHM, key, iv) as CipherGCM;
+		const encrypted: Buffer = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+		const authTag: Buffer = cipher.getAuthTag();
+		const combined: Buffer = Buffer.concat([salt, iv, authTag, encrypted]);
 
-		// Derive a key from the encryption key using scrypt
-		const key = scryptSync(encryptionKey, salt, this.KEY_LENGTH);
-
-		// Generate a random initialization vector
-		const iv = randomBytes(this.IV_LENGTH);
-
-		// Create cipher
-		const cipher = createCipheriv(this.ALGORITHM, key, iv);
-
-		// Encrypt the value
-		const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
-
-		// Get the authentication tag
-		const authTag = cipher.getAuthTag();
-
-		// Combine salt, iv, authTag, and encrypted data
-		const combined = Buffer.concat([salt, iv, authTag, encrypted]);
-
-		// Return base64 encoded string
 		return combined.toString("base64");
 	}
 
@@ -89,10 +61,9 @@ export class CryptoUtility {
 	 */
 	public static isEncryptedValue(value: string): boolean {
 		try {
-			const decoded = Buffer.from(value, "base64");
+			const decoded: Buffer = Buffer.from(value, "base64");
 
-			// Minimum length: salt (32) + iv (16) + tag (16) + at least 1 byte of data
-			return decoded.length >= this.SALT_LENGTH + this.IV_LENGTH + this.TAG_LENGTH + 1;
+			return decoded.length >= CRYPTO_CONSTANT.SALT_LENGTH + CRYPTO_CONSTANT.IV_LENGTH + CRYPTO_CONSTANT.TAG_LENGTH + 1;
 		} catch {
 			return false;
 		}
