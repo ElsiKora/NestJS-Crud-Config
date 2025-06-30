@@ -2,7 +2,7 @@
 import type { TDynamicEntity } from "@shared/type";
 
 import { ApiPropertyDescribe, EApiPropertyDateIdentifier, EApiPropertyDateType, EApiPropertyDescribeType, EApiPropertyStringType } from "@elsikora/nestjs-crud-automator";
-import { API_PROPERTY_CONSTRAINTS } from "@shared/constant";
+import { API_PROPERTY_CONSTANT } from "@shared/constant";
 import { createDynamicEntityClass } from "@shared/utility";
 import { CreateDateColumn, UpdateDateColumn } from "typeorm";
 
@@ -54,7 +54,7 @@ export function createConfigSectionEntity(options: { maxDescriptionLength: numbe
 					format: EApiPropertyStringType.STRING,
 					isNullable: true,
 					maxLength: options.maxDescriptionLength,
-					minLength: API_PROPERTY_CONSTRAINTS.MIN_NAME_LENGTH,
+					minLength: API_PROPERTY_CONSTANT.MIN_NAME_LENGTH,
 					pattern: `/.{1,${options.maxDescriptionLength}}/`,
 					type: EApiPropertyDescribeType.STRING,
 				}) as PropertyDecorator,
@@ -70,7 +70,7 @@ export function createConfigSectionEntity(options: { maxDescriptionLength: numbe
 					exampleValue: "section",
 					format: EApiPropertyStringType.STRING,
 					maxLength: options.maxNameLength,
-					minLength: API_PROPERTY_CONSTRAINTS.MIN_NAME_LENGTH,
+					minLength: API_PROPERTY_CONSTANT.MIN_NAME_LENGTH,
 					pattern: `/^[a-z0-9-]{1,${options.maxNameLength}}/`,
 					type: EApiPropertyDescribeType.STRING,
 				}) as PropertyDecorator,

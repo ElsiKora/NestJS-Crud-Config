@@ -1,6 +1,6 @@
 import { ApiServiceBase } from "@elsikora/nestjs-crud-automator";
 import { IConfigData } from "@modules/config/data";
-import { ConfigDataEventBeforeInsert } from "@modules/config/data";
+import { ConfigDataEventBeforeInsert } from "@modules/config/data/event";
 import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { OnEvent } from "@nestjs/event-emitter";
 import { TOKEN_CONSTANT } from "@shared/constant";

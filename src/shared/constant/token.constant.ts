@@ -3,6 +3,7 @@ const CONFIG_DATA_SERVICE: symbol = Symbol("CRUD_CONFIG_DATA_SERVICE");
 const CONFIG_SECTION_ENTITY: symbol = Symbol("CRUD_CONFIG_SECTION_ENTITY");
 const CONFIG_DATA_ENTITY: symbol = Symbol("CRUD_CONFIG_DATA_ENTITY");
 const CONFIG_PROPERTIES: symbol = Symbol("CRUD_CONFIG_PROPERTIES");
+const DYNAMIC_PROVIDERS_FACTORY: symbol = Symbol("CRUD_CONFIG_DYNAMIC_PROVIDERS_FACTORY");
 
 // eslint-disable-next-line @elsikora/no-secrets/no-pattern-match
 export const TOKEN_CONSTANT: {
@@ -11,10 +12,12 @@ export const TOKEN_CONSTANT: {
 	readonly CONFIG_PROPERTIES: symbol;
 	readonly CONFIG_SECTION_ENTITY: symbol;
 	readonly CONFIG_SECTION_SERVICE: symbol;
+	readonly DYNAMIC_PROVIDERS_FACTORY: symbol;
 } = {
 	CONFIG_DATA_ENTITY,
 	CONFIG_DATA_SERVICE,
 	CONFIG_PROPERTIES,
 	CONFIG_SECTION_ENTITY,
 	CONFIG_SECTION_SERVICE,
+	DYNAMIC_PROVIDERS_FACTORY,
 } as const;

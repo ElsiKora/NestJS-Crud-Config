@@ -3,6 +3,11 @@
  */
 export interface IConfigSetOptions {
 	/**
+	 * Description for the configuration
+	 */
+	description?: string;
+
+	/**
 	 * The environment for the configuration
 	 */
 	environment?: string;
@@ -26,9 +31,4 @@ export interface IConfigSetOptions {
 	 * Whether the value should be encrypted before saving
 	 */
 	shouldEncrypt?: boolean;
-
-	/**
-	 * Description for the configuration
-	 */
-	description?: string;
-} 
+}

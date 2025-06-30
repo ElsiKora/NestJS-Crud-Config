@@ -1,11 +1,9 @@
 import type { IConfigData } from "@modules/config/data";
-// Note: This subscriber is designed to work with dynamic entities
-// The actual entity type will be determined at runtime
 import type { EntitySubscriberInterface, InsertEvent } from "typeorm";
 
 import { EErrorStringAction } from "@elsikora/nestjs-crud-automator";
 import { ErrorString } from "@elsikora/nestjs-crud-automator";
-import { ConfigDataEventBeforeInsert } from "@modules/config/data";
+import { ConfigDataEventBeforeInsert } from "@modules/config/data/event";
 import { HttpException, Inject, InternalServerErrorException } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { TOKEN_CONSTANT } from "@shared/constant";

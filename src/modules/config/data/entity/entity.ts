@@ -2,7 +2,7 @@
 import type { TDynamicEntity } from "@shared/type";
 
 import { ApiPropertyDescribe, EApiPropertyDateIdentifier, EApiPropertyDateType, EApiPropertyDescribeType, EApiPropertyStringType } from "@elsikora/nestjs-crud-automator";
-import { API_PROPERTY_CONSTRAINTS } from "@shared/constant";
+import { API_PROPERTY_CONSTANT } from "@shared/constant";
 import { createDynamicEntityClass } from "@shared/utility";
 import { CreateDateColumn, UpdateDateColumn } from "typeorm";
 
@@ -72,7 +72,7 @@ export function createConfigDataEntity(options: { configSectionEntity: TDynamicE
 					format: EApiPropertyStringType.STRING,
 					isNullable: true,
 					maxLength: options.maxDescriptionLength,
-					minLength: API_PROPERTY_CONSTRAINTS.MIN_STRING_LENGTH,
+					minLength: API_PROPERTY_CONSTANT.MIN_STRING_LENGTH,
 					pattern: `/.{0,${options.maxDescriptionLength}}/`,
 					type: EApiPropertyDescribeType.STRING,
 				}) as PropertyDecorator,
@@ -83,7 +83,7 @@ export function createConfigDataEntity(options: { configSectionEntity: TDynamicE
 					exampleValue: "production",
 					format: EApiPropertyStringType.STRING,
 					maxLength: options.maxEnvironmentLength,
-					minLength: API_PROPERTY_CONSTRAINTS.MIN_NAME_LENGTH,
+					minLength: API_PROPERTY_CONSTANT.MIN_NAME_LENGTH,
 					pattern: `/.{1,${options.maxEnvironmentLength}}/`,
 					type: EApiPropertyDescribeType.STRING,
 				}) as PropertyDecorator,
@@ -105,7 +105,7 @@ export function createConfigDataEntity(options: { configSectionEntity: TDynamicE
 					exampleValue: "API_KEY",
 					format: EApiPropertyStringType.STRING,
 					maxLength: options.maxNameLength,
-					minLength: API_PROPERTY_CONSTRAINTS.MIN_NAME_LENGTH,
+					minLength: API_PROPERTY_CONSTANT.MIN_NAME_LENGTH,
 					pattern: `/^[A-Za-z0-9_-]{1,${options.maxNameLength}}/`,
 					type: EApiPropertyDescribeType.STRING,
 				}) as PropertyDecorator,
@@ -130,7 +130,7 @@ export function createConfigDataEntity(options: { configSectionEntity: TDynamicE
 					exampleValue: "configuration-value",
 					format: EApiPropertyStringType.STRING,
 					maxLength: options.maxValueLength,
-					minLength: API_PROPERTY_CONSTRAINTS.MIN_STRING_LENGTH,
+					minLength: API_PROPERTY_CONSTANT.MIN_STRING_LENGTH,
 					pattern: `/.{0,${options.maxValueLength}}/`,
 					type: EApiPropertyDescribeType.STRING,
 				}) as PropertyDecorator,
