@@ -1,4 +1,5 @@
 import type { IConfigData } from "@modules/config/data";
+import type { TDynamicEntity } from "@shared/type";
 import type { EntitySubscriberInterface, InsertEvent } from "typeorm";
 
 import { EErrorStringAction } from "@elsikora/nestjs-crud-automator";
@@ -18,7 +19,7 @@ export class ConfigDataBeforeInsertSubscriber implements EntitySubscriberInterfa
  constructor(
   private readonly eventEmitter: EventEmitter2,
   @Inject(DataSource) readonly connection: DataSource,
-  @Inject(TOKEN_CONSTANT.CONFIG_DATA_SERVICE) readonly entity: IConfigData,
+  @Inject(TOKEN_CONSTANT.CONFIG_DATA_ENTITY) private readonly entityClass: TDynamicEntity,
  ) {
   // Register this subscriber with the DataSource
   connection.subscribers.push(this);
@@ -30,6 +31,11 @@ export class ConfigDataBeforeInsertSubscriber implements EntitySubscriberInterfa
   * @returns {Promise<boolean>} Promise resolving to boolean indicating success
   */
  beforeInsert(event: InsertEvent<IConfigData>): Promise<boolean> {
+  // Only process if this is our ConfigData entity
+  if (event.entity.constructor !== this.entityClass) {
+   return Promise.resolve(true);
+  }
+
   const item: IConfigData = event.entity;
 
   const payload: ConfigDataEventBeforeInsert = new ConfigDataEventBeforeInsert();
@@ -63,14 +69,10 @@ export class ConfigDataBeforeInsertSubscriber implements EntitySubscriberInterfa
 
  /**
   * Specify which entity this subscriber listens to
-  * Note: Returns undefined to listen to all entities
-  * The actual filtering will be done at runtime
-  * @returns {any} The entity class or undefined to listen to all entities
+  * @returns {any} The ConfigData entity class
   */
  // eslint-disable-next-line @elsikora/typescript/no-explicit-any
  listenTo(): any {
-  // Return undefined to subscribe to all entities
-  // Filtering will be handled at runtime based on the entity type
-  return undefined;
+  return this.entityClass;
  }
 }
