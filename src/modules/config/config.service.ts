@@ -1,14 +1,31 @@
 import type { IConfigData } from "@modules/config/data";
-import type { IConfigGetOptions } from "@modules/config/interface/get-properties.interface";
-import type { IConfigSetOptions } from "@modules/config/interface/set-properties.interface";
 import type { IConfigSection } from "@modules/config/section";
-import type { ICrudConfigProperties } from "@shared/interface/config";
+import type { IConfigOptions } from "@shared/interface/config";
 
-import { ApiServiceBase, EErrorStringAction, ErrorString } from "@elsikora/nestjs-crud-automator";
+import {
+ ApiServiceBase,
+ EErrorStringAction,
+ ErrorString,
+ IApiGetListResponseResult,
+} from "@elsikora/nestjs-crud-automator";
 import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
-import { HttpException, Inject, Injectable, InternalServerErrorException, Optional } from "@nestjs/common";
+import {
+ HttpException,
+ Inject,
+ Injectable,
+ InternalServerErrorException,
+ NotFoundException,
+ Optional,
+} from "@nestjs/common";
 import { TOKEN_CONSTANT } from "@shared/constant";
 import { CryptoUtility } from "@shared/utility";
+
+import {
+ IConfigDeleteOptions,
+ IConfigGetListOptions,
+ IConfigGetOptions,
+ IConfigSetOptions,
+} from "./interface";
 
 /**
  * Service for managing configuration data with caching support
@@ -16,204 +33,282 @@ import { CryptoUtility } from "@shared/utility";
  */
 @Injectable()
 export class CrudConfigService {
-	constructor(
-		@Inject(TOKEN_CONSTANT.CONFIG_SECTION_SERVICE) private readonly sectionService: ApiServiceBase<IConfigSection>,
-		@Inject(TOKEN_CONSTANT.CONFIG_DATA_SERVICE) private readonly dataService: ApiServiceBase<IConfigData>,
-		// @ts-ignore
-		@Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-		@Optional() @Inject(TOKEN_CONSTANT.CONFIG_PROPERTIES) private readonly properties?: ICrudConfigProperties,
-	) {}
+ constructor(
+  @Inject(TOKEN_CONSTANT.CONFIG_SECTION_SERVICE)
+  private readonly sectionService: ApiServiceBase<IConfigSection>,
+  @Inject(TOKEN_CONSTANT.CONFIG_DATA_SERVICE)
+  private readonly dataService: ApiServiceBase<IConfigData>,
+  // @ts-ignore
+  @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  @Optional() @Inject(TOKEN_CONSTANT.CONFIG_OPTIONS) private readonly options?: IConfigOptions,
+ ) {}
 
-	/**
-	 * Deletes a configuration value
-	 * @param {IConfigGetOptions} options Configuration options to identify the value to delete
-	 * @returns {Promise<void>} Promise resolving when the configuration is deleted
-	 */
-	async delete(options: Omit<IConfigGetOptions, "shouldDecrypt" | "shouldLoadSectionInfo">): Promise<void> {
-		const { environment, name, section: sectionName }: IConfigGetOptions = options;
+ /**
+  * Deletes a configuration value
+  * @param {IConfigDeleteOptions} options Configuration options to identify the value to delete
+  * @returns {Promise<void>} Promise resolving when the configuration is deleted
+  */
+ async delete(options: IConfigDeleteOptions): Promise<void> {
+  const { environment, eventManager, name, section: sectionName }: IConfigDeleteOptions = options;
+  const finalEnvironment: string = environment ?? this.options?.environment ?? "default";
 
-		try {
-			const section = await this.sectionService.get({ where: { name: sectionName } });
+  try {
+   const section: IConfigSection = await this.sectionService.get(
+    { where: { name: sectionName } },
+    eventManager,
+   );
 
-			const data = await this.dataService.get({
-				where: {
-					environment: environment ?? this.properties?.environment ?? "default",
-					name,
-					section: { id: section.id },
-				},
-			});
+   const data: IConfigData = await this.dataService.get(
+    {
+     where: {
+      environment: finalEnvironment,
+      name,
+      section: { id: section.id },
+     },
+    },
+    eventManager,
+   );
 
-			await this.dataService.delete({ id: data.id } as any);
-		} catch (error) {
-			if (error instanceof HttpException) {
-				throw error;
-			} else {
-				throw new InternalServerErrorException(ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.DELETING_ERROR }));
-			}
-		}
-	}
+   await this.dataService.delete({ id: data.id }, eventManager);
 
-	/**
-	 * Retrieves configuration data based on the provided options
-	 * @param {IConfigGetOptions} options Configuration retrieval options
-	 * @returns {Promise<IConfigData>} Promise resolving to the configuration data
-	 */
-	async get(options: IConfigGetOptions): Promise<IConfigData> {
-		const { environment, name, section, shouldDecrypt, shouldLoadSectionInfo }: IConfigGetOptions = options;
+   // Invalidate cache for this specific config and the list
+   const cacheKey: string = `config:${sectionName}:${name}:${finalEnvironment}`;
+   const listCacheKey: string = `config:list:${sectionName}:${finalEnvironment}`;
 
-		return this.sectionService
-			.get({ where: { name: section } })
-			.then((section: IConfigSection): Promise<IConfigData> => {
-				return (
-					this.dataService
-						// eslint-disable-next-line @elsikora/typescript/naming-convention
-						.get({ relations: { section: shouldLoadSectionInfo }, where: { environment, name, section: { id: section.id } } })
-						.then((data: IConfigData): IConfigData => {
-							if (data.isEncrypted && shouldDecrypt) {
-								// Decrypt the value if encryption is enabled and decryption is requested
-								if (this.properties?.encryptionKey) {
-									try {
-										data.value = CryptoUtility.decrypt(data.value, this.properties.encryptionKey);
-									} catch (error) {
-										throw new InternalServerErrorException(`Failed to decrypt configuration value: ${error instanceof Error ? error.message : "Unknown error"}`);
-									}
-								} else {
-									throw new InternalServerErrorException("Cannot decrypt value: encryption key is not configured");
-								}
+   await Promise.all([this.cacheManager.del(cacheKey), this.cacheManager.del(listCacheKey)]);
+  } catch (error) {
+   if (error instanceof HttpException) {
+    throw error;
+   }
 
-								return data;
-							} else {
-								return data;
-							}
-						})
-						.catch((error: unknown) => {
-							if (error instanceof HttpException) {
-								throw error;
-							} else {
-								throw new InternalServerErrorException(ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.FETCHING_ERROR }));
-							}
-						})
-				);
-			})
-			.catch((error: unknown) => {
-				if (error instanceof HttpException) {
-					throw error;
-				} else {
-					throw new InternalServerErrorException(ErrorString({ entity: { name: "ConfigSection" }, type: EErrorStringAction.FETCHING_ERROR }));
-				}
-			});
-	}
+   throw new InternalServerErrorException(
+    ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.DELETING_ERROR }),
+   );
+  }
+ }
 
-	/**
-	 * Lists all configuration values in a section
-	 * @param {object} options Options for listing configurations
-	 * @param {string} options.section Section name
-	 * @param {string} [options.environment] Environment name
-	 * @returns {Promise<Array<IConfigData>>} Promise resolving to array of configuration data
-	 */
-	async list(options: { environment?: string; section: string }): Promise<Array<IConfigData>> {
-		const { environment, section: sectionName } = options;
+ /**
+  * Retrieves configuration data based on the provided options
+  * @param {IConfigGetOptions} options Configuration retrieval options
+  * @returns {Promise<IConfigData>} Promise resolving to the configuration data
+  */
+ async get(options: IConfigGetOptions): Promise<IConfigData> {
+  const {
+   environment,
+   eventManager,
+   name,
+   section,
+   shouldLoadSectionInfo,
+   useCache,
+  }: IConfigGetOptions = options;
+  const finalEnvironment: string = environment ?? this.options?.environment ?? "default";
+  const cacheKey: string = `config:${section}:${name}:${finalEnvironment}`;
 
-		try {
-			const section = await this.sectionService.get({ where: { name: sectionName } });
-			const where: any = { section: { id: section.id } };
+  try {
+   // Check cache first if enabled
+   if (useCache && this.options?.cacheOptions?.isEnabled) {
+    const cachedData: IConfigData | undefined = await this.cacheManager.get<IConfigData>(cacheKey);
 
-			if (environment) {
-				where.environment = environment;
-			}
+    if (cachedData) {
+     return cachedData;
+    }
+   }
 
-			const result = await this.dataService.getList({ where });
+   // Fetch section
+   const sectionData: IConfigSection = await this.sectionService.get(
+    { where: { name: section } },
+    eventManager,
+   );
 
-			return result.items;
-		} catch (error) {
-			if (error instanceof HttpException) {
-				throw error;
-			} else {
-				throw new InternalServerErrorException(ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.FETCHING_ERROR }));
-			}
-		}
-	}
+   // Fetch configuration data
+   const data: IConfigData = await this.dataService.get(
+    {
+     // eslint-disable-next-line @elsikora/typescript/naming-convention
+     relations: { section: shouldLoadSectionInfo },
+     where: { environment: finalEnvironment, name, section: { id: sectionData.id } },
+    },
+    eventManager,
+   );
 
-	/**
-	 * Sets a configuration value with optional encryption
-	 * @param {IConfigSetOptions} options Configuration set options
-	 * @param {string} value The value to set
-	 * @returns {Promise<IConfigData>} Promise resolving to the saved configuration data
-	 */
-	async set(options: IConfigSetOptions, value: string): Promise<IConfigData> {
-		const { description, environment, name, section: sectionName, shouldEncrypt }: IConfigSetOptions = options;
+   // Decrypt if necessary
+   if (data.isEncrypted) {
+    if (!this.options?.encryptionOptions?.encryptionKey) {
+     throw new InternalServerErrorException(
+      ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.KEY_NOT_FOUND }),
+     );
+    }
 
-		// Determine if encryption should be applied
-		const shouldApplyEncryption = shouldEncrypt ?? this.properties?.shouldEncryptValues ?? false;
-		let finalValue = value;
-		let isEncrypted = false;
+    try {
+     data.value = CryptoUtility.decrypt(data.value, this.options.encryptionOptions.encryptionKey);
+    } catch {
+     throw new InternalServerErrorException(
+      ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.DECRYPTION_ERROR }),
+     );
+    }
+   }
 
-		// Encrypt the value if needed
-		if (shouldApplyEncryption) {
-			if (!this.properties?.encryptionKey) {
-				throw new InternalServerErrorException("Cannot encrypt value: encryption key is not configured");
-			}
+   // Cache the result if caching is enabled
+   if (useCache && this.options?.cacheOptions?.isEnabled) {
+    const ttl: number | undefined = this.options.cacheOptions.maxCacheTTL;
+    await this.cacheManager.set(cacheKey, data, ttl);
+   }
 
-			try {
-				finalValue = CryptoUtility.encrypt(value, this.properties.encryptionKey);
-				isEncrypted = true;
-			} catch (error) {
-				throw new InternalServerErrorException(`Failed to encrypt configuration value: ${error instanceof Error ? error.message : "Unknown error"}`);
-			}
-		}
+   return data;
+  } catch (error) {
+   if (error instanceof HttpException) {
+    throw error;
+   }
 
-		try {
-			// First, find or create the section
-			let section: IConfigSection;
+   throw new InternalServerErrorException(
+    ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.FETCHING_ERROR }),
+   );
+  }
+ }
 
-			try {
-				section = await this.sectionService.get({ where: { name: sectionName } });
-			} catch {
-				// Section doesn't exist, create it
-				section = await this.sectionService.create({
-					description: `Section for ${sectionName} configurations`,
-					name: sectionName,
-				});
-			}
+ /**
+  * Lists all configuration values in a section.
+  * Supports caching and running within a TypeORM transaction.
+  * @param {IConfigGetListOptions} options Options for listing configurations.
+  * @returns {Promise<Array<IConfigData>>} Promise resolving to an array of configuration data.
+  */
+ async getList(options: IConfigGetListOptions): Promise<Array<IConfigData>> {
+  const {
+   environment,
+   eventManager,
+   section: sectionName,
+   useCache,
+  }: IConfigGetListOptions = options;
+  const finalEnvironment: string = environment ?? this.options?.environment ?? "default";
+  const cacheKey: string = `config:list:${sectionName}:${finalEnvironment}`;
 
-			// Check if the configuration already exists
-			let existingData: IConfigData | null = null;
+  try {
+   // Check cache first if enabled
+   if (useCache && this.options?.cacheOptions?.isEnabled) {
+    const cachedItems: Array<IConfigData> | undefined =
+     await this.cacheManager.get<Array<IConfigData>>(cacheKey);
 
-			try {
-				existingData = await this.dataService.get({
-					where: {
-						environment: environment ?? this.properties?.environment ?? "default",
-						name,
-						section: { id: section.id },
-					},
-				});
-			} catch {
-				// Configuration doesn't exist, which is fine
-			}
+    if (cachedItems) {
+     return cachedItems;
+    }
+   }
 
-			const configData = {
-				description: description ?? undefined,
-				environment: environment ?? this.properties?.environment ?? "default",
-				isEncrypted,
-				name,
-				section: { id: section.id },
-				value: finalValue,
-			};
+   // Fetch section and data
+   const section: IConfigSection = await this.sectionService.get(
+    { where: { name: sectionName } },
+    eventManager,
+   );
 
-			// Create or update the configuration
-			if (existingData) {
-				// Update existing configuration
-				return await this.dataService.update({ id: existingData.id } as any, configData);
-			} else {
-				// Create new configuration
-				return await this.dataService.create(configData);
-			}
-		} catch (error) {
-			if (error instanceof HttpException) {
-				throw error;
-			} else {
-				throw new InternalServerErrorException(ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.CREATING_ERROR }));
-			}
-		}
-	}
+   const result: IApiGetListResponseResult<IConfigData> = await this.dataService.getList(
+    { where: { environment: finalEnvironment, section: { id: section.id } } },
+    eventManager,
+   );
+
+   if (useCache && this.options?.cacheOptions?.isEnabled) {
+    const ttl: number | undefined = this.options?.cacheOptions?.maxCacheTTL;
+    await this.cacheManager.set(cacheKey, result.items, ttl);
+   }
+
+   return result.items;
+  } catch (error) {
+   if (error instanceof HttpException) {
+    throw error;
+   }
+
+   throw new InternalServerErrorException(
+    ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.FETCHING_LIST_ERROR }),
+   );
+  }
+ }
+
+ /**
+  * Sets a configuration value with optional encryption.
+  * The specified section must already exist.
+  * If a configuration with the same name and environment already exists, it will be updated. Otherwise, a new one will be created.
+  * @param {IConfigSetOptions} options Configuration set options
+  * @returns {Promise<IConfigData>} Promise resolving to the saved configuration data
+  */
+ async set(options: IConfigSetOptions): Promise<IConfigData> {
+  const {
+   description,
+   environment,
+   eventManager,
+   name,
+   section: sectionName,
+   value,
+  }: IConfigSetOptions = options;
+  const finalEnvironment: string = environment ?? this.options?.environment ?? "default";
+
+  const shouldApplyEncryption: boolean = this.options?.encryptionOptions?.isEnabled ?? false;
+  let finalValue: string = value;
+  let isEncrypted: boolean = false;
+
+  if (shouldApplyEncryption) {
+   if (!this.options?.encryptionOptions?.encryptionKey) {
+    throw new InternalServerErrorException(
+     ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.KEY_NOT_FOUND }),
+    );
+   }
+
+   try {
+    finalValue = CryptoUtility.encrypt(value, this.options.encryptionOptions.encryptionKey);
+    isEncrypted = true;
+   } catch {
+    throw new InternalServerErrorException(
+     ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.ENCRYPTION_ERROR }),
+    );
+   }
+  }
+
+  try {
+   // Fetch section
+   const section: IConfigSection = await this.sectionService.get(
+    { where: { name: sectionName } },
+    eventManager,
+   );
+
+   const configData: Partial<IConfigData> = {
+    description: description ?? undefined,
+    environment: finalEnvironment,
+    isEncrypted,
+    name,
+    section: { id: section.id },
+    value: finalValue,
+   };
+
+   let result: IConfigData;
+
+   try {
+    // Try to update existing configuration
+    const existingData: IConfigData = await this.dataService.get(
+     { where: { environment: finalEnvironment, name, section: { id: section.id } } },
+     eventManager,
+    );
+
+    result = await this.dataService.update({ id: existingData.id }, configData, eventManager);
+   } catch (error) {
+    if (error instanceof NotFoundException) {
+     // Create new configuration if not found
+     result = await this.dataService.create(configData, eventManager);
+    } else {
+     throw error;
+    }
+   }
+
+   // Invalidate cache for this specific config and the list
+   const cacheKey: string = `config:${sectionName}:${name}:${finalEnvironment}`;
+   const listCacheKey: string = `config:list:${sectionName}:${finalEnvironment}`;
+
+   await Promise.all([this.cacheManager.del(cacheKey), this.cacheManager.del(listCacheKey)]);
+
+   return result;
+  } catch (error) {
+   if (error instanceof HttpException) {
+    throw error;
+   }
+
+   throw new InternalServerErrorException(
+    ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.CREATING_ERROR }),
+   );
+  }
+ }
 }
