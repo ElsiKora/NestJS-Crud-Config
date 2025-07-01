@@ -5,12 +5,12 @@ import type { IConfigOptions, IConfigPropertiesFactory } from "@shared/interface
  * Provides different options for asynchronously configuring the Crud Config module.
  */
 export interface ICrudConfigAsyncModuleProperties extends Pick<ModuleMetadata, "imports"> {
-	/** Optional array of dependencies to be injected into the factory function or class */
-	inject?: Array<string | symbol | Type<unknown>>;
-	/** Optional class that implements ICrudConfigPropertiesFactory to be instantiated */
-	useClass?: Type<IConfigPropertiesFactory>;
-	/** Optional existing provider implementing ICrudConfigPropertiesFactory to be used */
-	useExisting?: Type<IConfigPropertiesFactory>;
-	/** Optional factory function that returns configuration properties */
-	useFactory?: (...arguments_: Array<unknown>) => IConfigOptions | Promise<IConfigOptions>;
+ /** Optional array of dependencies to be injected into the factory function or class */
+ inject?: Array<string | symbol | Type<unknown>>;
+ /** Optional class that implements ICrudConfigPropertiesFactory to be instantiated */
+ useClass?: Type<IConfigPropertiesFactory>;
+ /** Optional existing provider implementing ICrudConfigPropertiesFactory to be used */
+ useExisting?: Type<IConfigPropertiesFactory>;
+ /** Optional factory function that returns configuration properties */
+ useFactory?: (...arguments_: Array<unknown>) => IConfigOptions | Promise<IConfigOptions>;
 }

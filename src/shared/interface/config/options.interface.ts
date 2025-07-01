@@ -7,33 +7,33 @@ import type { ICrudConfigEntityOptions } from "./entity";
  * Interface for configuration options
  */
 export interface IConfigOptions {
-	/**
-	 * Cache configuration options
-	 */
-	cacheOptions?: IConfigCacheOptions;
+ /**
+  * Cache configuration options
+  */
+ cacheOptions?: IConfigCacheOptions;
 
-	/**
-	 * Controllers configuration options
-	 */
-	controllersOptions?: IConfigControllersOptions;
+ /**
+  * Controllers configuration options
+  */
+ controllersOptions?: IConfigControllersOptions;
 
-	/**
-	 * Encryption configuration options
-	 */
-	encryptionOptions?: IConfigEncryptionOptions;
+ /**
+  * Encryption configuration options
+  */
+ encryptionOptions?: IConfigEncryptionOptions;
 
-	/**
-	 * Entity customization options
-	 */
-	entityOptions?: ICrudConfigEntityOptions;
+ /**
+  * Entity customization options
+  */
+ entityOptions?: ICrudConfigEntityOptions;
 
-	/**
-	 * Default environment to use for config paths
-	 */
-	environment?: string;
+ /**
+  * Default environment to use for config paths
+  */
+ environment?: string;
 
-	/**
-	 * Whether to log verbose information
-	 */
-	isVerbose?: boolean;
+ /**
+  * Whether to log verbose information
+  */
+ isVerbose?: boolean;
 }
