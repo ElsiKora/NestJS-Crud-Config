@@ -11,7 +11,7 @@ export default {
   "branch-max-length": 50,
   "branch-min-length": 5,
   "branch-pattern": ":type/:name",
-  "branch-prohibited": ["master", "release"],
+  "branch-prohibited": ["main", "master", "release"],
   "branch-subject-pattern": "[a-z0-9-]+",
  },
 };
