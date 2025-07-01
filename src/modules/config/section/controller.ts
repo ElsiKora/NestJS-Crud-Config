@@ -2,15 +2,17 @@ import { ApiController, ApiServiceBase, EApiRouteType, IApiControllerBase, IApiC
 import { Inject } from "@nestjs/common";
 import { Type } from "@nestjs/common/interfaces";
 import { TOKEN_CONSTANT } from "@shared/constant";
+import { IConfigControllerOptions } from "@shared/interface/config";
 import { TDynamicEntity } from "@shared/type";
 
 /**
  * Factory to create dynamic ConfigSection controller with the correct entity
  * @param {TDynamicEntity} entity The entity type to create controller for
+ * @param {IConfigControllerOptions} [options] Controller configuration options
  * @returns {Type} The dynamic controller class
  */
-export function createDynamicSectionController(entity: TDynamicEntity): Type {
-	const config: IApiControllerProperties<typeof entity> = {
+export function createDynamicSectionController(entity: TDynamicEntity, options?: IConfigControllerOptions): Type {
+	const defaultConfig: IApiControllerProperties<typeof entity> = {
 		entity,
 		name: "ConfigSection",
 		path: "config/section",
@@ -21,6 +23,11 @@ export function createDynamicSectionController(entity: TDynamicEntity): Type {
 			[EApiRouteType.GET_LIST]: { isEnabled: true },
 			[EApiRouteType.UPDATE]: { isEnabled: true },
 		},
+	};
+
+	const config: IApiControllerProperties<typeof entity> = {
+		...defaultConfig,
+		...options?.properties,
 	};
 
 	@ApiController(config)

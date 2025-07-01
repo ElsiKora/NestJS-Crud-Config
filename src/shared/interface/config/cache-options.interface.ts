@@ -1,7 +1,7 @@
 /**
- * Interface for cache configuration properties
+ * Interface for cache configuration options
  */
-export interface IConfigCacheProperties {
+export interface IConfigCacheOptions {
 	/**
 	 * Whether to use a cache
 	 */
@@ -13,7 +13,7 @@ export interface IConfigCacheProperties {
 	maxCacheItems?: number;
 
 	/**
-	 * Maximum time to live for cache items
+	 * Maximum time to live for cache items in milliseconds
 	 */
 	maxCacheTTL?: number;
 }

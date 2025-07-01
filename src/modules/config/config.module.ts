@@ -110,8 +110,9 @@ export class CrudConfigModule {
 			useClass: DynamicConfigDataService,
 		};
 
-		const DynamicConfigSectionController: Type = createDynamicSectionController(sectionEntity);
-		const DynamicConfigDataController: Type = createDynamicDataController(dataEntity);
+		const DynamicConfigSectionController: null | Type = options.controllersOptions?.section?.isEnabled === false ? null : createDynamicSectionController(sectionEntity, options.controllersOptions?.section);
+
+		const DynamicConfigDataController: null | Type = options.controllersOptions?.data?.isEnabled === false ? null : createDynamicDataController(dataEntity, options.controllersOptions?.data);
 
 		const imports: Array<DynamicModule> = [];
 
@@ -124,8 +125,14 @@ export class CrudConfigModule {
 			);
 		}
 
+		const controllers: Array<Type> = [];
+
+		if (DynamicConfigSectionController) controllers.push(DynamicConfigSectionController);
+
+		if (DynamicConfigDataController) controllers.push(DynamicConfigDataController);
+
 		return {
-			controllers: [DynamicConfigSectionController, DynamicConfigDataController],
+			controllers,
 			exports: [CrudConfigService, TOKEN_CONSTANT.CONFIG_SECTION_SERVICE],
 			imports,
 			module: CrudConfigModule,

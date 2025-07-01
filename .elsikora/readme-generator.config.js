@@ -5,7 +5,7 @@ export default {
 		model: "claude-sonnet-4-20250514",
 		provider: "anthropic",
 	},
-	logoType: "local",
+	logoType: "socialify",
 	logoUrl: "",
 	repositoryOwner: "ElsiKora",
 	repositorySource: "local",

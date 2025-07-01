@@ -2,15 +2,17 @@ import { ApiController, ApiServiceBase, EApiControllerLoadRelationsStrategy, EAp
 import { Inject } from "@nestjs/common";
 import { Type } from "@nestjs/common/interfaces";
 import { TOKEN_CONSTANT } from "@shared/constant";
+import { IConfigControllerOptions } from "@shared/interface/config";
 import { TDynamicEntity } from "@shared/type";
 
 /**
  * Factory to create dynamic ConfigData controller with the correct entity
  * @param {TDynamicEntity} entity The entity type to create controller for
+ * @param {IConfigControllerOptions} [options] Controller configuration options
  * @returns {Type} The dynamic controller class
  */
-export function createDynamicDataController(entity: TDynamicEntity): Type {
-	const config: IApiControllerProperties<typeof entity> = {
+export function createDynamicDataController(entity: TDynamicEntity, options?: IConfigControllerOptions): Type {
+	const defaultConfig: IApiControllerProperties<typeof entity> = {
 		entity,
 		name: "ConfigData",
 		path: "config/data",
@@ -47,6 +49,11 @@ export function createDynamicDataController(entity: TDynamicEntity): Type {
 				},
 			},
 		},
+	};
+
+	const config: IApiControllerProperties<typeof entity> = {
+		...defaultConfig,
+		...options?.properties,
 	};
 
 	@ApiController(config)

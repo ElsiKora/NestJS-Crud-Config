@@ -111,7 +111,8 @@ export class CrudConfigService {
 
 			// Cache the result if caching is enabled
 			if (useCache && this.options?.cacheOptions?.isEnabled) {
-				this.cacheManager.set(cacheKey, data);
+				const ttl: number | undefined = this.options.cacheOptions.maxCacheTTL;
+				await this.cacheManager.set(cacheKey, data, ttl);
 			}
 
 			return data;
@@ -151,7 +152,8 @@ export class CrudConfigService {
 			const result: IApiGetListResponseResult<IConfigData> = await this.dataService.getList({ where: { environment: finalEnvironment, section: { id: section.id } } }, eventManager);
 
 			if (useCache && this.options?.cacheOptions?.isEnabled) {
-				this.cacheManager.set(cacheKey, result.items);
+				const ttl: number | undefined = this.options?.cacheOptions?.maxCacheTTL;
+				await this.cacheManager.set(cacheKey, result.items, ttl);
 			}
 
 			return result.items;
