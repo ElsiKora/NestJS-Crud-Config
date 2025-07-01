@@ -69,10 +69,9 @@ export class ConfigDataBeforeInsertSubscriber implements EntitySubscriberInterfa
 
  /**
   * Specify which entity this subscriber listens to
-  * @returns {any} The ConfigData entity class
+  * @returns {TDynamicEntity} The ConfigData entity class
   */
- // eslint-disable-next-line @elsikora/typescript/no-explicit-any
- listenTo(): any {
+ listenTo(): TDynamicEntity {
   return this.entityClass;
  }
 }
