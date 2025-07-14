@@ -7,19 +7,19 @@ import type { EntityManager } from "typeorm/entity-manager/EntityManager";
  * Event class for ConfigData beforeInsert event
  */
 export class ConfigDataEventBeforeInsert {
-	/**
-	 * Any additional context data for event handlers
-	 */
-	context?: Record<string, unknown>;
+ /**
+  * Any additional context data for event handlers
+  */
+ context?: Record<string, unknown>;
 
-	/**
-	 * EntityManager instance from the event
-	 */
-	eventManager!: EntityManager;
+ /**
+  * EntityManager instance from the event
+  */
+ eventManager!: EntityManager;
 
-	/**
-	 * The dynamic entity instance
-	 * Note: This will be a dynamically generated entity at runtime
-	 */
-	item!: IConfigData;
+ /**
+  * The dynamic entity instance
+  * Note: This will be a dynamically generated entity at runtime
+  */
+ item!: IConfigData;
 }

@@ -1,4 +1,5 @@
 import type { IConfigData } from "@modules/config/data";
+import type { TDynamicEntity } from "@shared/type";
 import type { EntitySubscriberInterface, InsertEvent } from "typeorm";
 
 import { EErrorStringAction } from "@elsikora/nestjs-crud-automator";
@@ -15,58 +16,62 @@ import { DataSource, EventSubscriber } from "typeorm";
  */
 @EventSubscriber()
 export class ConfigDataBeforeInsertSubscriber implements EntitySubscriberInterface<IConfigData> {
-	constructor(
-		private readonly eventEmitter: EventEmitter2,
-		@Inject(DataSource) readonly connection: DataSource,
-		@Inject(TOKEN_CONSTANT.CONFIG_DATA_SERVICE) readonly entity: IConfigData,
-	) {
-		// Register this subscriber with the DataSource
-		connection.subscribers.push(this);
-	}
+ constructor(
+  private readonly eventEmitter: EventEmitter2,
+  @Inject(DataSource) readonly connection: DataSource,
+  @Inject(TOKEN_CONSTANT.CONFIG_DATA_ENTITY) private readonly entityClass: TDynamicEntity,
+ ) {
+  // Register this subscriber with the DataSource
+  connection.subscribers.push(this);
+ }
 
-	/**
-	 * Handle the beforeInsert event
-	 * @param {InsertEvent<IConfigData>} event - The TypeORM insert event
-	 * @returns {Promise<boolean>} Promise resolving to boolean indicating success
-	 */
-	beforeInsert(event: InsertEvent<IConfigData>): Promise<boolean> {
-		const item: IConfigData = event.entity;
+ /**
+  * Handle the beforeInsert event
+  * @param {InsertEvent<IConfigData>} event - The TypeORM insert event
+  * @returns {Promise<boolean>} Promise resolving to boolean indicating success
+  */
+ beforeInsert(event: InsertEvent<IConfigData>): Promise<boolean> {
+  // Only process if this is our ConfigData entity
+  if (event.entity.constructor !== this.entityClass) {
+   return Promise.resolve(true);
+  }
 
-		const payload: ConfigDataEventBeforeInsert = new ConfigDataEventBeforeInsert();
-		payload.item = item;
-		payload.eventManager = event.manager;
+  const item: IConfigData = event.entity;
 
-		return this.eventEmitter
-			.emitAsync("config-data.beforeInsert", payload)
-			.then((result: Array<{ error?: unknown; isSuccess: boolean }>) => {
-				if (result.every((item: { error?: unknown; isSuccess: boolean }) => item.isSuccess)) {
-					return true;
-				} else {
-					const error: unknown = result.find((item: { error?: unknown; isSuccess: boolean }) => !item.isSuccess)?.error;
+  const payload: ConfigDataEventBeforeInsert = new ConfigDataEventBeforeInsert();
+  payload.item = item;
+  payload.eventManager = event.manager;
 
-					if (error instanceof HttpException) {
-						throw error;
-					}
+  return this.eventEmitter
+   .emitAsync("config-data.beforeInsert", payload)
+   .then((result: Array<{ error?: unknown; isSuccess: boolean }>) => {
+    if (result.every((item: { error?: unknown; isSuccess: boolean }) => item.isSuccess)) {
+     return true;
+    } else {
+     const error: unknown = result.find(
+      (item: { error?: unknown; isSuccess: boolean }) => !item.isSuccess,
+     )?.error;
 
-					// @ts-ignore - EErrorStringAction import issue with yalc package
-					throw new InternalServerErrorException(ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.CREATING_ERROR }));
-				}
-			})
-			.catch((error: unknown) => {
-				throw error;
-			});
-	}
+     if (error instanceof HttpException) {
+      throw error;
+     }
 
-	/**
-	 * Specify which entity this subscriber listens to
-	 * Note: Returns undefined to listen to all entities
-	 * The actual filtering will be done at runtime
-	 * @returns {any} The entity class or undefined to listen to all entities
-	 */
-	// eslint-disable-next-line @elsikora/typescript/no-explicit-any
-	listenTo(): any {
-		// Return undefined to subscribe to all entities
-		// Filtering will be handled at runtime based on the entity type
-		return undefined;
-	}
+     // @ts-ignore - EErrorStringAction import issue with yalc package
+     throw new InternalServerErrorException(
+      ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.CREATING_ERROR }),
+     );
+    }
+   })
+   .catch((error: unknown) => {
+    throw error;
+   });
+ }
+
+ /**
+  * Specify which entity this subscriber listens to
+  * @returns {TDynamicEntity} The ConfigData entity class
+  */
+ listenTo(): TDynamicEntity {
+  return this.entityClass;
+ }
 }

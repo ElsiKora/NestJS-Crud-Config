@@ -5,15 +5,15 @@ const MAX_VALUE_LENGTH: number = 8192;
 const DEFAULT_TABLE_NAME: string = "config_data";
 
 export const CONFIG_DATA_CONSTANT: {
-	readonly DEFAULT_TABLE_NAME: string;
-	readonly MAX_DESCRIPTION_LENGTH: number;
-	readonly MAX_ENVIRONMENT_LENGTH: number;
-	readonly MAX_NAME_LENGTH: number;
-	readonly MAX_VALUE_LENGTH: number;
+ readonly DEFAULT_TABLE_NAME: string;
+ readonly MAX_DESCRIPTION_LENGTH: number;
+ readonly MAX_ENVIRONMENT_LENGTH: number;
+ readonly MAX_NAME_LENGTH: number;
+ readonly MAX_VALUE_LENGTH: number;
 } = {
-	DEFAULT_TABLE_NAME,
-	MAX_DESCRIPTION_LENGTH,
-	MAX_ENVIRONMENT_LENGTH,
-	MAX_NAME_LENGTH,
-	MAX_VALUE_LENGTH,
+ DEFAULT_TABLE_NAME,
+ MAX_DESCRIPTION_LENGTH,
+ MAX_ENVIRONMENT_LENGTH,
+ MAX_NAME_LENGTH,
+ MAX_VALUE_LENGTH,
 } as const;

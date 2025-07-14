@@ -1,14 +1,33 @@
 import type { IConfigData } from "@modules/config/data";
-import type { IConfigGetOptions } from "@modules/config/interface/get-properties.interface";
-import type { IConfigSetOptions } from "@modules/config/interface/set-properties.interface";
 import type { IConfigSection } from "@modules/config/section";
-import type { ICrudConfigProperties } from "@shared/interface/config";
+import type { IConfigOptions } from "@shared/interface/config";
 
-import { ApiServiceBase, EErrorStringAction, ErrorString } from "@elsikora/nestjs-crud-automator";
+import {
+ ApiServiceBase,
+ EErrorStringAction,
+ ErrorString,
+ IApiGetListResponseResult,
+} from "@elsikora/nestjs-crud-automator";
 import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
-import { HttpException, Inject, Injectable, InternalServerErrorException, Optional } from "@nestjs/common";
+import {
+ HttpException,
+ Inject,
+ Injectable,
+ InternalServerErrorException,
+ Logger,
+ NotFoundException,
+ Optional,
+} from "@nestjs/common";
 import { TOKEN_CONSTANT } from "@shared/constant";
 import { CryptoUtility } from "@shared/utility";
+import { DataSource, EntityManager, QueryRunner } from "typeorm";
+
+import {
+ IConfigDeleteOptions,
+ IConfigGetListOptions,
+ IConfigGetOptions,
+ IConfigSetOptions,
+} from "./interface";
 
 /**
  * Service for managing configuration data with caching support
@@ -16,204 +35,451 @@ import { CryptoUtility } from "@shared/utility";
  */
 @Injectable()
 export class CrudConfigService {
-	constructor(
-		@Inject(TOKEN_CONSTANT.CONFIG_SECTION_SERVICE) private readonly sectionService: ApiServiceBase<IConfigSection>,
-		@Inject(TOKEN_CONSTANT.CONFIG_DATA_SERVICE) private readonly dataService: ApiServiceBase<IConfigData>,
-		// @ts-ignore
-		@Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-		@Optional() @Inject(TOKEN_CONSTANT.CONFIG_PROPERTIES) private readonly properties?: ICrudConfigProperties,
-	) {}
+ private readonly LOGGER: Logger = new Logger(CrudConfigService.name);
 
-	/**
-	 * Deletes a configuration value
-	 * @param {IConfigGetOptions} options Configuration options to identify the value to delete
-	 * @returns {Promise<void>} Promise resolving when the configuration is deleted
-	 */
-	async delete(options: Omit<IConfigGetOptions, "shouldDecrypt" | "shouldLoadSectionInfo">): Promise<void> {
-		const { environment, name, section: sectionName }: IConfigGetOptions = options;
+ constructor(
+  @Inject(TOKEN_CONSTANT.CONFIG_SECTION_SERVICE)
+  private readonly sectionService: ApiServiceBase<IConfigSection>,
+  @Inject(TOKEN_CONSTANT.CONFIG_DATA_SERVICE)
+  private readonly dataService: ApiServiceBase<IConfigData>,
+  // @ts-ignore
+  @Optional() @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+  @Optional() @Inject(TOKEN_CONSTANT.CONFIG_OPTIONS) private readonly options?: IConfigOptions,
+  private readonly dataSource?: DataSource,
+  private readonly cryptoUtility?: CryptoUtility,
+ ) {}
 
-		try {
-			const section = await this.sectionService.get({ where: { name: sectionName } });
+ /**
+  * Deletes a configuration value
+  * @param {IConfigDeleteOptions} options Configuration options to identify the value to delete
+  * @returns {Promise<void>} Promise resolving when the configuration is deleted
+  */
+ async delete(options: IConfigDeleteOptions): Promise<void> {
+  if (this.options?.isVerbose) {
+   this.LOGGER.verbose(`Entering delete method with options: ${JSON.stringify(options)}`);
+  }
+  const { environment, eventManager, name, section: sectionName }: IConfigDeleteOptions = options;
+  const finalEnvironment: string = environment ?? this.options?.environment ?? "default";
 
-			const data = await this.dataService.get({
-				where: {
-					environment: environment ?? this.properties?.environment ?? "default",
-					name,
-					section: { id: section.id },
-				},
-			});
+  try {
+   const section: IConfigSection = await this.sectionService.get(
+    { where: { name: sectionName } },
+    eventManager,
+   );
 
-			await this.dataService.delete({ id: data.id } as any);
-		} catch (error) {
-			if (error instanceof HttpException) {
-				throw error;
-			} else {
-				throw new InternalServerErrorException(ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.DELETING_ERROR }));
-			}
-		}
-	}
+   const data: IConfigData = await this.dataService.get(
+    {
+     where: {
+      environment: finalEnvironment,
+      name,
+      section: { id: section.id },
+     },
+    },
+    eventManager,
+   );
 
-	/**
-	 * Retrieves configuration data based on the provided options
-	 * @param {IConfigGetOptions} options Configuration retrieval options
-	 * @returns {Promise<IConfigData>} Promise resolving to the configuration data
-	 */
-	async get(options: IConfigGetOptions): Promise<IConfigData> {
-		const { environment, name, section, shouldDecrypt, shouldLoadSectionInfo }: IConfigGetOptions = options;
+   await this.dataService.delete({ id: data.id }, eventManager);
 
-		return this.sectionService
-			.get({ where: { name: section } })
-			.then((section: IConfigSection): Promise<IConfigData> => {
-				return (
-					this.dataService
-						// eslint-disable-next-line @elsikora/typescript/naming-convention
-						.get({ relations: { section: shouldLoadSectionInfo }, where: { environment, name, section: { id: section.id } } })
-						.then((data: IConfigData): IConfigData => {
-							if (data.isEncrypted && shouldDecrypt) {
-								// Decrypt the value if encryption is enabled and decryption is requested
-								if (this.properties?.encryptionKey) {
-									try {
-										data.value = CryptoUtility.decrypt(data.value, this.properties.encryptionKey);
-									} catch (error) {
-										throw new InternalServerErrorException(`Failed to decrypt configuration value: ${error instanceof Error ? error.message : "Unknown error"}`);
-									}
-								} else {
-									throw new InternalServerErrorException("Cannot decrypt value: encryption key is not configured");
-								}
+   if (this.options?.cacheOptions?.isEnabled && this.cacheManager) {
+    const cacheKey: string = `config:${sectionName}:${name}:${finalEnvironment}`;
+    const listCacheKey: string = `config:list:${sectionName}:${finalEnvironment}`;
 
-								return data;
-							} else {
-								return data;
-							}
-						})
-						.catch((error: unknown) => {
-							if (error instanceof HttpException) {
-								throw error;
-							} else {
-								throw new InternalServerErrorException(ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.FETCHING_ERROR }));
-							}
-						})
-				);
-			})
-			.catch((error: unknown) => {
-				if (error instanceof HttpException) {
-					throw error;
-				} else {
-					throw new InternalServerErrorException(ErrorString({ entity: { name: "ConfigSection" }, type: EErrorStringAction.FETCHING_ERROR }));
-				}
-			});
-	}
+    await Promise.all([this.cacheManager.del(cacheKey), this.cacheManager.del(listCacheKey)]);
+   }
+  } catch (error: unknown) {
+   if (this.options?.isVerbose) {
+    this.LOGGER.error(`Error in delete method: ${(error as Error).message}`);
+   }
 
-	/**
-	 * Lists all configuration values in a section
-	 * @param {object} options Options for listing configurations
-	 * @param {string} options.section Section name
-	 * @param {string} [options.environment] Environment name
-	 * @returns {Promise<Array<IConfigData>>} Promise resolving to array of configuration data
-	 */
-	async list(options: { environment?: string; section: string }): Promise<Array<IConfigData>> {
-		const { environment, section: sectionName } = options;
+   if (error instanceof HttpException) {
+    throw error;
+   }
 
-		try {
-			const section = await this.sectionService.get({ where: { name: sectionName } });
-			const where: any = { section: { id: section.id } };
+   throw new InternalServerErrorException(
+    ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.DELETING_ERROR }),
+   );
+  }
+ }
 
-			if (environment) {
-				where.environment = environment;
-			}
+ /**
+  * Retrieves configuration data based on the provided options
+  * @param {IConfigGetOptions} options Configuration retrieval options
+  * @returns {Promise<IConfigData>} Promise resolving to the configuration data
+  */
+ async get(options: IConfigGetOptions): Promise<IConfigData> {
+  if (this.options?.isVerbose) {
+   this.LOGGER.verbose(`Entering get method with options: ${JSON.stringify(options)}`);
+  }
 
-			const result = await this.dataService.getList({ where });
+  const {
+   environment,
+   eventManager,
+   name,
+   section,
+   shouldLoadSectionInfo,
+   useCache,
+  }: IConfigGetOptions = options;
+  const finalEnvironment: string = environment ?? this.options?.environment ?? "default";
+  const cacheKey: string = `config:${section}:${name}:${finalEnvironment}`;
 
-			return result.items;
-		} catch (error) {
-			if (error instanceof HttpException) {
-				throw error;
-			} else {
-				throw new InternalServerErrorException(ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.FETCHING_ERROR }));
-			}
-		}
-	}
+  try {
+   // Check cache first if enabled
+   if (useCache && this.options?.cacheOptions?.isEnabled && this.cacheManager) {
+    const cachedData: IConfigData | undefined = await this.cacheManager.get<IConfigData>(cacheKey);
 
-	/**
-	 * Sets a configuration value with optional encryption
-	 * @param {IConfigSetOptions} options Configuration set options
-	 * @param {string} value The value to set
-	 * @returns {Promise<IConfigData>} Promise resolving to the saved configuration data
-	 */
-	async set(options: IConfigSetOptions, value: string): Promise<IConfigData> {
-		const { description, environment, name, section: sectionName, shouldEncrypt }: IConfigSetOptions = options;
+    if (cachedData) {
+     if (this.options?.isVerbose) {
+      this.LOGGER.verbose(`Returning cached config data for ${name}`);
+     }
 
-		// Determine if encryption should be applied
-		const shouldApplyEncryption = shouldEncrypt ?? this.properties?.shouldEncryptValues ?? false;
-		let finalValue = value;
-		let isEncrypted = false;
+     return cachedData;
+    }
+   }
 
-		// Encrypt the value if needed
-		if (shouldApplyEncryption) {
-			if (!this.properties?.encryptionKey) {
-				throw new InternalServerErrorException("Cannot encrypt value: encryption key is not configured");
-			}
+   // Fetch section
+   if (this.options?.isVerbose) {
+    this.LOGGER.verbose(`Fetching section: ${section}`);
+   }
 
-			try {
-				finalValue = CryptoUtility.encrypt(value, this.properties.encryptionKey);
-				isEncrypted = true;
-			} catch (error) {
-				throw new InternalServerErrorException(`Failed to encrypt configuration value: ${error instanceof Error ? error.message : "Unknown error"}`);
-			}
-		}
+   const sectionData: IConfigSection = await this.sectionService.get(
+    { where: { name: section } },
+    eventManager,
+   );
 
-		try {
-			// First, find or create the section
-			let section: IConfigSection;
+   if (this.options?.isVerbose) {
+    this.LOGGER.verbose(`Fetching config data for name: ${name}, environment: ${finalEnvironment}`);
+   }
 
-			try {
-				section = await this.sectionService.get({ where: { name: sectionName } });
-			} catch {
-				// Section doesn't exist, create it
-				section = await this.sectionService.create({
-					description: `Section for ${sectionName} configurations`,
-					name: sectionName,
-				});
-			}
+   const data: IConfigData = await this.dataService.get(
+    {
+     // eslint-disable-next-line @elsikora/typescript/naming-convention
+     relations: { section: shouldLoadSectionInfo },
+     where: { environment: finalEnvironment, name, section: { id: sectionData.id } },
+    },
+    eventManager,
+   );
 
-			// Check if the configuration already exists
-			let existingData: IConfigData | null = null;
+   if (data.isEncrypted) {
+    if (!this.options?.encryptionOptions?.encryptionKey) {
+     throw new InternalServerErrorException(
+      ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.KEY_NOT_FOUND }),
+     );
+    }
 
-			try {
-				existingData = await this.dataService.get({
-					where: {
-						environment: environment ?? this.properties?.environment ?? "default",
-						name,
-						section: { id: section.id },
-					},
-				});
-			} catch {
-				// Configuration doesn't exist, which is fine
-			}
+    if (!this.cryptoUtility) {
+     throw new InternalServerErrorException("CryptoUtility not available");
+    }
 
-			const configData = {
-				description: description ?? undefined,
-				environment: environment ?? this.properties?.environment ?? "default",
-				isEncrypted,
-				name,
-				section: { id: section.id },
-				value: finalValue,
-			};
+    try {
+     data.value = this.cryptoUtility.decrypt(
+      data.value,
+      this.options.encryptionOptions.encryptionKey,
+     );
 
-			// Create or update the configuration
-			if (existingData) {
-				// Update existing configuration
-				return await this.dataService.update({ id: existingData.id } as any, configData);
-			} else {
-				// Create new configuration
-				return await this.dataService.create(configData);
-			}
-		} catch (error) {
-			if (error instanceof HttpException) {
-				throw error;
-			} else {
-				throw new InternalServerErrorException(ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.CREATING_ERROR }));
-			}
-		}
-	}
+     if (this.options?.isVerbose) {
+      this.LOGGER.verbose(`Decrypted value for ${name}`);
+     }
+    } catch (error: unknown) {
+     if (this.options?.isVerbose) {
+      this.LOGGER.error(`Decryption error for ${name}: ${(error as Error).message}`);
+     }
+
+     throw new InternalServerErrorException(
+      ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.DECRYPTION_ERROR }),
+     );
+    }
+   }
+
+   if (useCache && this.options?.cacheOptions?.isEnabled && this.cacheManager) {
+    const ttl: number | undefined = this.options.cacheOptions.maxCacheTTL;
+    await this.cacheManager.set(cacheKey, data, ttl);
+   }
+
+   if (this.options?.isVerbose) {
+    this.LOGGER.verbose(`Returning config data for ${name}`);
+   }
+
+   return data;
+  } catch (error: unknown) {
+   if (this.options?.isVerbose) {
+    this.LOGGER.error(`Error in get method: ${(error as Error).message}`);
+   }
+
+   if (error instanceof HttpException) {
+    throw error;
+   }
+
+   throw new InternalServerErrorException(
+    ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.FETCHING_ERROR }),
+   );
+  }
+ }
+
+ /**
+  * Lists all configuration values in a section.
+  * Supports caching and running within a TypeORM transaction.
+  * @param {IConfigGetListOptions} options Options for listing configurations.
+  * @returns {Promise<Array<IConfigData>>} Promise resolving to an array of configuration data.
+  */
+ async getList(options: IConfigGetListOptions): Promise<Array<IConfigData>> {
+  if (this.options?.isVerbose) {
+   this.LOGGER.verbose(`Entering getList method with options: ${JSON.stringify(options)}`);
+  }
+
+  const {
+   environment,
+   eventManager,
+   section: sectionName,
+   useCache,
+  }: IConfigGetListOptions = options;
+  const finalEnvironment: string = environment ?? this.options?.environment ?? "default";
+  const cacheKey: string = `config:list:${sectionName}:${finalEnvironment}`;
+
+  try {
+   // Check cache first if enabled
+   if (useCache && this.options?.cacheOptions?.isEnabled && this.cacheManager) {
+    const cachedItems: Array<IConfigData> | undefined =
+     await this.cacheManager.get<Array<IConfigData>>(cacheKey);
+
+    if (cachedItems) {
+     if (this.options?.isVerbose) {
+      this.LOGGER.verbose(`Returning cached config list for ${sectionName}`);
+     }
+
+     return cachedItems;
+    }
+   }
+
+   if (this.options?.isVerbose) {
+    this.LOGGER.verbose(`Fetching section: ${sectionName}`);
+   }
+
+   const section: IConfigSection = await this.sectionService.get(
+    { where: { name: sectionName } },
+    eventManager,
+   );
+
+   if (this.options?.isVerbose) {
+    this.LOGGER.verbose(
+     `Fetching config list for section: ${sectionName}, environment: ${finalEnvironment}`,
+    );
+   }
+
+   const result: IApiGetListResponseResult<IConfigData> = await this.dataService.getList(
+    { where: { environment: finalEnvironment, section: { id: section.id } } },
+    eventManager,
+   );
+
+   if (useCache && this.options?.cacheOptions?.isEnabled && this.cacheManager) {
+    const ttl: number | undefined = this.options?.cacheOptions?.maxCacheTTL;
+    await this.cacheManager.set(cacheKey, result.items, ttl);
+   }
+
+   if (this.options?.isVerbose) {
+    this.LOGGER.verbose(`Returning ${result.items.length} config items`);
+   }
+
+   return result.items;
+  } catch (error: unknown) {
+   if (this.options?.isVerbose) {
+    this.LOGGER.error(`Error in getList method: ${(error as Error).message}`);
+   }
+
+   if (error instanceof HttpException) {
+    throw error;
+   }
+
+   throw new InternalServerErrorException(
+    ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.FETCHING_LIST_ERROR }),
+   );
+  }
+ }
+
+ /**
+  * Sets a configuration value with optional encryption.
+  * The specified section must already exist.
+  * If a configuration with the same name and environment already exists, it will be updated. Otherwise, a new one will be created.
+  * @param {IConfigSetOptions} options Configuration set options
+  * @returns {Promise<IConfigData>} Promise resolving to the saved configuration data
+  */
+ async set(options: IConfigSetOptions): Promise<IConfigData> {
+  if (this.options?.isVerbose) {
+   const maskedOptions: IConfigSetOptions = {
+    ...options,
+    value: "***",
+   };
+   this.LOGGER.verbose(`Entering set method with options: ${JSON.stringify(maskedOptions)}`);
+  }
+
+  const {
+   description,
+   environment,
+   eventManager,
+   name,
+   section: sectionName,
+   value,
+  }: IConfigSetOptions = options;
+  const finalEnvironment: string = environment ?? this.options?.environment ?? "default";
+
+  const shouldApplyEncryption: boolean = this.options?.encryptionOptions?.isEnabled ?? false;
+  let finalValue: string = value;
+  let isEncrypted: boolean = false;
+
+  if (shouldApplyEncryption) {
+   if (!this.options?.encryptionOptions?.encryptionKey) {
+    throw new InternalServerErrorException(
+     ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.KEY_NOT_FOUND }),
+    );
+   }
+
+   if (!this.cryptoUtility) {
+    throw new InternalServerErrorException("CryptoUtility not available");
+   }
+
+   try {
+    finalValue = this.cryptoUtility.encrypt(value, this.options.encryptionOptions.encryptionKey);
+    isEncrypted = true;
+
+    if (this.options?.isVerbose) {
+     this.LOGGER.verbose(`Encrypted value for ${name}`);
+    }
+   } catch (error: unknown) {
+    if (this.options?.isVerbose) {
+     this.LOGGER.error(`Encryption error for ${name}: ${(error as Error).message}`);
+    }
+
+    throw new InternalServerErrorException(
+     ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.ENCRYPTION_ERROR }),
+    );
+   }
+  }
+
+  let queryRunner: QueryRunner | undefined;
+  let useTransaction: boolean = false;
+  let localEventManager: EntityManager | undefined = eventManager;
+
+  try {
+   useTransaction = !eventManager;
+
+   if (useTransaction) {
+    if (!this.dataSource) {
+     throw new InternalServerErrorException("DataSource not available for transaction");
+    }
+    queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    localEventManager = queryRunner.manager;
+   }
+
+   if (this.options?.isVerbose) {
+    this.LOGGER.verbose(`Fetching or creating section: ${sectionName}`);
+   }
+   const section: IConfigSection = await this.getOrCreateSection(sectionName, localEventManager);
+
+   if (this.options?.isVerbose) {
+    this.LOGGER.verbose(`Preparing config data for ${name}`);
+   }
+
+   const configData: Partial<IConfigData> = {
+    description: description ?? undefined,
+    environment: finalEnvironment,
+    isEncrypted,
+    name,
+    section: { id: section.id },
+    value: finalValue,
+   };
+
+   let result: IConfigData;
+
+   try {
+    if (this.options?.isVerbose) {
+     this.LOGGER.verbose(`Checking for existing config: ${name}`);
+    }
+
+    const existingData: IConfigData = await this.dataService.get(
+     { where: { environment: finalEnvironment, name, section: { id: section.id } } },
+     localEventManager,
+    );
+
+    if (this.options?.isVerbose) {
+     this.LOGGER.verbose(`Updating existing config: ${name}`);
+    }
+    result = await this.dataService.update({ id: existingData.id }, configData, localEventManager);
+   } catch (error: unknown) {
+    if (error instanceof NotFoundException) {
+     if (this.options?.isVerbose) {
+      this.LOGGER.verbose(`Config ${name} not found, creating new one`);
+     }
+     result = await this.dataService.create(configData, localEventManager);
+    } else {
+     if (this.options?.isVerbose) {
+      const errorMessage: string = error instanceof Error ? error.message : String(error);
+      this.LOGGER.error(`Error updating config: ${errorMessage}`);
+     }
+
+     throw error;
+    }
+   }
+
+   if (this.options?.cacheOptions?.isEnabled && this.cacheManager) {
+    const cacheKey: string = `config:${sectionName}:${name}:${finalEnvironment}`;
+    const listCacheKey: string = `config:list:${sectionName}:${finalEnvironment}`;
+
+    await Promise.all([this.cacheManager.del(cacheKey), this.cacheManager.del(listCacheKey)]);
+   }
+
+   if (useTransaction && queryRunner) {
+    await queryRunner.commitTransaction();
+    await queryRunner.release();
+   }
+
+   if (this.options?.isVerbose) {
+    this.LOGGER.verbose(`Set method completed successfully for ${name}`);
+   }
+
+   return result;
+  } catch (error: unknown) {
+   if (useTransaction && queryRunner) {
+    await queryRunner.rollbackTransaction();
+    await queryRunner.release();
+   }
+
+   if (this.options?.isVerbose) {
+    const errorMessage: string = error instanceof Error ? error.message : String(error);
+    this.LOGGER.error(`Error in set method: ${errorMessage}`);
+   }
+
+   if (error instanceof HttpException) {
+    throw error;
+   }
+
+   throw new InternalServerErrorException(
+    ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.CREATING_ERROR }),
+   );
+  }
+ }
+
+ private async getOrCreateSection(
+  sectionName: string,
+  eventManager?: EntityManager,
+ ): Promise<IConfigSection> {
+  try {
+   return await this.sectionService.get({ where: { name: sectionName } }, eventManager);
+  } catch (error: unknown) {
+   if (error instanceof NotFoundException && this.options?.shouldAutoCreateSections) {
+    if (this.options?.isVerbose) {
+     this.LOGGER.verbose(`Section ${sectionName} not found, creating new one`);
+    }
+
+    return await this.sectionService.create({ name: sectionName }, eventManager);
+   } else {
+    if (this.options?.isVerbose) {
+     const errorMessage: string = error instanceof Error ? error.message : String(error);
+     this.LOGGER.error(`Error fetching section: ${errorMessage}`);
+    }
+
+    throw error;
+   }
+  }
+ }
 }

@@ -1,100 +1,94 @@
+import type { CipherGCM, DecipherGCM } from "node:crypto";
+
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
+
+import { Injectable } from "@nestjs/common";
+import { CRYPTO_CONSTANT } from "@shared/constant/crypto.constant";
 
 /**
  * Utility class for encrypting and decrypting configuration values
  * Uses AES-256-GCM for encryption with authentication
  */
+@Injectable()
 export class CryptoUtility {
-	private static readonly ALGORITHM = "aes-256-gcm";
+ /**
+  * Decrypts a value encrypted with AES-256-GCM
+  * @param {string} encryptedValue - The encrypted value in format: salt:iv:authTag:encryptedData (base64 encoded)
+  * @param {string} encryptionKey - The encryption key
+  * @returns {string} Decrypted value
+  * @throws {Error} If decryption fails or authentication fails
+  */
+ public decrypt(encryptedValue: string, encryptionKey: string): string {
+  try {
+   const combined: Buffer = Buffer.from(encryptedValue, "base64");
+   const salt: Buffer = combined.subarray(0, CRYPTO_CONSTANT.SALT_LENGTH);
 
-	private static readonly IV_LENGTH = 16;
+   const iv: Buffer = combined.subarray(
+    CRYPTO_CONSTANT.SALT_LENGTH,
+    CRYPTO_CONSTANT.SALT_LENGTH + CRYPTO_CONSTANT.IV_LENGTH,
+   );
 
-	private static readonly KEY_LENGTH = 32;
+   const authTag: Buffer = combined.subarray(
+    CRYPTO_CONSTANT.SALT_LENGTH + CRYPTO_CONSTANT.IV_LENGTH,
+    CRYPTO_CONSTANT.SALT_LENGTH + CRYPTO_CONSTANT.IV_LENGTH + CRYPTO_CONSTANT.TAG_LENGTH,
+   );
 
-	private static readonly SALT_LENGTH = 32;
+   const encrypted: Buffer = combined.subarray(
+    CRYPTO_CONSTANT.SALT_LENGTH + CRYPTO_CONSTANT.IV_LENGTH + CRYPTO_CONSTANT.TAG_LENGTH,
+   );
+   const key: Buffer = scryptSync(encryptionKey, salt, CRYPTO_CONSTANT.KEY_LENGTH);
 
-	private static readonly TAG_LENGTH = 16;
+   const decipher: DecipherGCM = createDecipheriv(
+    CRYPTO_CONSTANT.ALGORITHM,
+    key,
+    iv,
+   ) as DecipherGCM;
 
-	/**
-	 * Decrypts a value encrypted with AES-256-GCM
-	 * @param {string} encryptedValue - The encrypted value in format: salt:iv:authTag:encryptedData (base64 encoded)
-	 * @param {string} encryptionKey - The encryption key
-	 * @returns {string} Decrypted value
-	 * @throws {Error} If decryption fails or authentication fails
-	 */
-	public static decrypt(encryptedValue: string, encryptionKey: string): string {
-		try {
-			// Decode from base64
-			const combined = Buffer.from(encryptedValue, "base64");
+   decipher.setAuthTag(authTag);
 
-			// Extract components
-			const salt = combined.subarray(0, this.SALT_LENGTH);
-			const iv = combined.subarray(this.SALT_LENGTH, this.SALT_LENGTH + this.IV_LENGTH);
+   const decrypted: Buffer = Buffer.concat([decipher.update(encrypted), decipher.final()]);
 
-			const authTag = combined.subarray(this.SALT_LENGTH + this.IV_LENGTH, this.SALT_LENGTH + this.IV_LENGTH + this.TAG_LENGTH);
-			const encrypted = combined.subarray(this.SALT_LENGTH + this.IV_LENGTH + this.TAG_LENGTH);
+   return decrypted.toString("utf8");
+  } catch (error) {
+   throw new Error(
+    `Failed to decrypt value: ${error instanceof Error ? error.message : "Unknown error"}`,
+   );
+  }
+ }
 
-			// Derive the key from the encryption key using the same salt
-			const key = scryptSync(encryptionKey, salt, this.KEY_LENGTH);
+ /**
+  * Encrypts a value using AES-256-GCM
+  * @param {string} value - The value to encrypt
+  * @param {string} encryptionKey - The encryption key
+  * @returns {string} Encrypted value in format: salt:iv:authTag:encryptedData (base64 encoded)
+  */
+ public encrypt(value: string, encryptionKey: string): string {
+  const salt: Buffer = randomBytes(CRYPTO_CONSTANT.SALT_LENGTH);
+  const key: Buffer = scryptSync(encryptionKey, salt, CRYPTO_CONSTANT.KEY_LENGTH);
+  const iv: Buffer = randomBytes(CRYPTO_CONSTANT.IV_LENGTH);
+  const cipher: CipherGCM = createCipheriv(CRYPTO_CONSTANT.ALGORITHM, key, iv) as CipherGCM;
+  const encrypted: Buffer = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+  const authTag: Buffer = cipher.getAuthTag();
+  const combined: Buffer = Buffer.concat([salt, iv, authTag, encrypted]);
 
-			// Create decipher
-			const decipher = createDecipheriv(this.ALGORITHM, key, iv);
-			decipher.setAuthTag(authTag);
+  return combined.toString("base64");
+ }
 
-			// Decrypt the value
-			const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
+ /**
+  * Validates if a string is a valid encrypted value
+  * @param {string} value - The value to check
+  * @returns {boolean} True if the value appears to be encrypted
+  */
+ public isEncryptedValue(value: string): boolean {
+  try {
+   const decoded: Buffer = Buffer.from(value, "base64");
 
-			return decrypted.toString("utf8");
-		} catch (error) {
-			throw new Error(`Failed to decrypt value: ${error instanceof Error ? error.message : "Unknown error"}`);
-		}
-	}
-
-	/**
-	 * Encrypts a value using AES-256-GCM
-	 * @param {string} value - The value to encrypt
-	 * @param {string} encryptionKey - The encryption key
-	 * @returns {string} Encrypted value in format: salt:iv:authTag:encryptedData (base64 encoded)
-	 */
-	public static encrypt(value: string, encryptionKey: string): string {
-		// Generate a random salt for key derivation
-		const salt = randomBytes(this.SALT_LENGTH);
-
-		// Derive a key from the encryption key using scrypt
-		const key = scryptSync(encryptionKey, salt, this.KEY_LENGTH);
-
-		// Generate a random initialization vector
-		const iv = randomBytes(this.IV_LENGTH);
-
-		// Create cipher
-		const cipher = createCipheriv(this.ALGORITHM, key, iv);
-
-		// Encrypt the value
-		const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
-
-		// Get the authentication tag
-		const authTag = cipher.getAuthTag();
-
-		// Combine salt, iv, authTag, and encrypted data
-		const combined = Buffer.concat([salt, iv, authTag, encrypted]);
-
-		// Return base64 encoded string
-		return combined.toString("base64");
-	}
-
-	/**
-	 * Validates if a string is a valid encrypted value
-	 * @param {string} value - The value to check
-	 * @returns {boolean} True if the value appears to be encrypted
-	 */
-	public static isEncryptedValue(value: string): boolean {
-		try {
-			const decoded = Buffer.from(value, "base64");
-
-			// Minimum length: salt (32) + iv (16) + tag (16) + at least 1 byte of data
-			return decoded.length >= this.SALT_LENGTH + this.IV_LENGTH + this.TAG_LENGTH + 1;
-		} catch {
-			return false;
-		}
-	}
+   return (
+    decoded.length >=
+    CRYPTO_CONSTANT.SALT_LENGTH + CRYPTO_CONSTANT.IV_LENGTH + CRYPTO_CONSTANT.TAG_LENGTH + 1
+   );
+  } catch {
+   return false;
+  }
+ }
 }

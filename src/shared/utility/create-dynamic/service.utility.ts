@@ -11,18 +11,18 @@ import { Repository } from "typeorm";
  * @returns {Type} The dynamic service class
  */
 export function createDynamicService(entity: TDynamicEntity, name: string): Type {
-	@ApiService({ entity })
-	@Injectable()
-	class DynamicService extends ApiServiceBase<IApiBaseEntity> {
-		constructor(
-			@Inject(getRepositoryToken(entity))
-			public readonly repository: Repository<IApiBaseEntity>,
-		) {
-			super();
-		}
-	}
+ @ApiService({ entity })
+ @Injectable()
+ class DynamicService extends ApiServiceBase<IApiBaseEntity> {
+  constructor(
+   @Inject(getRepositoryToken(entity))
+   public readonly repository: Repository<IApiBaseEntity>,
+  ) {
+   super();
+  }
+ }
 
-	Object.defineProperty(DynamicService, "name", { value: name });
+ Object.defineProperty(DynamicService, "name", { value: name });
 
-	return DynamicService;
+ return DynamicService;
 }
