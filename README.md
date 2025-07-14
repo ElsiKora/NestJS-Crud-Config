@@ -17,32 +17,42 @@
 - [Features](#-features)
 - [Installation](#-installation)
 - [Usage](#-usage)
+- [API Documentation](#-api-documentation)
+- [Database Schema](#-database-schema)
+- [Advanced Configuration](#-advanced-configuration)
 - [Roadmap](#-roadmap)
 - [FAQ](#-faq)
 - [License](#-license)
 
 
 ## 📖 Description
-NestJS CRUD Config is a powerful configuration management module that revolutionizes how NestJS applications handle configuration data. Unlike traditional environment variable approaches, this library stores configuration in a database with full CRUD operations, making it perfect for dynamic configuration management across multiple environments and services. The module provides hierarchical organization through sections and data entries, supports optional encryption for sensitive values, and includes automatic REST API endpoints for configuration management. Built with TypeScript-first design and leveraging the NestJS CRUD Automator for automatic API generation, it's ideal for microservice architectures, multi-tenant applications, and any system requiring centralized, database-backed configuration management with real-time updates. Whether you're managing API keys across different environments, storing feature flags, or maintaining application settings that need to change without redeployment, this module provides a robust, secure, and scalable solution.
+
+NestJS CRUD Config is a powerful configuration management module that revolutionizes how NestJS applications handle configuration data. Unlike traditional environment variable approaches, this library stores configuration in a database with full CRUD operations, making it perfect for dynamic configuration management across multiple environments and services.
+
+The module provides hierarchical organization through sections and data entries, supports optional AES-256-GCM encryption for sensitive values, and includes automatic REST API endpoints for configuration management. Built with TypeScript-first design and leveraging the NestJS CRUD Automator for automatic API generation, it features dynamic entity creation at runtime, comprehensive event-driven architecture, and intelligent caching.
+
+Whether you're managing API keys across different environments, storing feature flags, or maintaining application settings that need to change without redeployment, this module provides a robust, secure, and scalable solution for microservice architectures, multi-tenant applications, and any system requiring centralized, database-backed configuration management with real-time updates.
 
 ## 🚀 Features
-- ✨ **🗄️ **Database-backed configuration storage** - Store configuration in any TypeORM-supported database for persistence and scalability**
-- ✨ **🏗️ **Dynamic entity creation** - Entities are created at runtime with customizable table names, field lengths, and constraints**
-- ✨ **📊 **Hierarchical organization** - Organize configuration using sections and data entries for better structure and management**
-- ✨ **🔐 **Optional encryption support** - Protect sensitive configuration values with built-in AES-256-GCM encryption**
-- ✨ **🌍 **Multi-environment support** - Manage configurations across development, staging, and production environments seamlessly**
-- ✨ **⚡ **Full CRUD operations** - Complete Create, Read, Update, Delete operations with automatic REST API endpoints**
-- ✨ **📚 **Automatic Swagger documentation** - Generated OpenAPI documentation for all configuration endpoints**
-- ✨ **🎯 **TypeScript-first design** - Full type safety with comprehensive interfaces and type definitions**
-- ✨ **🚀 **NestJS CRUD Automator integration** - Leverages advanced CRUD automation for controllers and services**
-- ✨ **💾 **Intelligent caching** - Built-in caching support with configurable TTL and cache size limits**
-- ✨ **🔄 **Event-driven architecture** - Comprehensive event system with before/after hooks for custom business logic**
-- ✨ **🎛️ **Highly customizable** - Configure table prefixes, field lengths, validation rules, and entity relationships**
-- ✨ **🚦 **Flexible controller configuration** - Customize API paths, disable endpoints, or run in headless mode**
-- ✨ **🔧 **Advanced CRUD customization** - Full control over routes, swagger documentation, and controller behavior**
-- ✨ **📦 **Modular architecture** - Enable/disable features as needed for your use case**
+
+- **🗄️ Database-backed configuration storage** - Store configuration in any TypeORM-supported database for persistence and scalability
+- **🏗️ Dynamic entity creation** - Entities are created at runtime with customizable table names, field lengths, and constraints
+- **📊 Hierarchical organization** - Organize configuration using sections and data entries for better structure and management
+- **🔐 AES-256-GCM encryption support** - Protect sensitive configuration values with built-in encryption using industry-standard algorithms
+- **🌍 Multi-environment support** - Manage configurations across development, staging, and production environments seamlessly
+- **⚡ Full CRUD operations** - Complete Create, Read, Update, Delete operations with automatic REST API endpoints
+- **📚 Automatic Swagger documentation** - Generated OpenAPI documentation for all configuration endpoints
+- **🎯 TypeScript-first design** - Full type safety with comprehensive interfaces and type definitions
+- **🚀 NestJS CRUD Automator integration** - Leverages advanced CRUD automation for controllers and services
+- **💾 Intelligent caching** - Built-in caching support with configurable TTL and cache size limits
+- **🔄 Event-driven architecture** - Comprehensive event system with before/after hooks and TypeORM subscribers
+- **🎛️ Highly customizable** - Configure table prefixes, field lengths, validation rules, and entity relationships
+- **🚦 Flexible controller configuration** - Customize API paths, disable endpoints, or run in headless mode
+- **🔧 Advanced CRUD customization** - Full control over routes, swagger documentation, and controller behavior
+- **📦 Modular architecture** - Enable/disable features as needed for your use case
 
 ## 🛠 Installation
+
 ```bash
 # Using npm
 npm install @elsikora/nestjs-crud-config
@@ -52,15 +62,15 @@ yarn add @elsikora/nestjs-crud-config
 
 # Using pnpm
 pnpm add @elsikora/nestjs-crud-config
-
+```
 
 ### Prerequisites
 
 Install the required peer dependencies:
 
-
+```bash
 npm install @nestjs/common @nestjs/typeorm typeorm @elsikora/nestjs-crud-automator
-
+```
 
 ### Database Support
 
@@ -72,10 +82,8 @@ This package works with any database supported by TypeORM:
 - Oracle
 - MongoDB
 - CockroachDB
-```
 
 ## 💡 Usage
-## 🚀 Quick Start
 
 ### Basic Setup
 
@@ -83,29 +91,15 @@ This package works with any database supported by TypeORM:
 // app.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CrudConfigModule } from '@elsikora/nestjs-crud-config';
+import { CrudConfigModule, TOKEN_CONSTANT } from '@elsikora/nestjs-crud-config';
 
 @Module({
   imports: [
-    TypeOrmModule.forRootAsync({
-      useFactory: () => ({
-        type: 'postgres',
-        host: 'localhost',
-        port: 5432,
-        username: 'postgres',
-        password: 'postgres',
-        database: 'config_db',
-        entities: [
-          // Get dynamic entities - they are created when module is registered
-          ...CrudConfigModule.getEntities(),
-        ],
-        synchronize: true,
-      }),
-    }),
-    
+    // First register CrudConfigModule to create dynamic entities
     CrudConfigModule.register({
       environment: 'development',
       isVerbose: true,
+      shouldAutoCreateSections: true,
       
       // Cache configuration
       cacheOptions: {
@@ -141,15 +135,43 @@ import { CrudConfigModule } from '@elsikora/nestjs-crud-config';
         tablePrefix: 'app_',
         configSection: {
           tableName: 'config_sections',
-          maxNameLength: 255,
-          maxDescriptionLength: 1000,
+          maxNameLength: 128,
+          maxDescriptionLength: 512,
         },
         configData: {
           tableName: 'config_data',
-          maxValueLength: 16384,
-          maxEnvironmentLength: 100,
+          maxValueLength: 8192,
+          maxEnvironmentLength: 64,
+          maxNameLength: 128,
+          maxDescriptionLength: 512,
         },
       },
+    }),
+    
+    // Then register TypeORM with dynamic entities using registerAsync
+    TypeOrmModule.forRootAsync({
+      imports: [CrudConfigModule],
+      inject: [
+        TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
+        TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
+      ],
+      useFactory: async (sectionEntity, dataEntity) => ({
+        type: 'postgres',
+        host: 'localhost',
+        port: 5432,
+        username: 'postgres',
+        password: 'postgres',
+        database: 'config_db',
+        entities: [
+          // Your other entities
+          // UserEntity, ProductEntity, etc.
+          
+          // Dynamic entities from CrudConfigModule
+          sectionEntity,
+          dataEntity,
+        ],
+        synchronize: true,
+      }),
     }),
   ],
 })
@@ -176,7 +198,7 @@ export class MyConfigService {
       name: 'API_KEY',
       value: 'my-secret-api-key',
       description: 'Production API key',
-      environment: 'production', // Optional, uses default from module config
+      environment: 'production',
     });
 
     // Retrieve configuration by section and name
@@ -184,8 +206,8 @@ export class MyConfigService {
       section: 'api-settings',
       name: 'API_KEY',
       environment: 'production',
-      shouldLoadSectionInfo: true, // Optional, loads section details
-      useCache: true, // Optional, uses cache if enabled
+      shouldLoadSectionInfo: true,
+      useCache: true,
     });
 
     console.log('API Configuration:', apiConfig);
@@ -193,7 +215,157 @@ export class MyConfigService {
     
     return apiConfig;
   }
+
+  async getConfigurationList() {
+    // Get all configurations in a section
+    const configs = await this.configService.getList({
+      section: 'api-settings',
+      environment: 'production',
+      useCache: true,
+    });
+
+    return configs;
+  }
+
+  async deleteConfiguration() {
+    // Delete a configuration
+    await this.configService.delete({
+      section: 'api-settings',
+      name: 'API_KEY',
+      environment: 'production',
+    });
+  }
 }
+```
+
+### Async Module Registration
+
+```typescript
+// app.module.ts
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { CrudConfigModule } from '@elsikora/nestjs-crud-config';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot(),
+    CrudConfigModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        environment: configService.get('NODE_ENV', 'development'),
+        isVerbose: configService.get('VERBOSE', false),
+        encryptionOptions: {
+          isEnabled: true,
+          encryptionKey: configService.get('ENCRYPTION_KEY'),
+        },
+        cacheOptions: {
+          isEnabled: true,
+          maxCacheItems: 1000,
+          maxCacheTTL: 3600000,
+        },
+      }),
+    }),
+  ],
+})
+export class AppModule {}
+```
+
+## 📚 API Documentation
+
+The module automatically generates REST API endpoints with customizable paths:
+
+### Configuration Sections (default: `/config/section`)
+
+- `GET /config/section` - List all sections
+- `POST /config/section` - Create a new section
+- `GET /config/section/:id` - Get section by ID
+- `PUT /config/section/:id` - Update section
+- `DELETE /config/section/:id` - Delete section
+
+**Request Body for POST/PUT:**
+```json
+{
+  "name": "api-settings",
+  "description": "API configuration settings"
+}
+```
+
+### Configuration Data (default: `/config/data`)
+
+- `GET /config/data` - List all configuration data
+- `POST /config/data` - Create new configuration
+- `GET /config/data/:id` - Get configuration by ID
+- `PUT /config/data/:id` - Update configuration
+- `DELETE /config/data/:id` - Delete configuration
+
+**Request Body for POST/PUT:**
+```json
+{
+  "name": "API_KEY",
+  "value": "your-secret-key",
+  "environment": "production",
+  "description": "Production API key",
+  "isEncrypted": true,
+  "section": { "id": "section-uuid-here" }
+}
+```
+
+### Customizing API Endpoints
+
+```typescript
+CrudConfigModule.register({
+  controllersOptions: {
+    section: {
+      properties: {
+        path: 'api/v1/settings/sections',
+        name: 'CustomSectionController',
+        swagger: {
+          tags: ['Configuration Sections'],
+        },
+      },
+    },
+    data: {
+      properties: {
+        path: 'api/v1/settings/data',
+        routes: {
+          DELETE: { isEnabled: false }, // Disable deletion
+        },
+      },
+    },
+  },
+})
+```
+
+## 🗄️ Database Schema
+
+The module creates two main tables with the following default structure:
+
+### Configuration Sections Table (`config_section`)
+```sql
+CREATE TABLE config_section (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(128) NOT NULL UNIQUE,
+  description VARCHAR(512),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Configuration Data Table (`config_data`)
+```sql
+CREATE TABLE config_data (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(128) NOT NULL,
+  value VARCHAR(8192) NOT NULL,
+  environment VARCHAR(64) NOT NULL,
+  description VARCHAR(512),
+  is_encrypted BOOLEAN DEFAULT FALSE,
+  section_id UUID NOT NULL REFERENCES config_section(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(name, environment, section_id)
+);
 ```
 
 ## 🔧 Advanced Configuration
@@ -209,7 +381,6 @@ CrudConfigModule.register({
     isEnabled: true,
     encryptionKey: process.env.CONFIG_ENCRYPTION_KEY, // 32+ character key
   },
-  // ... other options
 })
 
 // When encryption is enabled, all values are encrypted automatically
@@ -229,42 +400,50 @@ console.log(config.value); // Automatically decrypted value
 console.log(config.isEncrypted); // true
 ```
 
-### Controller Configuration
+### Event-Driven Architecture
 
-The module provides flexible controller configuration options:
+The module includes comprehensive event handling with both listeners and TypeORM subscribers:
+
+```typescript
+// Event listener example
+@Injectable()
+export class ConfigDataBeforeInsertListener {
+  @OnEvent('config-data.beforeInsert')
+  async handleBeforeInsert(payload: ConfigDataEventBeforeInsert) {
+    // Custom validation logic
+    const entity = payload.item;
+    const entityManager = payload.eventManager;
+    
+    // Perform custom checks
+    return { isSuccess: true };
+  }
+}
+
+// TypeORM subscriber for database-level events
+@EventSubscriber()
+export class ConfigDataBeforeInsertSubscriber {
+  beforeInsert(event: InsertEvent<IConfigData>) {
+    // Database-level validation
+    return Promise.resolve(true);
+  }
+}
+```
+
+### Headless Mode (Without Controllers)
 
 ```typescript
 CrudConfigModule.register({
   controllersOptions: {
-    // Disable controllers completely (headless mode)
     section: { isEnabled: false },
     data: { isEnabled: false },
   },
 })
-
-// Or customize controller paths and behavior
-CrudConfigModule.register({
-  controllersOptions: {
-    section: {
-      properties: {
-        name: 'ConfigSectionController',
-        path: 'api/v1/settings/sections',
-        swagger: {
-          tags: ['Settings API'],
-        },
-      },
-    },
-    data: {
-      properties: {
-        path: 'api/v1/settings/data',
-        routes: {
-          DELETE: { isEnabled: false }, // Disable deletion
-        },
-      },
-    },
-  },
-})
 ```
+
+This is perfect for:
+- Background services that only need programmatic access
+- Microservices that manage config through message queues
+- Applications with custom GraphQL or gRPC interfaces
 
 ### Working with Multiple Environments
 
@@ -280,7 +459,6 @@ export class MultiEnvironmentService {
     const environments = ['development', 'staging', 'production'];
     
     for (const env of environments) {
-      // Database configuration per environment
       await this.configService.set({
         section: 'database',
         name: 'DATABASE_URL',
@@ -288,116 +466,13 @@ export class MultiEnvironmentService {
         value: `postgres://localhost:5432/${env}_db`,
         description: `Database URL for ${env} environment`,
       });
-
-      // Logging configuration per environment
-      await this.configService.set({
-        section: 'logging',
-        name: 'LOG_LEVEL',
-        environment: env,
-        value: env === 'production' ? 'error' : 'debug',
-        description: `Log level for ${env} environment`,
-      });
     }
   }
 }
 ```
 
-## 🔌 REST API Endpoints
-
-The module automatically generates REST API endpoints with customizable paths:
-
-### Configuration Sections (default: `/config/section`)
-- `GET /config/section` - List all sections
-- `POST /config/section` - Create a new section
-- `GET /config/section/:id` - Get section by ID
-- `PUT /config/section/:id` - Update section
-- `DELETE /config/section/:id` - Delete section
-
-### Configuration Data (default: `/config/data`)
-- `GET /config/data` - List all configuration data
-- `POST /config/data` - Create new configuration
-- `GET /config/data/:id` - Get configuration by ID
-- `PUT /config/data/:id` - Update configuration
-- `DELETE /config/data/:id` - Delete configuration
-
-### Customizing Endpoints
-
-```typescript
-CrudConfigModule.register({
-  controllersOptions: {
-    section: {
-      properties: {
-        path: 'api/v1/settings/sections', // Custom path
-      },
-    },
-    data: {
-      properties: {
-        path: 'api/v1/settings/data', // Custom path
-        routes: {
-          DELETE: { isEnabled: false }, // Disable specific routes
-        },
-      },
-    },
-  },
-})
-```
-
-### Example API Usage
-
-```bash
-# Create a configuration section
-curl -X POST http://localhost:3000/config/section \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "api-settings",
-    "description": "API configuration settings"
-  }'
-
-# Create configuration data
-curl -X POST http://localhost:3000/config/data \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "API_KEY",
-    "value": "your-secret-key",
-    "environment": "production",
-    "description": "Production API key",
-    "isEncrypted": true,
-    "section": { "id": "section-uuid-here" }
-  }'
-```
-
-## 📊 Database Schema
-
-The module creates two main tables (with optional prefix):
-
-### Configuration Sections Table
-```sql
-CREATE TABLE app_config_sections (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(255) NOT NULL,
-  description VARCHAR(1000),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-### Configuration Data Table
-```sql
-CREATE TABLE app_config_data (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(255) NOT NULL,
-  value VARCHAR(16384) NOT NULL,
-  environment VARCHAR(100) NOT NULL,
-  description VARCHAR(1000),
-  is_encrypted BOOLEAN DEFAULT FALSE,
-  section_id UUID NOT NULL REFERENCES app_config_sections(id) ON DELETE CASCADE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(name, environment, section_id)
-);
-```
-
 ## 🛣 Roadmap
+
 | Task / Feature | Status |
 |---|---|
 | Core dynamic entity system | ✅ Done |
@@ -412,7 +487,9 @@ CREATE TABLE app_config_data (
 | Validation and constraints | ✅ Done |
 | NestJS CRUD Automator integration | ✅ Done |
 | TypeScript interfaces and types | ✅ Done |
-| Configuration encryption support | ✅ Done |
+| AES-256-GCM encryption support | ✅ Done |
+| Async module registration | ✅ Done |
+| Auto-section creation | ✅ Done |
 | GraphQL API endpoints | 🚧 In Progress |
 | Configuration versioning and history | 🚧 In Progress |
 | Role-based access control (RBAC) | 🚧 In Progress |
@@ -426,7 +503,6 @@ CREATE TABLE app_config_data (
 | Integration with external secret managers | 🚧 In Progress |
 
 ## ❓ FAQ
-## ❓ Frequently Asked Questions
 
 ### What databases are supported?
 
@@ -474,9 +550,10 @@ The module provides built-in AES-256-GCM encryption support:
 
 ```typescript
 CrudConfigModule.register({
-  shouldEncryptValues: true,
-  encryptionKey: process.env.CONFIG_ENCRYPTION_KEY,
-  // ... other options
+  encryptionOptions: {
+    isEnabled: true,
+    encryptionKey: process.env.CONFIG_ENCRYPTION_KEY,
+  },
 })
 ```
 
@@ -500,19 +577,19 @@ CrudConfigModule.register({
     tablePrefix: 'myapp_',
     configSection: {
       tableName: 'configuration_sections',
-      maxNameLength: 512,
-      maxDescriptionLength: 2048,
+      maxNameLength: 256,
+      maxDescriptionLength: 1024,
     },
     configData: {
       tableName: 'configuration_values',
-      maxValueLength: 32768, // 32KB values
+      maxValueLength: 16384, // 16KB values
       maxEnvironmentLength: 128,
+      maxNameLength: 256,
+      maxDescriptionLength: 1024,
     },
   },
 })
 ```
-
-
 
 ### What happens if the database is unavailable?
 
@@ -531,14 +608,8 @@ CrudConfigModule.register({
     section: { isEnabled: false },
     data: { isEnabled: false },
   },
-  // ... other options
 })
 ```
-
-This is perfect for:
-- Background services that only need programmatic access
-- Microservices that manage config through message queues
-- Applications with custom GraphQL or gRPC interfaces
 
 ### Is this production-ready?
 
@@ -550,7 +621,8 @@ Yes! The module is built with production use in mind:
 - **Observable** - Comprehensive logging and monitoring hooks
 
 ## 🔒 License
-This project is licensed under **This project is licensed under **MIT License**
+
+This project is licensed under **MIT License**
 
 Copyright (c) 2025 ElsiKora
 
@@ -558,4 +630,4 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.**.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

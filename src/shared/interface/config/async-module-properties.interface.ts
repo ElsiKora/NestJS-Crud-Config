@@ -12,5 +12,6 @@ export interface ICrudConfigAsyncModuleProperties extends Pick<ModuleMetadata, "
  /** Optional existing provider implementing ICrudConfigPropertiesFactory to be used */
  useExisting?: Type<IConfigPropertiesFactory>;
  /** Optional factory function that returns configuration properties */
- useFactory?: (...arguments_: Array<unknown>) => IConfigOptions | Promise<IConfigOptions>;
+ // eslint-disable-next-line @elsikora/typescript/no-explicit-any
+ useFactory?: (...arguments_: Array<any>) => IConfigOptions | Promise<IConfigOptions>;
 }

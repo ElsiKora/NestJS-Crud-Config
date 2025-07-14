@@ -2,12 +2,14 @@ import type { CipherGCM, DecipherGCM } from "node:crypto";
 
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "node:crypto";
 
+import { Injectable } from "@nestjs/common";
 import { CRYPTO_CONSTANT } from "@shared/constant/crypto.constant";
 
 /**
  * Utility class for encrypting and decrypting configuration values
  * Uses AES-256-GCM for encryption with authentication
  */
+@Injectable()
 export class CryptoUtility {
  /**
   * Decrypts a value encrypted with AES-256-GCM
@@ -16,7 +18,7 @@ export class CryptoUtility {
   * @returns {string} Decrypted value
   * @throws {Error} If decryption fails or authentication fails
   */
- public static decrypt(encryptedValue: string, encryptionKey: string): string {
+ public decrypt(encryptedValue: string, encryptionKey: string): string {
   try {
    const combined: Buffer = Buffer.from(encryptedValue, "base64");
    const salt: Buffer = combined.subarray(0, CRYPTO_CONSTANT.SALT_LENGTH);
@@ -60,7 +62,7 @@ export class CryptoUtility {
   * @param {string} encryptionKey - The encryption key
   * @returns {string} Encrypted value in format: salt:iv:authTag:encryptedData (base64 encoded)
   */
- public static encrypt(value: string, encryptionKey: string): string {
+ public encrypt(value: string, encryptionKey: string): string {
   const salt: Buffer = randomBytes(CRYPTO_CONSTANT.SALT_LENGTH);
   const key: Buffer = scryptSync(encryptionKey, salt, CRYPTO_CONSTANT.KEY_LENGTH);
   const iv: Buffer = randomBytes(CRYPTO_CONSTANT.IV_LENGTH);
@@ -77,7 +79,7 @@ export class CryptoUtility {
   * @param {string} value - The value to check
   * @returns {boolean} True if the value appears to be encrypted
   */
- public static isEncryptedValue(value: string): boolean {
+ public isEncryptedValue(value: string): boolean {
   try {
    const decoded: Buffer = Buffer.from(value, "base64");
 

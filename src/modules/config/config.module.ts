@@ -1,12 +1,12 @@
-import type { DynamicModule, Provider, Type } from "@nestjs/common";
-
-import { createConfigDataEntity } from "@modules/config/data";
+import { ApiServiceBase, IApiBaseEntity } from "@elsikora/nestjs-crud-automator";
+import { createConfigDataEntity, IConfigData } from "@modules/config/data";
 import { createDynamicDataController } from "@modules/config/data/controller";
 import { ConfigDataBeforeInsertListener } from "@modules/config/data/listener";
 import { ConfigDataBeforeInsertSubscriber } from "@modules/config/data/subscriber";
-import { createConfigSectionEntity } from "@modules/config/section";
+import { createConfigSectionEntity, IConfigSection } from "@modules/config/section";
 import { createDynamicSectionController } from "@modules/config/section/controller";
 import { CacheModule } from "@nestjs/cache-manager";
+import { DynamicModule, Provider, Type } from "@nestjs/common";
 import { Global, Module } from "@nestjs/common";
 import { getDataSourceToken, getRepositoryToken } from "@nestjs/typeorm";
 import { CONFIG_DATA_CONSTANT, CONFIG_SECTION_CONSTANT, TOKEN_CONSTANT } from "@shared/constant";
@@ -17,40 +17,13 @@ import {
 } from "@shared/interface/config";
 import { TDynamicEntity } from "@shared/type";
 import { createDynamicService } from "@shared/utility";
-import { DataSource } from "typeorm";
+import { DataSource, Repository } from "typeorm";
 
 import { CrudConfigService } from "./config.service";
 
-let globalSectionEntity: null | TDynamicEntity = null;
-let globalDataEntity: null | TDynamicEntity = null;
-
-/**
- * Full dynamic module with ApiPropertyDescribe support
- * This module creates entities with all decorators including ApiPropertyDescribe
- * Provides complete CRUD operations for configuration management
- */
 @Global()
 @Module({})
 export class CrudConfigModule {
- /**
-  * Initialize and get the dynamic entities (for use in TypeORM configuration)
-  * @returns {Array<TDynamicEntity>} Array of dynamic entities
-  */
- public static getEntities(): Array<TDynamicEntity> {
-  if (!globalSectionEntity || !globalDataEntity) {
-   throw new Error(
-    "CrudConfigModule must be registered before accessing entities, or provide options to initialize them",
-   );
-  }
-
-  return [globalSectionEntity, globalDataEntity];
- }
-
- /**
-  * Registers the module with full dynamic entity support including ApiPropertyDescribe
-  * @param {IConfigOptions} options Configuration options for the module
-  * @returns {DynamicModule} Dynamic module configuration
-  */
  public static register(options: IConfigOptions): DynamicModule {
   const prefix: string = options.entityOptions?.tablePrefix ?? "";
 
@@ -81,9 +54,6 @@ export class CrudConfigModule {
     prefix +
     (options.entityOptions?.configData?.tableName ?? CONFIG_DATA_CONSTANT.DEFAULT_TABLE_NAME),
   });
-
-  globalSectionEntity = sectionEntity;
-  globalDataEntity = dataEntity;
 
   const propertiesProvider: Provider = {
    provide: TOKEN_CONSTANT.CONFIG_OPTIONS,
@@ -165,7 +135,13 @@ export class CrudConfigModule {
 
   return {
    controllers,
-   exports: [CrudConfigService, TOKEN_CONSTANT.CONFIG_SECTION_SERVICE],
+   exports: [
+    CrudConfigService,
+    TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
+    TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
+    TOKEN_CONSTANT.CONFIG_SECTION_SERVICE,
+    TOKEN_CONSTANT.CONFIG_DATA_SERVICE,
+   ],
    imports,
    module: CrudConfigModule,
    providers: [
@@ -184,24 +160,95 @@ export class CrudConfigModule {
  }
 
  /**
-  * Registers the module asynchronously
+  * Registers the module asynchronously. This implementation defers all dynamic provider
+  * creation into factories to ensure correct instantiation order.
   * @param {ICrudConfigAsyncModuleProperties} properties Async configuration options
   * @returns {DynamicModule} Dynamic module configuration
   */
  public static registerAsync(properties: ICrudConfigAsyncModuleProperties): DynamicModule {
-  const configPropertiesProvider: Provider = this.createAsyncOptionsProvider(properties);
+  const providers: Array<Provider> = [
+   this.createAsyncOptionsProvider(properties),
 
-  const dynamicProvidersFactory: Provider = {
-   inject: [TOKEN_CONSTANT.CONFIG_OPTIONS],
-   provide: TOKEN_CONSTANT.DYNAMIC_PROVIDERS_FACTORY,
-   useFactory: (options: IConfigOptions) => {
-    return this.register(options);
+   {
+    inject: [TOKEN_CONSTANT.CONFIG_OPTIONS],
+    provide: TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
+    useFactory: (options: IConfigOptions): TDynamicEntity => {
+     const prefix: string = options.entityOptions?.tablePrefix ?? "";
+
+     return createConfigSectionEntity({
+      maxDescriptionLength:
+       options.entityOptions?.configSection?.maxDescriptionLength ??
+       CONFIG_SECTION_CONSTANT.MAX_DESCRIPTION_LENGTH,
+      maxNameLength:
+       options.entityOptions?.configSection?.maxNameLength ??
+       CONFIG_SECTION_CONSTANT.MAX_NAME_LENGTH,
+      tableName:
+       prefix +
+       (options.entityOptions?.configSection?.tableName ??
+        CONFIG_SECTION_CONSTANT.DEFAULT_TABLE_NAME),
+     });
+    },
    },
-  };
 
-  const providers: Array<Provider> = [configPropertiesProvider, dynamicProvidersFactory];
+   {
+    inject: [TOKEN_CONSTANT.CONFIG_OPTIONS, TOKEN_CONSTANT.CONFIG_SECTION_ENTITY],
+    provide: TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
+    useFactory: (options: IConfigOptions, configSectionEntity: TDynamicEntity): TDynamicEntity => {
+     const prefix: string = options.entityOptions?.tablePrefix ?? "";
 
-  if (properties.useClass && !properties.useExisting) {
+     return createConfigDataEntity({
+      configSectionEntity,
+      maxDescriptionLength:
+       options.entityOptions?.configData?.maxDescriptionLength ??
+       CONFIG_DATA_CONSTANT.MAX_DESCRIPTION_LENGTH,
+      maxEnvironmentLength:
+       options.entityOptions?.configData?.maxEnvironmentLength ??
+       CONFIG_DATA_CONSTANT.MAX_ENVIRONMENT_LENGTH,
+      maxNameLength:
+       options.entityOptions?.configData?.maxNameLength ?? CONFIG_DATA_CONSTANT.MAX_NAME_LENGTH,
+      maxValueLength:
+       options.entityOptions?.configData?.maxValueLength ?? CONFIG_DATA_CONSTANT.MAX_VALUE_LENGTH,
+      tableName:
+       prefix +
+       (options.entityOptions?.configData?.tableName ?? CONFIG_DATA_CONSTANT.DEFAULT_TABLE_NAME),
+     });
+    },
+   },
+
+   {
+    inject: [getDataSourceToken(), TOKEN_CONSTANT.CONFIG_SECTION_ENTITY],
+    provide: TOKEN_CONSTANT.CONFIG_SECTION_SERVICE,
+    useFactory: (
+     dataSource: DataSource,
+     sectionEntity: TDynamicEntity,
+    ): ApiServiceBase<IConfigSection> => {
+     const repository: Repository<IApiBaseEntity> = dataSource.getRepository(sectionEntity);
+     const DynamicService: Type = createDynamicService(sectionEntity, "ConfigSectionService");
+
+     return new DynamicService(repository) as ApiServiceBase<IConfigSection>;
+    },
+   },
+
+   {
+    inject: [getDataSourceToken(), TOKEN_CONSTANT.CONFIG_DATA_ENTITY],
+    provide: TOKEN_CONSTANT.CONFIG_DATA_SERVICE,
+    useFactory: (
+     dataSource: DataSource,
+     dataEntity: TDynamicEntity,
+    ): ApiServiceBase<IConfigData> => {
+     const repository: Repository<IApiBaseEntity> = dataSource.getRepository(dataEntity);
+     const DynamicService: Type = createDynamicService(dataEntity, "ConfigDataService");
+
+     return new DynamicService(repository) as ApiServiceBase<IConfigData>;
+    },
+   },
+
+   CrudConfigService,
+   ConfigDataBeforeInsertListener,
+   ConfigDataBeforeInsertSubscriber,
+  ];
+
+  if (properties.useClass) {
    providers.push({
     provide: properties.useClass,
     useClass: properties.useClass,
@@ -209,18 +256,21 @@ export class CrudConfigModule {
   }
 
   return {
-   exports: [TOKEN_CONSTANT.CONFIG_OPTIONS],
-   imports: properties.imports ?? [],
+   controllers: [],
+   exports: [
+    CrudConfigService,
+    TOKEN_CONSTANT.CONFIG_OPTIONS,
+    TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
+    TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
+    TOKEN_CONSTANT.CONFIG_SECTION_SERVICE,
+    TOKEN_CONSTANT.CONFIG_DATA_SERVICE,
+   ],
+   imports: [...(properties.imports ?? [])],
    module: CrudConfigModule,
-   providers,
+   providers: providers,
   };
  }
 
- /**
-  * Creates an async options provider based on the configuration properties
-  * @param {ICrudConfigAsyncModuleProperties} properties Async configuration properties
-  * @returns {Provider} Provider configuration
-  */
  private static createAsyncOptionsProvider(properties: ICrudConfigAsyncModuleProperties): Provider {
   if (properties.useFactory) {
    return {
