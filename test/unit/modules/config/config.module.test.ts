@@ -160,28 +160,51 @@ describe("CrudConfigModule", () => {
   });
  });
 
- describe("getEntities", () => {
-  it("should return entities after module is registered", () => {
+ describe("entity injection", () => {
+  it("should provide entities via tokens after module registration", () => {
    const options: IConfigOptions = {};
-   CrudConfigModule.register(options);
+   const module = CrudConfigModule.register(options);
    
-   const entities = CrudConfigModule.getEntities();
-   expect(entities).toHaveLength(2);
-   expect(entities[0]).toBeDefined(); // Section entity
-   expect(entities[1]).toBeDefined(); // Data entity
+   // Check that entity tokens are exported
+   expect(module.exports).toContain(TOKEN_CONSTANT.CONFIG_SECTION_ENTITY);
+   expect(module.exports).toContain(TOKEN_CONSTANT.CONFIG_DATA_ENTITY);
+   
+   // Check that entity providers are available
+   const sectionEntityProvider = module.providers?.find(
+    (provider: any) => typeof provider === 'object' && provider.provide === TOKEN_CONSTANT.CONFIG_SECTION_ENTITY
+   ) as any;
+   const dataEntityProvider = module.providers?.find(
+    (provider: any) => typeof provider === 'object' && provider.provide === TOKEN_CONSTANT.CONFIG_DATA_ENTITY
+   ) as any;
+   
+   expect(sectionEntityProvider).toBeDefined();
+   expect(dataEntityProvider).toBeDefined();
+   expect(sectionEntityProvider?.useValue).toBeDefined();
+   expect(dataEntityProvider?.useValue).toBeDefined();
   });
 
-  it("should throw error if getEntities is called before registration", () => {
-   // This test would need actual module reset to work properly
-   // For now, just checking the error message format
-   try {
-    // In a real scenario without registration, this would throw
-    const entities = CrudConfigModule.getEntities();
-    // If we got here, entities were already registered by previous test
-    expect(entities).toBeDefined();
-   } catch (error) {
-    expect((error as Error).message).toContain("CrudConfigModule must be registered");
-   }
+  it("should provide entities via tokens in async registration", () => {
+   const options: IConfigOptions = {};
+   const module = CrudConfigModule.registerAsync({
+    useFactory: () => options,
+   });
+   
+   // Check that entity tokens are exported
+   expect(module.exports).toContain(TOKEN_CONSTANT.CONFIG_SECTION_ENTITY);
+   expect(module.exports).toContain(TOKEN_CONSTANT.CONFIG_DATA_ENTITY);
+   
+   // Check that entity providers are available with factories
+   const sectionEntityProvider = module.providers?.find(
+    (provider: any) => typeof provider === 'object' && provider.provide === TOKEN_CONSTANT.CONFIG_SECTION_ENTITY
+   ) as any;
+   const dataEntityProvider = module.providers?.find(
+    (provider: any) => typeof provider === 'object' && provider.provide === TOKEN_CONSTANT.CONFIG_DATA_ENTITY
+   ) as any;
+   
+   expect(sectionEntityProvider).toBeDefined();
+   expect(dataEntityProvider).toBeDefined();
+   expect(sectionEntityProvider?.useFactory).toBeDefined();
+   expect(dataEntityProvider?.useFactory).toBeDefined();
   });
  });
 }); 

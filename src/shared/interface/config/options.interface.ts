@@ -36,4 +36,9 @@ export interface IConfigOptions {
   * Whether to log verbose information
   */
  isVerbose?: boolean;
+
+ /**
+  * Whether to automatically create missing sections
+  */
+ shouldAutoCreateSections?: boolean;
 }
