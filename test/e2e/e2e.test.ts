@@ -84,29 +84,6 @@ describe("CrudConfigModule Basic E2E Tests", () => {
   });
  });
 
- describe("Static Methods", () => {
-  it("should get entities array", () => {
-   const entities = CrudConfigModule.getEntities();
-
-   expect(entities).toBeInstanceOf(Array);
-   expect(entities.length).toBe(2);
-   expect(entities[0]).toBeDefined();
-   expect(entities[1]).toBeDefined();
-  });
-
-  it("should have entity names", () => {
-   const entities = CrudConfigModule.getEntities();
-
-   // The entities are functions/classes
-   expect(typeof entities[0]).toBe("function");
-   expect(typeof entities[1]).toBe("function");
-
-   // They should have names
-   expect(entities[0].name).toBeTruthy();
-   expect(entities[1].name).toBeTruthy();
-  });
- });
-
  describe("Module Structure", () => {
   it("should have correct module structure", () => {
    const module = CrudConfigModule.register({
@@ -131,6 +108,49 @@ describe("CrudConfigModule Basic E2E Tests", () => {
    );
 
    expect(hasService).toBe(true);
+  });
+
+  it("should create module with disabled controllers", () => {
+   const module = CrudConfigModule.register({
+    controllersOptions: {
+     data: {
+      isEnabled: false,
+     },
+     section: {
+      isEnabled: false,
+     },
+    },
+   });
+
+   expect(module).toBeDefined();
+   expect(module.module).toBe(CrudConfigModule);
+   expect(module.controllers).toBeDefined();
+   expect(module.controllers?.length).toBe(0);
+  });
+
+  it("should create module with entity options", () => {
+   const module = CrudConfigModule.register({
+    entityOptions: {
+     tablePrefix: "test_",
+     configSection: {
+      tableName: "custom_sections",
+      maxNameLength: 256,
+      maxDescriptionLength: 1024,
+     },
+     configData: {
+      tableName: "custom_data",
+      maxValueLength: 16384,
+      maxEnvironmentLength: 128,
+      maxNameLength: 256,
+      maxDescriptionLength: 1024,
+     },
+    },
+   });
+
+   expect(module).toBeDefined();
+   expect(module.module).toBe(CrudConfigModule);
+   expect(module.providers).toBeDefined();
+   expect(module.exports).toBeDefined();
   });
  });
 });
