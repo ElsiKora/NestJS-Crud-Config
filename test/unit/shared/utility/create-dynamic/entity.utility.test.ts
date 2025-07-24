@@ -16,7 +16,7 @@ describe("createDynamicEntityClass", () => {
 
   expect(DynamicEntity).toBeDefined();
   expect(DynamicEntity.name).toBe("TestEntity");
-  
+
   const instance = new DynamicEntity();
   expect(instance).toBeDefined();
   expect(instance.constructor.name).toBe("TestEntity");
@@ -24,7 +24,7 @@ describe("createDynamicEntityClass", () => {
 
  it("should handle columns with decorators", () => {
   const mockDecorator = (target: any, propertyKey: string) => {};
-  
+
   const DynamicEntity = createDynamicEntityClass({
    name: "DecoratedEntity",
    tableName: "decorated_table",
@@ -47,7 +47,7 @@ describe("createDynamicEntityClass", () => {
 
  it("should handle class decorators", () => {
   const classDecorator = (target: any) => {};
-  
+
   const DynamicEntity = createDynamicEntityClass({
    name: "ClassDecoratedEntity",
    tableName: "class_decorated_table",
@@ -113,7 +113,7 @@ describe("createDynamicEntityClass", () => {
 
  it("should handle ManyToOne relations", () => {
   const TargetEntity = class Target {};
-  
+
   const DynamicEntity = createDynamicEntityClass({
    name: "RelatedEntity",
    tableName: "related_table",
@@ -161,4 +161,4 @@ describe("createDynamicEntityClass", () => {
   expect(instance).toBeDefined();
   expect(DynamicEntity.name).toBe("CustomPrimaryEntity");
  });
-}); 
+});

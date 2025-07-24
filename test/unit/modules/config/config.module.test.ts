@@ -11,7 +11,7 @@ describe("CrudConfigModule", () => {
  describe("register", () => {
   it("should register module with default options", () => {
    const options: IConfigOptions = {};
-   
+
    const dynamicModule = CrudConfigModule.register(options);
 
    expect(dynamicModule).toBeDefined();
@@ -41,7 +41,7 @@ describe("CrudConfigModule", () => {
 
    const dynamicModule = CrudConfigModule.register(options);
    const configOptionsProvider = dynamicModule.providers?.find(
-    (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_OPTIONS
+    (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_OPTIONS,
    );
 
    expect(configOptionsProvider).toBeDefined();
@@ -97,7 +97,7 @@ describe("CrudConfigModule", () => {
 
    const dynamicModule = CrudConfigModule.register(options);
    const configOptionsProvider = dynamicModule.providers?.find(
-    (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_OPTIONS
+    (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_OPTIONS,
    );
 
    expect(configOptionsProvider?.useValue.encryptionOptions?.isEnabled).toBe(true);
@@ -116,9 +116,9 @@ describe("CrudConfigModule", () => {
 
    expect(dynamicModule).toBeDefined();
    expect(dynamicModule.module).toBe(CrudConfigModule);
-   
+
    const configPropertiesProvider = dynamicModule.providers?.find(
-    (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_OPTIONS
+    (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_OPTIONS,
    );
    expect(configPropertiesProvider).toBeDefined();
    expect(configPropertiesProvider?.useFactory).toBeDefined();
@@ -144,7 +144,7 @@ describe("CrudConfigModule", () => {
 
   it("should register module asynchronously with inject dependencies", () => {
    const TEST_TOKEN = "TEST_TOKEN";
-   
+
    const dynamicModule = CrudConfigModule.registerAsync({
     inject: [TEST_TOKEN],
     useFactory: (testValue: string) => ({
@@ -153,9 +153,9 @@ describe("CrudConfigModule", () => {
    });
 
    const configPropertiesProvider = dynamicModule.providers?.find(
-    (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_OPTIONS
+    (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_OPTIONS,
    );
-   
+
    expect(configPropertiesProvider?.inject).toContain(TEST_TOKEN);
   });
  });
@@ -164,19 +164,21 @@ describe("CrudConfigModule", () => {
   it("should provide entities via tokens after module registration", () => {
    const options: IConfigOptions = {};
    const module = CrudConfigModule.register(options);
-   
+
    // Check that entity tokens are exported
    expect(module.exports).toContain(TOKEN_CONSTANT.CONFIG_SECTION_ENTITY);
    expect(module.exports).toContain(TOKEN_CONSTANT.CONFIG_DATA_ENTITY);
-   
+
    // Check that entity providers are available
    const sectionEntityProvider = module.providers?.find(
-    (provider: any) => typeof provider === 'object' && provider.provide === TOKEN_CONSTANT.CONFIG_SECTION_ENTITY
+    (provider: any) =>
+     typeof provider === "object" && provider.provide === TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
    ) as any;
    const dataEntityProvider = module.providers?.find(
-    (provider: any) => typeof provider === 'object' && provider.provide === TOKEN_CONSTANT.CONFIG_DATA_ENTITY
+    (provider: any) =>
+     typeof provider === "object" && provider.provide === TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
    ) as any;
-   
+
    expect(sectionEntityProvider).toBeDefined();
    expect(dataEntityProvider).toBeDefined();
    expect(sectionEntityProvider?.useValue).toBeDefined();
@@ -188,23 +190,25 @@ describe("CrudConfigModule", () => {
    const module = CrudConfigModule.registerAsync({
     useFactory: () => options,
    });
-   
+
    // Check that entity tokens are exported
    expect(module.exports).toContain(TOKEN_CONSTANT.CONFIG_SECTION_ENTITY);
    expect(module.exports).toContain(TOKEN_CONSTANT.CONFIG_DATA_ENTITY);
-   
+
    // Check that entity providers are available with factories
    const sectionEntityProvider = module.providers?.find(
-    (provider: any) => typeof provider === 'object' && provider.provide === TOKEN_CONSTANT.CONFIG_SECTION_ENTITY
+    (provider: any) =>
+     typeof provider === "object" && provider.provide === TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
    ) as any;
    const dataEntityProvider = module.providers?.find(
-    (provider: any) => typeof provider === 'object' && provider.provide === TOKEN_CONSTANT.CONFIG_DATA_ENTITY
+    (provider: any) =>
+     typeof provider === "object" && provider.provide === TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
    ) as any;
-   
+
    expect(sectionEntityProvider).toBeDefined();
    expect(dataEntityProvider).toBeDefined();
    expect(sectionEntityProvider?.useFactory).toBeDefined();
    expect(dataEntityProvider?.useFactory).toBeDefined();
   });
  });
-}); 
+});

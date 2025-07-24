@@ -16,7 +16,7 @@ describe("createConfigDataEntity", () => {
 
   expect(ConfigDataEntity).toBeDefined();
   expect(ConfigDataEntity.name).toBe("ConfigData");
-  
+
   const instance = new ConfigDataEntity();
   expect(instance).toBeDefined();
   expect(instance.constructor.name).toBe("ConfigData");
@@ -49,7 +49,7 @@ describe("createConfigDataEntity", () => {
   });
 
   expect(ConfigDataEntity).toBeDefined();
-  
+
   const instance = new ConfigDataEntity();
   expect(instance).toBeDefined();
   // Properties are defined via decorators with custom lengths
@@ -70,4 +70,4 @@ describe("createConfigDataEntity", () => {
   expect(instance).toBeDefined();
   // Default values are set via decorators
  });
-}); 
+});

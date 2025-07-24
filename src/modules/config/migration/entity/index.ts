@@ -1,0 +1,1 @@
+export { createConfigMigrationEntity } from "./entity";

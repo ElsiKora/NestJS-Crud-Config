@@ -102,7 +102,7 @@ describe("CrudConfigService", () => {
    cacheManager,
    configOptions,
    dataSource,
-   cryptoUtility
+   cryptoUtility,
   );
  });
 
@@ -114,10 +114,7 @@ describe("CrudConfigService", () => {
    });
 
    expect(result).toEqual(mockConfigData);
-   expect(sectionService.get).toHaveBeenCalledWith(
-    { where: { name: "test-section" } },
-    undefined,
-   );
+   expect(sectionService.get).toHaveBeenCalledWith({ where: { name: "test-section" } }, undefined);
    expect(dataService.get).toHaveBeenCalled();
   });
 
@@ -151,41 +148,44 @@ describe("CrudConfigService", () => {
    });
 
    expect(result.value).toBe(decryptedValue);
-   expect(cryptoUtility.decrypt).toHaveBeenCalledWith(encryptedValue, configOptions.encryptionOptions!.encryptionKey);
+   expect(cryptoUtility.decrypt).toHaveBeenCalledWith(
+    encryptedValue,
+    configOptions.encryptionOptions!.encryptionKey,
+   );
   });
 
   it("should throw error when decryption key is missing", async () => {
    const encryptedData = { ...mockConfigData, isEncrypted: true };
    vi.mocked(dataService.get).mockResolvedValueOnce(encryptedData);
-   
+
    configOptions.encryptionOptions!.encryptionKey = undefined as any;
 
    await expect(
     service.get({
      section: "test-section",
      name: "test-config",
-    })
+    }),
    ).rejects.toThrow(InternalServerErrorException);
   });
 
   it("should throw error when CryptoUtility is not available", async () => {
    const encryptedData = { ...mockConfigData, isEncrypted: true };
    vi.mocked(dataService.get).mockResolvedValueOnce(encryptedData);
-   
+
    service = new CrudConfigService(
     sectionService,
     dataService,
     cacheManager,
     configOptions,
     dataSource,
-    undefined
+    undefined,
    );
 
    await expect(
     service.get({
      section: "test-section",
      name: "test-config",
-    })
+    }),
    ).rejects.toThrow(InternalServerErrorException);
   });
 
@@ -197,7 +197,7 @@ describe("CrudConfigService", () => {
     service.get({
      section: "new-section",
      name: "test-config",
-    })
+    }),
    ).rejects.toThrow(NotFoundException);
 
    expect(sectionService.create).not.toHaveBeenCalled();
@@ -211,7 +211,7 @@ describe("CrudConfigService", () => {
     service.get({
      section: "new-section",
      name: "test-config",
-    })
+    }),
    ).rejects.toThrow(NotFoundException);
 
    expect(sectionService.create).not.toHaveBeenCalled();
@@ -281,7 +281,7 @@ describe("CrudConfigService", () => {
   it("should encrypt value when encryption is enabled", async () => {
    const encryptedValue = "encrypted-value";
    vi.mocked(cryptoUtility.encrypt).mockReturnValue(encryptedValue);
-   
+
    configOptions.encryptionOptions!.isEnabled = true;
 
    await service.set({
@@ -290,7 +290,10 @@ describe("CrudConfigService", () => {
     value: "plain-value",
    });
 
-   expect(cryptoUtility.encrypt).toHaveBeenCalledWith("plain-value", configOptions.encryptionOptions!.encryptionKey);
+   expect(cryptoUtility.encrypt).toHaveBeenCalledWith(
+    "plain-value",
+    configOptions.encryptionOptions!.encryptionKey,
+   );
    expect(dataService.update).toHaveBeenCalledWith(
     { id: "data-1" },
     expect.objectContaining({
@@ -310,20 +313,20 @@ describe("CrudConfigService", () => {
      section: "test-section",
      name: "test-config",
      value: "test-value",
-    })
+    }),
    ).rejects.toThrow(InternalServerErrorException);
   });
 
   it("should throw error when CryptoUtility is not available", async () => {
    configOptions.encryptionOptions!.isEnabled = true;
-   
+
    service = new CrudConfigService(
     sectionService,
     dataService,
     cacheManager,
     configOptions,
     dataSource,
-    undefined
+    undefined,
    );
 
    await expect(
@@ -331,7 +334,7 @@ describe("CrudConfigService", () => {
      section: "test-section",
      name: "test-config",
      value: "test-value",
-    })
+    }),
    ).rejects.toThrow(InternalServerErrorException);
   });
 
@@ -346,13 +349,13 @@ describe("CrudConfigService", () => {
      section: "test-section",
      name: "test-config",
      value: "test-value",
-    })
+    }),
    ).rejects.toThrow(InternalServerErrorException);
   });
 
   it("should create transaction when eventManager is not provided", async () => {
    const queryRunner = dataSource.createQueryRunner();
-   
+
    await service.set({
     section: "test-section",
     name: "test-config",
@@ -388,7 +391,7 @@ describe("CrudConfigService", () => {
      section: "new-section",
      name: "test-config",
      value: "test-value",
-    })
+    }),
    ).rejects.toThrow(NotFoundException);
 
    expect(sectionService.create).not.toHaveBeenCalled();
@@ -403,7 +406,7 @@ describe("CrudConfigService", () => {
      section: "test-section",
      name: "test-config",
      value: "test-value",
-    })
+    }),
    ).rejects.toThrow(InternalServerErrorException);
 
    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
@@ -430,7 +433,7 @@ describe("CrudConfigService", () => {
     service.delete({
      section: "new-section",
      name: "test-config",
-    })
+    }),
    ).rejects.toThrow(NotFoundException);
 
    expect(sectionService.create).not.toHaveBeenCalled();
@@ -460,7 +463,7 @@ describe("CrudConfigService", () => {
     service.delete({
      section: "non-existent",
      name: "test-config",
-    })
+    }),
    ).rejects.toThrow(NotFoundException);
   });
 
@@ -471,7 +474,7 @@ describe("CrudConfigService", () => {
     service.delete({
      section: "test-section",
      name: "test-config",
-    })
+    }),
    ).rejects.toThrow(InternalServerErrorException);
   });
  });
@@ -483,10 +486,7 @@ describe("CrudConfigService", () => {
    });
 
    expect(result).toEqual([mockConfigData]);
-   expect(sectionService.get).toHaveBeenCalledWith(
-    { where: { name: "test-section" } },
-    undefined,
-   );
+   expect(sectionService.get).toHaveBeenCalledWith({ where: { name: "test-section" } }, undefined);
    expect(dataService.getList).toHaveBeenCalled();
   });
 
@@ -525,7 +525,7 @@ describe("CrudConfigService", () => {
    await expect(
     service.getList({
      section: "new-section",
-    })
+    }),
    ).rejects.toThrow(NotFoundException);
 
    expect(sectionService.create).not.toHaveBeenCalled();
@@ -553,7 +553,7 @@ describe("CrudConfigService", () => {
    await expect(
     service.getList({
      section: "test-section",
-    })
+    }),
    ).rejects.toThrow(InternalServerErrorException);
   });
  });
@@ -562,7 +562,7 @@ describe("CrudConfigService", () => {
   it("should return existing section", async () => {
    // Access private method for testing
    const result = await (service as any).getOrCreateSection("test-section");
-   
+
    expect(result).toEqual(mockSection);
    expect(sectionService.get).toHaveBeenCalledWith({ where: { name: "test-section" } }, undefined);
    expect(sectionService.create).not.toHaveBeenCalled();
@@ -582,7 +582,9 @@ describe("CrudConfigService", () => {
    configOptions.shouldAutoCreateSections = false;
    vi.mocked(sectionService.get).mockRejectedValueOnce(new NotFoundException());
 
-   await expect((service as any).getOrCreateSection("new-section")).rejects.toThrow(NotFoundException);
+   await expect((service as any).getOrCreateSection("new-section")).rejects.toThrow(
+    NotFoundException,
+   );
 
    expect(sectionService.create).not.toHaveBeenCalled();
   });
@@ -590,11 +592,11 @@ describe("CrudConfigService", () => {
   it("should propagate non-NotFound errors", async () => {
    vi.mocked(sectionService.get).mockRejectedValueOnce(new Error("Database error"));
 
-   await expect(
-    (service as any).getOrCreateSection("test-section")
-   ).rejects.toThrow("Database error");
+   await expect((service as any).getOrCreateSection("test-section")).rejects.toThrow(
+    "Database error",
+   );
 
    expect(sectionService.create).not.toHaveBeenCalled();
   });
  });
-}); 
+});

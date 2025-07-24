@@ -10,6 +10,7 @@ const external = [
  "@nestjs/typeorm",
  "typeorm",
  "@elsikora/nestjs-crud-automator",
+ "dotenv/config",
 ];
 import resolve from "@rollup/plugin-node-resolve";
 import dtsPathAlias from "rollup-plugin-dts-path-alias";
