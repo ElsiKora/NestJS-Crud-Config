@@ -12,7 +12,7 @@ describe("createConfigSectionEntity", () => {
 
   expect(ConfigSectionEntity).toBeDefined();
   expect(ConfigSectionEntity.name).toBe("ConfigSection");
-  
+
   const instance = new ConfigSectionEntity();
   expect(instance).toBeDefined();
   expect(instance.constructor.name).toBe("ConfigSection");
@@ -37,7 +37,7 @@ describe("createConfigSectionEntity", () => {
   });
 
   expect(ConfigSectionEntity).toBeDefined();
-  
+
   const instance = new ConfigSectionEntity();
   expect(instance).toBeDefined();
   // Properties are defined via decorators with custom lengths
@@ -53,4 +53,4 @@ describe("createConfigSectionEntity", () => {
   // The entity should have a unique constraint on the name column
   expect(ConfigSectionEntity).toBeDefined();
  });
-}); 
+});

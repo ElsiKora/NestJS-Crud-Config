@@ -45,4 +45,4 @@ describe("createDynamicService", () => {
   // The service should be decorated with @Injectable()
   expect(DynamicService).toBeDefined();
  });
-}); 
+});

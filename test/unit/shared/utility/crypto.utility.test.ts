@@ -72,7 +72,7 @@ describe("CryptoUtility", () => {
 
   it("should throw error with invalid encrypted value", () => {
    expect(() => cryptoUtility.decrypt("invalid-encrypted-value", testKey)).toThrow(
-    "Failed to decrypt value"
+    "Failed to decrypt value",
    );
   });
 
@@ -134,4 +134,4 @@ describe("CryptoUtility", () => {
    expect(decrypted).toBe(largeValue);
   });
  });
-}); 
+});

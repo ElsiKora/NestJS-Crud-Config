@@ -3,20 +3,28 @@ import { createConfigDataEntity, IConfigData } from "@modules/config/data";
 import { createDynamicDataController } from "@modules/config/data/controller";
 import { ConfigDataBeforeInsertListener } from "@modules/config/data/listener";
 import { ConfigDataBeforeInsertSubscriber } from "@modules/config/data/subscriber";
+import { createConfigMigrationEntity, IConfigMigration } from "@modules/config/migration";
+import { ConfigMigrationService } from "@modules/config/migration";
+import { ConfigMigrationRunnerService } from "@modules/config/migration";
 import { createConfigSectionEntity, IConfigSection } from "@modules/config/section";
 import { createDynamicSectionController } from "@modules/config/section/controller";
 import { CacheModule } from "@nestjs/cache-manager";
 import { DynamicModule, Provider, Type } from "@nestjs/common";
 import { Global, Module } from "@nestjs/common";
 import { getDataSourceToken, getRepositoryToken } from "@nestjs/typeorm";
-import { CONFIG_DATA_CONSTANT, CONFIG_SECTION_CONSTANT, TOKEN_CONSTANT } from "@shared/constant";
+import {
+ CONFIG_DATA_CONSTANT,
+ CONFIG_MIGRATION_CONSTANT,
+ CONFIG_SECTION_CONSTANT,
+ TOKEN_CONSTANT,
+} from "@shared/constant";
 import {
  IConfigOptions,
  IConfigPropertiesFactory,
  ICrudConfigAsyncModuleProperties,
 } from "@shared/interface/config";
 import { TDynamicEntity } from "@shared/type";
-import { createDynamicService } from "@shared/utility";
+import { createDynamicService, CryptoUtility } from "@shared/utility";
 import { DataSource, Repository } from "typeorm";
 
 import { CrudConfigService } from "./config.service";
@@ -55,6 +63,13 @@ export class CrudConfigModule {
     (options.entityOptions?.configData?.tableName ?? CONFIG_DATA_CONSTANT.DEFAULT_TABLE_NAME),
   });
 
+  const migrationEntity: TDynamicEntity = createConfigMigrationEntity({
+   maxNameLength:
+    options.migrationOptions?.maxNameLength ?? CONFIG_MIGRATION_CONSTANT.MAX_NAME_LENGTH,
+   tableName:
+    prefix + (options.migrationOptions?.tableName ?? CONFIG_MIGRATION_CONSTANT.DEFAULT_TABLE_NAME),
+  });
+
   const propertiesProvider: Provider = {
    provide: TOKEN_CONSTANT.CONFIG_OPTIONS,
    useValue: options,
@@ -70,6 +85,11 @@ export class CrudConfigModule {
    useValue: dataEntity,
   };
 
+  const migrationEntityProvider: Provider = {
+   provide: TOKEN_CONSTANT.CONFIG_MIGRATION_ENTITY,
+   useValue: migrationEntity,
+  };
+
   const sectionRepositoryProvider: Provider = {
    inject: [getDataSourceToken()],
    provide: getRepositoryToken(sectionEntity),
@@ -83,6 +103,14 @@ export class CrudConfigModule {
    provide: getRepositoryToken(dataEntity),
    useFactory: (dataSource: DataSource) => {
     return dataSource.getRepository(dataEntity);
+   },
+  };
+
+  const migrationRepositoryProvider: Provider = {
+   inject: [getDataSourceToken()],
+   provide: getRepositoryToken(migrationEntity),
+   useFactory: (dataSource: DataSource) => {
+    return dataSource.getRepository(migrationEntity);
    },
   };
 
@@ -104,6 +132,16 @@ export class CrudConfigModule {
   const dataServiceProvider: Provider = {
    provide: TOKEN_CONSTANT.CONFIG_DATA_SERVICE,
    useClass: DynamicConfigDataService,
+  };
+
+  const DynamicConfigMigrationService: Type<unknown> = createDynamicService(
+   migrationEntity,
+   "ConfigMigrationService",
+  );
+
+  const migrationServiceProvider: Provider = {
+   provide: TOKEN_CONSTANT.CONFIG_MIGRATION_SERVICE,
+   useClass: DynamicConfigMigrationService,
   };
 
   const DynamicConfigSectionController: null | Type =
@@ -139,8 +177,13 @@ export class CrudConfigModule {
     CrudConfigService,
     TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
     TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
+    TOKEN_CONSTANT.CONFIG_MIGRATION_ENTITY,
     TOKEN_CONSTANT.CONFIG_SECTION_SERVICE,
     TOKEN_CONSTANT.CONFIG_DATA_SERVICE,
+    TOKEN_CONSTANT.CONFIG_MIGRATION_SERVICE,
+    ConfigMigrationService,
+    ConfigMigrationRunnerService,
+    CryptoUtility,
    ],
    imports,
    module: CrudConfigModule,
@@ -148,13 +191,19 @@ export class CrudConfigModule {
     propertiesProvider,
     sectionEntityProvider,
     dataEntityProvider,
+    migrationEntityProvider,
     sectionRepositoryProvider,
     dataRepositoryProvider,
+    migrationRepositoryProvider,
     sectionServiceProvider,
     dataServiceProvider,
+    migrationServiceProvider,
     CrudConfigService,
+    ConfigMigrationService,
+    ConfigMigrationRunnerService,
     ConfigDataBeforeInsertListener,
     ConfigDataBeforeInsertSubscriber,
+    CryptoUtility,
    ],
   };
  }
@@ -216,6 +265,22 @@ export class CrudConfigModule {
    },
 
    {
+    inject: [TOKEN_CONSTANT.CONFIG_OPTIONS],
+    provide: TOKEN_CONSTANT.CONFIG_MIGRATION_ENTITY,
+    useFactory: (options: IConfigOptions): TDynamicEntity => {
+     const prefix: string = options.entityOptions?.tablePrefix ?? "";
+
+     return createConfigMigrationEntity({
+      maxNameLength:
+       options.migrationOptions?.maxNameLength ?? CONFIG_MIGRATION_CONSTANT.MAX_NAME_LENGTH,
+      tableName:
+       prefix +
+       (options.migrationOptions?.tableName ?? CONFIG_MIGRATION_CONSTANT.DEFAULT_TABLE_NAME),
+     });
+    },
+   },
+
+   {
     inject: [getDataSourceToken(), TOKEN_CONSTANT.CONFIG_SECTION_ENTITY],
     provide: TOKEN_CONSTANT.CONFIG_SECTION_SERVICE,
     useFactory: (
@@ -243,9 +308,26 @@ export class CrudConfigModule {
     },
    },
 
+   {
+    inject: [getDataSourceToken(), TOKEN_CONSTANT.CONFIG_MIGRATION_ENTITY],
+    provide: TOKEN_CONSTANT.CONFIG_MIGRATION_SERVICE,
+    useFactory: (
+     dataSource: DataSource,
+     migrationEntity: TDynamicEntity,
+    ): ApiServiceBase<IConfigMigration> => {
+     const repository: Repository<IApiBaseEntity> = dataSource.getRepository(migrationEntity);
+     const DynamicService: Type = createDynamicService(migrationEntity, "ConfigMigrationService");
+
+     return new DynamicService(repository) as ApiServiceBase<IConfigMigration>;
+    },
+   },
+
    CrudConfigService,
+   ConfigMigrationService,
+   ConfigMigrationRunnerService,
    ConfigDataBeforeInsertListener,
    ConfigDataBeforeInsertSubscriber,
+   CryptoUtility,
   ];
 
   if (properties.useClass) {
@@ -262,8 +344,13 @@ export class CrudConfigModule {
     TOKEN_CONSTANT.CONFIG_OPTIONS,
     TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
     TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
+    TOKEN_CONSTANT.CONFIG_MIGRATION_ENTITY,
     TOKEN_CONSTANT.CONFIG_SECTION_SERVICE,
     TOKEN_CONSTANT.CONFIG_DATA_SERVICE,
+    TOKEN_CONSTANT.CONFIG_MIGRATION_SERVICE,
+    ConfigMigrationService,
+    ConfigMigrationRunnerService,
+    CryptoUtility,
    ],
    imports: [...(properties.imports ?? [])],
    module: CrudConfigModule,

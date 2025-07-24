@@ -13,13 +13,13 @@ describe("ConfigDataBeforeInsertListener", () => {
   mockService = {
    get: vi.fn(),
   };
-  
+
   listener = new ConfigDataBeforeInsertListener(mockService);
  });
 
  it("should return success if no duplicate is found", async () => {
   mockService.get.mockResolvedValue(null);
-  
+
   const event = new ConfigDataEventBeforeInsert();
   event.item = {
    name: "test-config",
@@ -48,7 +48,7 @@ describe("ConfigDataBeforeInsertListener", () => {
    name: "test-config",
    environment: "test",
   });
-  
+
   const event = new ConfigDataEventBeforeInsert();
   event.item = {
    name: "test-config",
@@ -61,12 +61,14 @@ describe("ConfigDataBeforeInsertListener", () => {
 
   expect(result.isSuccess).toBe(false);
   expect(result.error).toBeInstanceOf(ConflictException);
-  expect((result.error as ConflictException).message).toBe("ConfigData with this environment and name already exists");
+  expect((result.error as ConflictException).message).toBe(
+   "ConfigData with this environment and name already exists",
+  );
  });
 
  it("should return success if NotFoundException is thrown", async () => {
   mockService.get.mockRejectedValue(new NotFoundException());
-  
+
   const event = new ConfigDataEventBeforeInsert();
   event.item = {
    name: "test-config",
@@ -83,7 +85,7 @@ describe("ConfigDataBeforeInsertListener", () => {
  it("should return error for other exceptions", async () => {
   const error = new Error("Database error");
   mockService.get.mockRejectedValue(error);
-  
+
   const event = new ConfigDataEventBeforeInsert();
   event.item = {
    name: "test-config",
@@ -96,4 +98,4 @@ describe("ConfigDataBeforeInsertListener", () => {
 
   expect(result).toEqual({ error, isSuccess: false });
  });
-}); 
+});
