@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.0.1...v1.1.0) (2025-07-24)
+
+
+### Features
+
+* **config:** add configuration migration system with runner and comprehensive testing ([4c7402c](https://github.com/ElsiKora/NestJS-Crud-Config/commit/4c7402c1d42a9e7a370e4cbd4ff0f452ef3bfe7b))
+
 ## [1.0.1](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.0.0...v1.0.1) (2025-07-14)
 
 # 1.0.0 (2025-07-14)
