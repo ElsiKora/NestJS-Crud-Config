@@ -1,3 +1,5 @@
+import type { IConfigMigrationOptions } from "@modules/config/migration/interface";
+
 import type { IConfigCacheOptions } from "./cache-options.interface";
 import type { IConfigControllersOptions } from "./controller-options.interface";
 import type { IConfigEncryptionOptions } from "./encryption-options.interface";
@@ -33,9 +35,9 @@ export interface IConfigOptions {
  environment?: string;
 
  /**
-  * Whether to log verbose information
+  * Migration configuration options
   */
- isVerbose?: boolean;
+ migrationOptions?: IConfigMigrationOptions;
 
  /**
   * Whether to automatically create missing sections

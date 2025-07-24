@@ -11,19 +11,19 @@
 </a> <img src="https://img.shields.io/badge/TypeScript-3178C6.svg?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"> <img src="https://img.shields.io/badge/NestJS-E0234E.svg?style=for-the-badge&logo=nestjs&logoColor=white" alt="NestJS"> <img src="https://img.shields.io/badge/Node.js-339933.svg?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js"> <img src="https://img.shields.io/badge/PostgreSQL-4169E1.svg?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL"> <img src="https://img.shields.io/badge/MySQL-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL"> <img src="https://img.shields.io/badge/SQLite-003B57.svg?style=for-the-badge&logo=sqlite&logoColor=white" alt="SQLite"> <img src="https://img.shields.io/badge/MongoDB-47A248.svg?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB"> <img src="https://img.shields.io/badge/Swagger-85EA2D.svg?style=for-the-badge&logo=swagger&logoColor=black" alt="Swagger">
 </p>
 
-
 ## 📚 Table of Contents
+
 - [Description](#-description)
 - [Features](#-features)
 - [Installation](#-installation)
 - [Usage](#-usage)
+- [Migration System](#-migration-system)
 - [API Documentation](#-api-documentation)
 - [Database Schema](#-database-schema)
 - [Advanced Configuration](#-advanced-configuration)
 - [Roadmap](#-roadmap)
 - [FAQ](#-faq)
 - [License](#-license)
-
 
 ## 📖 Description
 
@@ -50,6 +50,7 @@ Whether you're managing API keys across different environments, storing feature 
 - **🚦 Flexible controller configuration** - Customize API paths, disable endpoints, or run in headless mode
 - **🔧 Advanced CRUD customization** - Full control over routes, swagger documentation, and controller behavior
 - **📦 Modular architecture** - Enable/disable features as needed for your use case
+- **🚀 Production-ready migration system** - Initialize and manage configuration state during application startup
 
 ## 🛠 Installation
 
@@ -75,6 +76,7 @@ npm install @nestjs/common @nestjs/typeorm typeorm @elsikora/nestjs-crud-automat
 ### Database Support
 
 This package works with any database supported by TypeORM:
+
 - PostgreSQL
 - MySQL/MariaDB
 - SQLite
@@ -89,91 +91,88 @@ This package works with any database supported by TypeORM:
 
 ```typescript
 // app.module.ts
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { CrudConfigModule, TOKEN_CONSTANT } from '@elsikora/nestjs-crud-config';
+import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { CrudConfigModule, TOKEN_CONSTANT } from "@elsikora/nestjs-crud-config";
 
 @Module({
-  imports: [
-    // First register CrudConfigModule to create dynamic entities
-    CrudConfigModule.register({
-      environment: 'development',
-      isVerbose: true,
-      shouldAutoCreateSections: true,
-      
-      // Cache configuration
-      cacheOptions: {
-        isEnabled: true,
-        maxCacheItems: 1000,
-        maxCacheTTL: 3600000, // 1 hour in milliseconds
-      },
-      
-      // Encryption configuration
-      encryptionOptions: {
-        isEnabled: true,
-        encryptionKey: process.env.CONFIG_ENCRYPTION_KEY, // 32+ character key
-      },
-      
-      // Controller configuration (optional)
-      controllersOptions: {
-        section: {
-          isEnabled: true,
-          properties: {
-            path: 'api/config/sections',
-          },
-        },
-        data: {
-          isEnabled: true,
-          properties: {
-            path: 'api/config/data',
-          },
-        },
-      },
-      
-      // Entity customization
-      entityOptions: {
-        tablePrefix: 'app_',
-        configSection: {
-          tableName: 'config_sections',
-          maxNameLength: 128,
-          maxDescriptionLength: 512,
-        },
-        configData: {
-          tableName: 'config_data',
-          maxValueLength: 8192,
-          maxEnvironmentLength: 64,
-          maxNameLength: 128,
-          maxDescriptionLength: 512,
-        },
-      },
-    }),
-    
-    // Then register TypeORM with dynamic entities using registerAsync
-    TypeOrmModule.forRootAsync({
-      imports: [CrudConfigModule],
-      inject: [
-        TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
-        TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
-      ],
-      useFactory: async (sectionEntity, dataEntity) => ({
-        type: 'postgres',
-        host: 'localhost',
-        port: 5432,
-        username: 'postgres',
-        password: 'postgres',
-        database: 'config_db',
-        entities: [
-          // Your other entities
-          // UserEntity, ProductEntity, etc.
-          
-          // Dynamic entities from CrudConfigModule
-          sectionEntity,
-          dataEntity,
-        ],
-        synchronize: true,
-      }),
-    }),
-  ],
+ imports: [
+  // First register CrudConfigModule to create dynamic entities
+  CrudConfigModule.register({
+   environment: "development",
+   isVerbose: true,
+   shouldAutoCreateSections: true,
+
+   // Cache configuration
+   cacheOptions: {
+    isEnabled: true,
+    maxCacheItems: 1000,
+    maxCacheTTL: 3600000, // 1 hour in milliseconds
+   },
+
+   // Encryption configuration
+   encryptionOptions: {
+    isEnabled: true,
+    encryptionKey: process.env.CONFIG_ENCRYPTION_KEY, // 32+ character key
+   },
+
+   // Controller configuration (optional)
+   controllersOptions: {
+    section: {
+     isEnabled: true,
+     properties: {
+      path: "api/config/sections",
+     },
+    },
+    data: {
+     isEnabled: true,
+     properties: {
+      path: "api/config/data",
+     },
+    },
+   },
+
+   // Entity customization
+   entityOptions: {
+    tablePrefix: "app_",
+    configSection: {
+     tableName: "config_sections",
+     maxNameLength: 128,
+     maxDescriptionLength: 512,
+    },
+    configData: {
+     tableName: "config_data",
+     maxValueLength: 8192,
+     maxEnvironmentLength: 64,
+     maxNameLength: 128,
+     maxDescriptionLength: 512,
+    },
+   },
+  }),
+
+  // Then register TypeORM with dynamic entities using registerAsync
+  TypeOrmModule.forRootAsync({
+   imports: [CrudConfigModule],
+   inject: [TOKEN_CONSTANT.CONFIG_SECTION_ENTITY, TOKEN_CONSTANT.CONFIG_DATA_ENTITY],
+   useFactory: async (sectionEntity, dataEntity) => ({
+    type: "postgres",
+    host: "localhost",
+    port: 5432,
+    username: "postgres",
+    password: "postgres",
+    database: "config_db",
+    entities: [
+     // Your other entities
+     // UserEntity, ProductEntity, etc.
+
+     // Dynamic entities from CrudConfigModule
+     sectionEntity,
+     dataEntity,
+    ],
+    synchronize: true,
+   }),
+  }),
+ ],
 })
 export class AppModule {}
 ```
@@ -182,59 +181,57 @@ export class AppModule {}
 
 ```typescript
 // config.service.ts
-import { Injectable } from '@nestjs/common';
-import { CrudConfigService } from '@elsikora/nestjs-crud-config';
+import { Injectable } from "@nestjs/common";
+import { CrudConfigService } from "@elsikora/nestjs-crud-config";
 
 @Injectable()
 export class MyConfigService {
-  constructor(
-    private readonly configService: CrudConfigService,
-  ) {}
+ constructor(private readonly configService: CrudConfigService) {}
 
-  async setupApplicationConfig() {
-    // Set a configuration value
-    await this.configService.set({
-      section: 'api-settings',
-      name: 'API_KEY',
-      value: 'my-secret-api-key',
-      description: 'Production API key',
-      environment: 'production',
-    });
+ async setupApplicationConfig() {
+  // Set a configuration value
+  await this.configService.set({
+   section: "api-settings",
+   name: "API_KEY",
+   value: "my-secret-api-key",
+   description: "Production API key",
+   environment: "production",
+  });
 
-    // Retrieve configuration by section and name
-    const apiConfig = await this.configService.get({
-      section: 'api-settings',
-      name: 'API_KEY',
-      environment: 'production',
-      shouldLoadSectionInfo: true,
-      useCache: true,
-    });
+  // Retrieve configuration by section and name
+  const apiConfig = await this.configService.get({
+   section: "api-settings",
+   name: "API_KEY",
+   environment: "production",
+   shouldLoadSectionInfo: true,
+   useCache: true,
+  });
 
-    console.log('API Configuration:', apiConfig);
-    // apiConfig.value will be automatically decrypted if it was encrypted
-    
-    return apiConfig;
-  }
+  console.log("API Configuration:", apiConfig);
+  // apiConfig.value will be automatically decrypted if it was encrypted
 
-  async getConfigurationList() {
-    // Get all configurations in a section
-    const configs = await this.configService.getList({
-      section: 'api-settings',
-      environment: 'production',
-      useCache: true,
-    });
+  return apiConfig;
+ }
 
-    return configs;
-  }
+ async getConfigurationList() {
+  // Get all configurations in a section
+  const configs = await this.configService.getList({
+   section: "api-settings",
+   environment: "production",
+   useCache: true,
+  });
 
-  async deleteConfiguration() {
-    // Delete a configuration
-    await this.configService.delete({
-      section: 'api-settings',
-      name: 'API_KEY',
-      environment: 'production',
-    });
-  }
+  return configs;
+ }
+
+ async deleteConfiguration() {
+  // Delete a configuration
+  await this.configService.delete({
+   section: "api-settings",
+   name: "API_KEY",
+   environment: "production",
+  });
+ }
 }
 ```
 
@@ -242,33 +239,386 @@ export class MyConfigService {
 
 ```typescript
 // app.module.ts
-import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { CrudConfigModule } from '@elsikora/nestjs-crud-config';
+import { Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
 
 @Module({
-  imports: [
-    ConfigModule.forRoot(),
-    CrudConfigModule.registerAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: async (configService: ConfigService) => ({
-        environment: configService.get('NODE_ENV', 'development'),
-        isVerbose: configService.get('VERBOSE', false),
-        encryptionOptions: {
-          isEnabled: true,
-          encryptionKey: configService.get('ENCRYPTION_KEY'),
-        },
-        cacheOptions: {
-          isEnabled: true,
-          maxCacheItems: 1000,
-          maxCacheTTL: 3600000,
-        },
-      }),
-    }),
-  ],
+ imports: [
+  ConfigModule.forRoot(),
+  CrudConfigModule.registerAsync({
+   imports: [ConfigModule],
+   inject: [ConfigService],
+   useFactory: async (configService: ConfigService) => ({
+    environment: configService.get("NODE_ENV", "development"),
+    isVerbose: configService.get("VERBOSE", false),
+    encryptionOptions: {
+     isEnabled: true,
+     encryptionKey: configService.get("ENCRYPTION_KEY"),
+    },
+    cacheOptions: {
+     isEnabled: true,
+     maxCacheItems: 1000,
+     maxCacheTTL: 3600000,
+    },
+   }),
+  }),
+ ],
 })
 export class AppModule {}
+```
+
+## 🚀 Migration System
+
+The NestJS CRUD Config module includes a powerful **production-ready migration system** that allows you to initialize and manage configuration state during application startup. This system ensures your application always has the required configuration data across different environments and deployments.
+
+### Key Features
+
+- **🔄 Automatic execution on startup** - Migrations run automatically when the application bootstraps
+- **💾 Transaction support** - All migrations run within database transactions for data consistency
+- **🌍 Environment-specific configurations** - Create different configurations for different environments
+- **📊 Migration tracking** - Complete audit trail with timestamps and execution status
+- **🔙 Rollback support** - Define rollback procedures for each migration
+- **⚡ Stuck migration cleanup** - Automatic timeout and cleanup of crashed migrations
+- **🎯 Type-safe status tracking** - Uses `EConfigMigrationStatus` enum for reliable status management
+- **🛡️ Race condition protection** - Thread-safe execution preventing concurrent conflicts
+
+### Migration Status Enum
+
+The migration system uses the `EConfigMigrationStatus` enum to track migration states:
+
+```typescript
+import { EConfigMigrationStatus } from "@your-org/nestjs-crud-config";
+
+// Available statuses:
+EConfigMigrationStatus.PENDING; // Migration is pending execution
+EConfigMigrationStatus.RUNNING; // Migration is currently running
+EConfigMigrationStatus.COMPLETED; // Migration completed successfully
+EConfigMigrationStatus.FAILED; // Migration failed with error
+EConfigMigrationStatus.STUCK; // Migration is stuck (timeout)
+```
+
+### Basic Migration Configuration
+
+Configure migrations in your module registration:
+
+```typescript
+import { CrudConfigModule } from "@your-org/nestjs-crud-config";
+import { initialAppConfigMigration } from "./migrations/001-initial-app-config.migration";
+
+@Module({
+ imports: [
+  CrudConfigModule.register({
+   environment: process.env.NODE_ENV || "development",
+
+   // Migration configuration
+   migrationOptions: {
+    isEnabled: true,
+    shouldRunOnStartup: true,
+    useTransaction: true,
+    stuckMigrationTimeoutMinutes: 30,
+    tableName: "config_migrations", // Optional: custom table name
+
+    migrations: [
+     initialAppConfigMigration,
+     // Add more migrations here
+    ],
+   },
+
+   // Other configuration options...
+  }),
+ ],
+})
+export class AppModule {}
+```
+
+### Creating Migration Files
+
+Create a migration file with the required structure:
+
+```typescript
+// migrations/001-initial-app-config.migration.ts
+import type { IConfigMigrationDefinition } from "@your-org/nestjs-crud-config";
+import type { CrudConfigService } from "@your-org/nestjs-crud-config";
+import type { EntityManager } from "typeorm";
+
+export const initialAppConfigMigration: IConfigMigrationDefinition = {
+ name: "001_initial_app_config",
+ description: "Initialize basic application configuration",
+
+ async up(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
+  // Create application settings
+  await configService.set({
+   section: "app-settings",
+   name: "APP_NAME",
+   value: "My Application",
+   description: "Application name",
+   environment: "default",
+   eventManager: entityManager,
+  });
+
+  await configService.set({
+   section: "app-settings",
+   name: "APP_VERSION",
+   value: "1.0.0",
+   description: "Application version",
+   environment: "default",
+   eventManager: entityManager,
+  });
+
+  // Create API settings
+  await configService.set({
+   section: "api-settings",
+   name: "API_RATE_LIMIT",
+   value: "100",
+   description: "API rate limit per minute",
+   environment: "default",
+   eventManager: entityManager,
+  });
+ },
+
+ async down(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
+  // Rollback: remove configurations created by this migration
+  const configurationsToRemove = [
+   { name: "APP_NAME", section: "app-settings" },
+   { name: "APP_VERSION", section: "app-settings" },
+   { name: "API_RATE_LIMIT", section: "api-settings" },
+  ];
+
+  for (const config of configurationsToRemove) {
+   try {
+    await configService.delete({
+     section: config.section,
+     name: config.name,
+     environment: "default",
+     eventManager: entityManager,
+    });
+   } catch (error) {
+    // Expected if config was never created
+    console.warn(`Failed to delete config ${config.section}:${config.name} during rollback`);
+   }
+  }
+ },
+};
+```
+
+### Environment-Specific Migrations
+
+Create migrations that work with different environments:
+
+```typescript
+// migrations/002-environment-specific-config.migration.ts
+export const environmentSpecificConfigMigration: IConfigMigrationDefinition = {
+ name: "002_environment_specific_config",
+ description: "Environment-specific configuration settings",
+
+ async up(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
+  const environments = ["development", "staging", "production"];
+
+  for (const env of environments) {
+   // Environment-specific debug settings
+   await configService.set({
+    section: "app-settings",
+    name: "DEBUG_MODE",
+    value: env === "development" ? "true" : "false",
+    description: "Enable debug mode",
+    environment: env,
+    eventManager: entityManager,
+   });
+
+   // Environment-specific API limits
+   const rateLimits = {
+    development: "1000",
+    staging: "500",
+    production: "100",
+   };
+
+   await configService.set({
+    section: "api-settings",
+    name: "API_RATE_LIMIT",
+    value: rateLimits[env],
+    description: "API rate limit per minute",
+    environment: env,
+    eventManager: entityManager,
+   });
+  }
+ },
+
+ async down(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
+  const environments = ["development", "staging", "production"];
+  const configurationsToRemove = [
+   { name: "DEBUG_MODE", section: "app-settings" },
+   { name: "API_RATE_LIMIT", section: "api-settings" },
+  ];
+
+  for (const config of configurationsToRemove) {
+   for (const environment of environments) {
+    try {
+     await configService.delete({
+      section: config.section,
+      name: config.name,
+      environment: environment,
+      eventManager: entityManager,
+     });
+    } catch (error) {
+     console.warn(
+      `Failed to delete config ${config.section}:${config.name}:${environment} during rollback`,
+     );
+    }
+   }
+  }
+ },
+};
+```
+
+### Advanced Migration Configuration
+
+Configure migrations with custom options:
+
+```typescript
+CrudConfigModule.registerAsync({
+ useFactory: async (configService: ConfigService) => ({
+  environment: configService.get("NODE_ENV", "development"),
+
+  migrationOptions: {
+   isEnabled: true,
+   shouldRunOnStartup: true,
+   useTransaction: true,
+   stuckMigrationTimeoutMinutes: 60, // Custom timeout
+   tableName: "my_migrations", // Custom table name
+
+   migrations: [
+    initialAppConfigMigration,
+    environmentSpecificConfigMigration,
+    // Add more migrations in order
+   ],
+  },
+
+  // Other options...
+ }),
+ inject: [ConfigService],
+});
+```
+
+### Migration Best Practices
+
+1. **Naming Convention**: Use descriptive names with sequence numbers
+   - ✅ `001_initial_app_config`
+   - ✅ `002_add_feature_flags`
+   - ❌ `migration1`, `config_setup`
+
+2. **Idempotency**: Migrations should be safe to run multiple times
+
+   ```typescript
+   // Good: Check if configuration exists before creating
+   const existing = await configService.get({
+     section: 'app-settings',
+     name: 'APP_NAME',
+     environment: 'default',
+   }).catch(() => null);
+
+   if (!existing) {
+     await configService.set({...});
+   }
+   ```
+
+3. **Error Handling**: Always handle errors gracefully
+
+   ```typescript
+   try {
+     await configService.set({...});
+   } catch (error) {
+     console.error('Migration failed:', error);
+     throw error; // Re-throw to mark migration as failed
+   }
+   ```
+
+4. **Rollback Support**: Always implement the `down` method
+
+   ```typescript
+   async down(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
+     // Implement rollback logic
+   }
+   ```
+
+5. **Environment Awareness**: Use environment-specific configurations
+   ```typescript
+   const currentEnv = process.env.NODE_ENV || "development";
+   await configService.set({
+    environment: currentEnv,
+    // ... other options
+   });
+   ```
+
+### Migration Monitoring
+
+Monitor migration execution with logging:
+
+```typescript
+import { EConfigMigrationStatus } from "@your-org/nestjs-crud-config";
+
+@Injectable()
+export class MigrationMonitorService {
+ constructor(private readonly migrationService: ConfigMigrationService) {}
+
+ async getMigrationStatus(): Promise<void> {
+  const migrations = await this.migrationService.getExecutedMigrations();
+
+  const completed = migrations.filter((m) => m.status === EConfigMigrationStatus.COMPLETED);
+  const failed = migrations.filter((m) => m.status === EConfigMigrationStatus.FAILED);
+  const stuck = migrations.filter((m) => m.status === EConfigMigrationStatus.STUCK);
+
+  console.log(
+   `Migrations - Completed: ${completed.length}, Failed: ${failed.length}, Stuck: ${stuck.length}`,
+  );
+ }
+
+ async getFailedMigrations(): Promise<IConfigMigration[]> {
+  const migrations = await this.migrationService.getExecutedMigrations();
+  return migrations.filter((m) => m.status === EConfigMigrationStatus.FAILED);
+ }
+}
+```
+
+### Testing Migrations
+
+Test your migrations in different environments:
+
+```typescript
+describe("Initial App Config Migration", () => {
+ let configService: CrudConfigService;
+ let migration: IConfigMigrationDefinition;
+
+ beforeEach(async () => {
+  // Setup test environment
+  migration = initialAppConfigMigration;
+ });
+
+ it("should create required configurations", async () => {
+  await migration.up(configService);
+
+  const appName = await configService.get({
+   section: "app-settings",
+   name: "APP_NAME",
+   environment: "default",
+  });
+
+  expect(appName.value).toBe("My Application");
+ });
+
+ it("should rollback configurations", async () => {
+  await migration.up(configService);
+  await migration.down(configService);
+
+  await expect(
+   configService.get({
+    section: "app-settings",
+    name: "APP_NAME",
+    environment: "default",
+   }),
+  ).rejects.toThrow();
+ });
+});
 ```
 
 ## 📚 API Documentation
@@ -284,10 +634,11 @@ The module automatically generates REST API endpoints with customizable paths:
 - `DELETE /config/section/:id` - Delete section
 
 **Request Body for POST/PUT:**
+
 ```json
 {
-  "name": "api-settings",
-  "description": "API configuration settings"
+ "name": "api-settings",
+ "description": "API configuration settings"
 }
 ```
 
@@ -300,14 +651,15 @@ The module automatically generates REST API endpoints with customizable paths:
 - `DELETE /config/data/:id` - Delete configuration
 
 **Request Body for POST/PUT:**
+
 ```json
 {
-  "name": "API_KEY",
-  "value": "your-secret-key",
-  "environment": "production",
-  "description": "Production API key",
-  "isEncrypted": true,
-  "section": { "id": "section-uuid-here" }
+ "name": "API_KEY",
+ "value": "your-secret-key",
+ "environment": "production",
+ "description": "Production API key",
+ "isEncrypted": true,
+ "section": { "id": "section-uuid-here" }
 }
 ```
 
@@ -315,26 +667,26 @@ The module automatically generates REST API endpoints with customizable paths:
 
 ```typescript
 CrudConfigModule.register({
-  controllersOptions: {
-    section: {
-      properties: {
-        path: 'api/v1/settings/sections',
-        name: 'CustomSectionController',
-        swagger: {
-          tags: ['Configuration Sections'],
-        },
-      },
+ controllersOptions: {
+  section: {
+   properties: {
+    path: "api/v1/settings/sections",
+    name: "CustomSectionController",
+    swagger: {
+     tags: ["Configuration Sections"],
     },
-    data: {
-      properties: {
-        path: 'api/v1/settings/data',
-        routes: {
-          DELETE: { isEnabled: false }, // Disable deletion
-        },
-      },
-    },
+   },
   },
-})
+  data: {
+   properties: {
+    path: "api/v1/settings/data",
+    routes: {
+     DELETE: { isEnabled: false }, // Disable deletion
+    },
+   },
+  },
+ },
+});
 ```
 
 ## 🗄️ Database Schema
@@ -342,6 +694,7 @@ CrudConfigModule.register({
 The module creates two main tables with the following default structure:
 
 ### Configuration Sections Table (`config_section`)
+
 ```sql
 CREATE TABLE config_section (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -353,6 +706,7 @@ CREATE TABLE config_section (
 ```
 
 ### Configuration Data Table (`config_data`)
+
 ```sql
 CREATE TABLE config_data (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -377,23 +731,23 @@ The module provides built-in AES-256-GCM encryption for sensitive configuration 
 ```typescript
 // Enable encryption globally
 CrudConfigModule.register({
-  encryptionOptions: {
-    isEnabled: true,
-    encryptionKey: process.env.CONFIG_ENCRYPTION_KEY, // 32+ character key
-  },
-})
+ encryptionOptions: {
+  isEnabled: true,
+  encryptionKey: process.env.CONFIG_ENCRYPTION_KEY, // 32+ character key
+ },
+});
 
 // When encryption is enabled, all values are encrypted automatically
 await configService.set({
-  section: 'database',
-  name: 'DB_PASSWORD',
-  value: 'my-secret-password',
+ section: "database",
+ name: "DB_PASSWORD",
+ value: "my-secret-password",
 });
 
 // Retrieve and decrypt automatically
 const config = await configService.get({
-  section: 'database',
-  name: 'DB_PASSWORD',
+ section: "database",
+ name: "DB_PASSWORD",
 });
 
 console.log(config.value); // Automatically decrypted value
@@ -408,24 +762,24 @@ The module includes comprehensive event handling with both listeners and TypeORM
 // Event listener example
 @Injectable()
 export class ConfigDataBeforeInsertListener {
-  @OnEvent('config-data.beforeInsert')
-  async handleBeforeInsert(payload: ConfigDataEventBeforeInsert) {
-    // Custom validation logic
-    const entity = payload.item;
-    const entityManager = payload.eventManager;
-    
-    // Perform custom checks
-    return { isSuccess: true };
-  }
+ @OnEvent("config-data.beforeInsert")
+ async handleBeforeInsert(payload: ConfigDataEventBeforeInsert) {
+  // Custom validation logic
+  const entity = payload.item;
+  const entityManager = payload.eventManager;
+
+  // Perform custom checks
+  return { isSuccess: true };
+ }
 }
 
 // TypeORM subscriber for database-level events
 @EventSubscriber()
 export class ConfigDataBeforeInsertSubscriber {
-  beforeInsert(event: InsertEvent<IConfigData>) {
-    // Database-level validation
-    return Promise.resolve(true);
-  }
+ beforeInsert(event: InsertEvent<IConfigData>) {
+  // Database-level validation
+  return Promise.resolve(true);
+ }
 }
 ```
 
@@ -433,14 +787,15 @@ export class ConfigDataBeforeInsertSubscriber {
 
 ```typescript
 CrudConfigModule.register({
-  controllersOptions: {
-    section: { isEnabled: false },
-    data: { isEnabled: false },
-  },
-})
+ controllersOptions: {
+  section: { isEnabled: false },
+  data: { isEnabled: false },
+ },
+});
 ```
 
 This is perfect for:
+
 - Background services that only need programmatic access
 - Microservices that manage config through message queues
 - Applications with custom GraphQL or gRPC interfaces
@@ -451,62 +806,61 @@ This is perfect for:
 // multi-env.service.ts
 @Injectable()
 export class MultiEnvironmentService {
-  constructor(
-    private readonly configService: CrudConfigService,
-  ) {}
+ constructor(private readonly configService: CrudConfigService) {}
 
-  async setupEnvironmentConfigs() {
-    const environments = ['development', 'staging', 'production'];
-    
-    for (const env of environments) {
-      await this.configService.set({
-        section: 'database',
-        name: 'DATABASE_URL',
-        environment: env,
-        value: `postgres://localhost:5432/${env}_db`,
-        description: `Database URL for ${env} environment`,
-      });
-    }
+ async setupEnvironmentConfigs() {
+  const environments = ["development", "staging", "production"];
+
+  for (const env of environments) {
+   await this.configService.set({
+    section: "database",
+    name: "DATABASE_URL",
+    environment: env,
+    value: `postgres://localhost:5432/${env}_db`,
+    description: `Database URL for ${env} environment`,
+   });
   }
+ }
 }
 ```
 
 ## 🛣 Roadmap
 
-| Task / Feature | Status |
-|---|---|
-| Core dynamic entity system | ✅ Done |
-| TypeORM integration with all databases | ✅ Done |
-| Hierarchical configuration (sections/data) | ✅ Done |
-| Full CRUD operations with REST API | ✅ Done |
-| Swagger/OpenAPI documentation | ✅ Done |
-| Multi-environment support | ✅ Done |
-| Event-driven architecture with hooks | ✅ Done |
-| Caching system with TTL | ✅ Done |
-| Custom table names and prefixes | ✅ Done |
-| Validation and constraints | ✅ Done |
-| NestJS CRUD Automator integration | ✅ Done |
-| TypeScript interfaces and types | ✅ Done |
-| AES-256-GCM encryption support | ✅ Done |
-| Async module registration | ✅ Done |
-| Auto-section creation | ✅ Done |
-| GraphQL API endpoints | 🚧 In Progress |
-| Configuration versioning and history | 🚧 In Progress |
-| Role-based access control (RBAC) | 🚧 In Progress |
-| Configuration templates and inheritance | 🚧 In Progress |
+| Task / Feature                                | Status         |
+| --------------------------------------------- | -------------- |
+| Core dynamic entity system                    | ✅ Done        |
+| TypeORM integration with all databases        | ✅ Done        |
+| Hierarchical configuration (sections/data)    | ✅ Done        |
+| Full CRUD operations with REST API            | ✅ Done        |
+| Swagger/OpenAPI documentation                 | ✅ Done        |
+| Multi-environment support                     | ✅ Done        |
+| Event-driven architecture with hooks          | ✅ Done        |
+| Caching system with TTL                       | ✅ Done        |
+| Custom table names and prefixes               | ✅ Done        |
+| Validation and constraints                    | ✅ Done        |
+| NestJS CRUD Automator integration             | ✅ Done        |
+| TypeScript interfaces and types               | ✅ Done        |
+| AES-256-GCM encryption support                | ✅ Done        |
+| Async module registration                     | ✅ Done        |
+| Auto-section creation                         | ✅ Done        |
+| GraphQL API endpoints                         | 🚧 In Progress |
+| Configuration versioning and history          | 🚧 In Progress |
+| Role-based access control (RBAC)              | 🚧 In Progress |
+| Configuration templates and inheritance       | 🚧 In Progress |
 | Real-time configuration updates via WebSocket | 🚧 In Progress |
-| Configuration validation schemas | 🚧 In Progress |
-| Bulk import/export functionality | 🚧 In Progress |
-| Configuration diff and merge tools | 🚧 In Progress |
-| Audit logging and change tracking | 🚧 In Progress |
-| Configuration backup and restore | 🚧 In Progress |
-| Integration with external secret managers | 🚧 In Progress |
+| Configuration validation schemas              | 🚧 In Progress |
+| Bulk import/export functionality              | 🚧 In Progress |
+| Configuration diff and merge tools            | 🚧 In Progress |
+| Audit logging and change tracking             | 🚧 In Progress |
+| Configuration backup and restore              | 🚧 In Progress |
+| Integration with external secret managers     | 🚧 In Progress |
 
 ## ❓ FAQ
 
 ### What databases are supported?
 
 The module supports any database that TypeORM supports, including:
+
 - **PostgreSQL** - Recommended for production
 - **MySQL/MariaDB** - Popular choice for web applications
 - **SQLite** - Perfect for development and testing
@@ -518,6 +872,7 @@ The module supports any database that TypeORM supports, including:
 ### How does this compare to environment variables?
 
 While environment variables are great for simple configurations, this module provides:
+
 - **Database persistence** - Configurations survive container restarts
 - **Runtime updates** - Change configurations without redeployment
 - **Hierarchical organization** - Group related configurations
@@ -532,15 +887,15 @@ Yes! You can easily migrate by programmatically setting configurations during ap
 
 ```typescript
 async function migrateFromEnvVars() {
-  const configs = [
-    { section: 'database', name: 'DATABASE_URL', value: process.env.DATABASE_URL },
-    { section: 'api', name: 'API_KEY', value: process.env.API_KEY },
-    // ... more configurations
-  ];
-  
-  for (const config of configs) {
-    await configService.set(config);
-  }
+ const configs = [
+  { section: "database", name: "DATABASE_URL", value: process.env.DATABASE_URL },
+  { section: "api", name: "API_KEY", value: process.env.API_KEY },
+  // ... more configurations
+ ];
+
+ for (const config of configs) {
+  await configService.set(config);
+ }
 }
 ```
 
@@ -550,11 +905,11 @@ The module provides built-in AES-256-GCM encryption support:
 
 ```typescript
 CrudConfigModule.register({
-  encryptionOptions: {
-    isEnabled: true,
-    encryptionKey: process.env.CONFIG_ENCRYPTION_KEY,
-  },
-})
+ encryptionOptions: {
+  isEnabled: true,
+  encryptionKey: process.env.CONFIG_ENCRYPTION_KEY,
+ },
+});
 ```
 
 Sensitive values are automatically encrypted before storage and decrypted when retrieved.
@@ -562,6 +917,7 @@ Sensitive values are automatically encrypted before storage and decrypted when r
 ### Can I use this with microservices?
 
 Absolutely! The module is perfect for microservice architectures:
+
 - **Centralized configuration** - All services can share the same config database
 - **Service-specific sections** - Organize configurations by service
 - **Environment isolation** - Separate dev/staging/prod configurations
@@ -573,27 +929,28 @@ The module provides extensive customization options:
 
 ```typescript
 CrudConfigModule.register({
-  entityOptions: {
-    tablePrefix: 'myapp_',
-    configSection: {
-      tableName: 'configuration_sections',
-      maxNameLength: 256,
-      maxDescriptionLength: 1024,
-    },
-    configData: {
-      tableName: 'configuration_values',
-      maxValueLength: 16384, // 16KB values
-      maxEnvironmentLength: 128,
-      maxNameLength: 256,
-      maxDescriptionLength: 1024,
-    },
+ entityOptions: {
+  tablePrefix: "myapp_",
+  configSection: {
+   tableName: "configuration_sections",
+   maxNameLength: 256,
+   maxDescriptionLength: 1024,
   },
-})
+  configData: {
+   tableName: "configuration_values",
+   maxValueLength: 16384, // 16KB values
+   maxEnvironmentLength: 128,
+   maxNameLength: 256,
+   maxDescriptionLength: 1024,
+  },
+ },
+});
 ```
 
 ### What happens if the database is unavailable?
 
 The module includes caching to handle temporary database outages:
+
 - **In-memory cache** - Recently accessed configurations are cached
 - **Configurable TTL** - Control how long configurations are cached
 - **Graceful degradation** - Falls back to cached values when database is unavailable
@@ -604,16 +961,17 @@ Yes! The module supports "headless mode" where controllers are disabled:
 
 ```typescript
 CrudConfigModule.register({
-  controllersOptions: {
-    section: { isEnabled: false },
-    data: { isEnabled: false },
-  },
-})
+ controllersOptions: {
+  section: { isEnabled: false },
+  data: { isEnabled: false },
+ },
+});
 ```
 
 ### Is this production-ready?
 
 Yes! The module is built with production use in mind:
+
 - **Type-safe** - Full TypeScript support prevents runtime errors
 - **Battle-tested** - Built on proven technologies (NestJS, TypeORM)
 - **Scalable** - Works with enterprise databases

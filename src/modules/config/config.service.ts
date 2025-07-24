@@ -10,16 +10,16 @@ import {
 } from "@elsikora/nestjs-crud-automator";
 import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
 import {
+ ConsoleLogger,
  HttpException,
  Inject,
  Injectable,
  InternalServerErrorException,
- Logger,
  NotFoundException,
  Optional,
 } from "@nestjs/common";
 import { TOKEN_CONSTANT } from "@shared/constant";
-import { CryptoUtility } from "@shared/utility";
+import { CryptoUtility, LoggerUtility } from "@shared/utility";
 import { DataSource, EntityManager, QueryRunner } from "typeorm";
 
 import {
@@ -35,7 +35,7 @@ import {
  */
 @Injectable()
 export class CrudConfigService {
- private readonly LOGGER: Logger = new Logger(CrudConfigService.name);
+ private readonly LOGGER: ConsoleLogger = LoggerUtility.getLogger("CrudConfigService");
 
  constructor(
   @Inject(TOKEN_CONSTANT.CONFIG_SECTION_SERVICE)
@@ -45,7 +45,7 @@ export class CrudConfigService {
   // @ts-ignore
   @Optional() @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   @Optional() @Inject(TOKEN_CONSTANT.CONFIG_OPTIONS) private readonly options?: IConfigOptions,
-  private readonly dataSource?: DataSource,
+  @Optional() @Inject(DataSource) private readonly dataSource?: DataSource,
   private readonly cryptoUtility?: CryptoUtility,
  ) {}
 
@@ -55,9 +55,12 @@ export class CrudConfigService {
   * @returns {Promise<void>} Promise resolving when the configuration is deleted
   */
  async delete(options: IConfigDeleteOptions): Promise<void> {
-  if (this.options?.isVerbose) {
-   this.LOGGER.verbose(`Entering delete method with options: ${JSON.stringify(options)}`);
-  }
+  const maskedOptions: unknown = {
+   ...options,
+   eventManager: options.eventManager ? "[EntityManager]" : undefined,
+  };
+  this.LOGGER.verbose(`Entering delete method with options: ${JSON.stringify(maskedOptions)}`);
+
   const { environment, eventManager, name, section: sectionName }: IConfigDeleteOptions = options;
   const finalEnvironment: string = environment ?? this.options?.environment ?? "default";
 
@@ -87,9 +90,7 @@ export class CrudConfigService {
     await Promise.all([this.cacheManager.del(cacheKey), this.cacheManager.del(listCacheKey)]);
    }
   } catch (error: unknown) {
-   if (this.options?.isVerbose) {
-    this.LOGGER.error(`Error in delete method: ${(error as Error).message}`);
-   }
+   this.LOGGER.error(`Error in delete method: ${(error as Error).message}`);
 
    if (error instanceof HttpException) {
     throw error;
@@ -107,9 +108,11 @@ export class CrudConfigService {
   * @returns {Promise<IConfigData>} Promise resolving to the configuration data
   */
  async get(options: IConfigGetOptions): Promise<IConfigData> {
-  if (this.options?.isVerbose) {
-   this.LOGGER.verbose(`Entering get method with options: ${JSON.stringify(options)}`);
-  }
+  const maskedOptions: unknown = {
+   ...options,
+   eventManager: options.eventManager ? "[EntityManager]" : undefined,
+  };
+  this.LOGGER.verbose(`Entering get method with options: ${JSON.stringify(maskedOptions)}`);
 
   const {
    environment,
@@ -128,27 +131,21 @@ export class CrudConfigService {
     const cachedData: IConfigData | undefined = await this.cacheManager.get<IConfigData>(cacheKey);
 
     if (cachedData) {
-     if (this.options?.isVerbose) {
-      this.LOGGER.verbose(`Returning cached config data for ${name}`);
-     }
+     this.LOGGER.verbose(`Returning cached config data for ${name}`);
 
      return cachedData;
     }
    }
 
    // Fetch section
-   if (this.options?.isVerbose) {
-    this.LOGGER.verbose(`Fetching section: ${section}`);
-   }
+   this.LOGGER.verbose(`Fetching section: ${section}`);
 
    const sectionData: IConfigSection = await this.sectionService.get(
     { where: { name: section } },
     eventManager,
    );
 
-   if (this.options?.isVerbose) {
-    this.LOGGER.verbose(`Fetching config data for name: ${name}, environment: ${finalEnvironment}`);
-   }
+   this.LOGGER.verbose(`Fetching config data for name: ${name}, environment: ${finalEnvironment}`);
 
    const data: IConfigData = await this.dataService.get(
     {
@@ -176,13 +173,9 @@ export class CrudConfigService {
       this.options.encryptionOptions.encryptionKey,
      );
 
-     if (this.options?.isVerbose) {
-      this.LOGGER.verbose(`Decrypted value for ${name}`);
-     }
+     this.LOGGER.verbose(`Decrypted value for ${name}`);
     } catch (error: unknown) {
-     if (this.options?.isVerbose) {
-      this.LOGGER.error(`Decryption error for ${name}: ${(error as Error).message}`);
-     }
+     this.LOGGER.error(`Decryption error for ${name}: ${(error as Error).message}`);
 
      throw new InternalServerErrorException(
       ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.DECRYPTION_ERROR }),
@@ -195,15 +188,11 @@ export class CrudConfigService {
     await this.cacheManager.set(cacheKey, data, ttl);
    }
 
-   if (this.options?.isVerbose) {
-    this.LOGGER.verbose(`Returning config data for ${name}`);
-   }
+   this.LOGGER.verbose(`Returning config data for ${name}`);
 
    return data;
   } catch (error: unknown) {
-   if (this.options?.isVerbose) {
-    this.LOGGER.error(`Error in get method: ${(error as Error).message}`);
-   }
+   this.LOGGER.error(`Error in get method: ${(error as Error).message}`);
 
    if (error instanceof HttpException) {
     throw error;
@@ -222,9 +211,11 @@ export class CrudConfigService {
   * @returns {Promise<Array<IConfigData>>} Promise resolving to an array of configuration data.
   */
  async getList(options: IConfigGetListOptions): Promise<Array<IConfigData>> {
-  if (this.options?.isVerbose) {
-   this.LOGGER.verbose(`Entering getList method with options: ${JSON.stringify(options)}`);
-  }
+  const maskedOptions: unknown = {
+   ...options,
+   eventManager: options.eventManager ? "[EntityManager]" : undefined,
+  };
+  this.LOGGER.verbose(`Entering getList method with options: ${JSON.stringify(maskedOptions)}`);
 
   const {
    environment,
@@ -242,28 +233,22 @@ export class CrudConfigService {
      await this.cacheManager.get<Array<IConfigData>>(cacheKey);
 
     if (cachedItems) {
-     if (this.options?.isVerbose) {
-      this.LOGGER.verbose(`Returning cached config list for ${sectionName}`);
-     }
+     this.LOGGER.verbose(`Returning cached config list for ${sectionName}`);
 
      return cachedItems;
     }
    }
 
-   if (this.options?.isVerbose) {
-    this.LOGGER.verbose(`Fetching section: ${sectionName}`);
-   }
+   this.LOGGER.verbose(`Fetching section: ${sectionName}`);
 
    const section: IConfigSection = await this.sectionService.get(
     { where: { name: sectionName } },
     eventManager,
    );
 
-   if (this.options?.isVerbose) {
-    this.LOGGER.verbose(
-     `Fetching config list for section: ${sectionName}, environment: ${finalEnvironment}`,
-    );
-   }
+   this.LOGGER.verbose(
+    `Fetching config list for section: ${sectionName}, environment: ${finalEnvironment}`,
+   );
 
    const result: IApiGetListResponseResult<IConfigData> = await this.dataService.getList(
     { where: { environment: finalEnvironment, section: { id: section.id } } },
@@ -275,15 +260,11 @@ export class CrudConfigService {
     await this.cacheManager.set(cacheKey, result.items, ttl);
    }
 
-   if (this.options?.isVerbose) {
-    this.LOGGER.verbose(`Returning ${result.items.length} config items`);
-   }
+   this.LOGGER.verbose(`Returning ${result.items.length} config items`);
 
    return result.items;
   } catch (error: unknown) {
-   if (this.options?.isVerbose) {
-    this.LOGGER.error(`Error in getList method: ${(error as Error).message}`);
-   }
+   this.LOGGER.error(`Error in getList method: ${(error as Error).message}`);
 
    if (error instanceof HttpException) {
     throw error;
@@ -303,13 +284,12 @@ export class CrudConfigService {
   * @returns {Promise<IConfigData>} Promise resolving to the saved configuration data
   */
  async set(options: IConfigSetOptions): Promise<IConfigData> {
-  if (this.options?.isVerbose) {
-   const maskedOptions: IConfigSetOptions = {
-    ...options,
-    value: "***",
-   };
-   this.LOGGER.verbose(`Entering set method with options: ${JSON.stringify(maskedOptions)}`);
-  }
+  const maskedOptions: unknown = {
+   ...options,
+   eventManager: options.eventManager ? "[EntityManager]" : undefined,
+   value: "***",
+  };
+  this.LOGGER.verbose(`Entering set method with options: ${JSON.stringify(maskedOptions)}`);
 
   const {
    description,
@@ -340,13 +320,9 @@ export class CrudConfigService {
     finalValue = this.cryptoUtility.encrypt(value, this.options.encryptionOptions.encryptionKey);
     isEncrypted = true;
 
-    if (this.options?.isVerbose) {
-     this.LOGGER.verbose(`Encrypted value for ${name}`);
-    }
+    this.LOGGER.verbose(`Encrypted value for ${name}`);
    } catch (error: unknown) {
-    if (this.options?.isVerbose) {
-     this.LOGGER.error(`Encryption error for ${name}: ${(error as Error).message}`);
-    }
+    this.LOGGER.error(`Encryption error for ${name}: ${(error as Error).message}`);
 
     throw new InternalServerErrorException(
      ErrorString({ entity: { name: "ConfigData" }, type: EErrorStringAction.ENCRYPTION_ERROR }),
@@ -371,14 +347,10 @@ export class CrudConfigService {
     localEventManager = queryRunner.manager;
    }
 
-   if (this.options?.isVerbose) {
-    this.LOGGER.verbose(`Fetching or creating section: ${sectionName}`);
-   }
+   this.LOGGER.verbose(`Fetching or creating section: ${sectionName}`);
    const section: IConfigSection = await this.getOrCreateSection(sectionName, localEventManager);
 
-   if (this.options?.isVerbose) {
-    this.LOGGER.verbose(`Preparing config data for ${name}`);
-   }
+   this.LOGGER.verbose(`Preparing config data for ${name}`);
 
    const configData: Partial<IConfigData> = {
     description: description ?? undefined,
@@ -392,30 +364,22 @@ export class CrudConfigService {
    let result: IConfigData;
 
    try {
-    if (this.options?.isVerbose) {
-     this.LOGGER.verbose(`Checking for existing config: ${name}`);
-    }
+    this.LOGGER.verbose(`Checking for existing config: ${name}`);
 
     const existingData: IConfigData = await this.dataService.get(
      { where: { environment: finalEnvironment, name, section: { id: section.id } } },
      localEventManager,
     );
 
-    if (this.options?.isVerbose) {
-     this.LOGGER.verbose(`Updating existing config: ${name}`);
-    }
+    this.LOGGER.verbose(`Updating existing config: ${name}`);
     result = await this.dataService.update({ id: existingData.id }, configData, localEventManager);
    } catch (error: unknown) {
     if (error instanceof NotFoundException) {
-     if (this.options?.isVerbose) {
-      this.LOGGER.verbose(`Config ${name} not found, creating new one`);
-     }
+     this.LOGGER.verbose(`Config ${name} not found, creating new one`);
      result = await this.dataService.create(configData, localEventManager);
     } else {
-     if (this.options?.isVerbose) {
-      const errorMessage: string = error instanceof Error ? error.message : String(error);
-      this.LOGGER.error(`Error updating config: ${errorMessage}`);
-     }
+     const errorMessage: string = error instanceof Error ? error.message : String(error);
+     this.LOGGER.error(`Error updating config: ${errorMessage}`);
 
      throw error;
     }
@@ -433,9 +397,7 @@ export class CrudConfigService {
     await queryRunner.release();
    }
 
-   if (this.options?.isVerbose) {
-    this.LOGGER.verbose(`Set method completed successfully for ${name}`);
-   }
+   this.LOGGER.verbose(`Set method completed successfully for ${name}`);
 
    return result;
   } catch (error: unknown) {
@@ -444,10 +406,8 @@ export class CrudConfigService {
     await queryRunner.release();
    }
 
-   if (this.options?.isVerbose) {
-    const errorMessage: string = error instanceof Error ? error.message : String(error);
-    this.LOGGER.error(`Error in set method: ${errorMessage}`);
-   }
+   const errorMessage: string = error instanceof Error ? error.message : String(error);
+   this.LOGGER.error(`Error in set method: ${errorMessage}`);
 
    if (error instanceof HttpException) {
     throw error;
@@ -467,16 +427,12 @@ export class CrudConfigService {
    return await this.sectionService.get({ where: { name: sectionName } }, eventManager);
   } catch (error: unknown) {
    if (error instanceof NotFoundException && this.options?.shouldAutoCreateSections) {
-    if (this.options?.isVerbose) {
-     this.LOGGER.verbose(`Section ${sectionName} not found, creating new one`);
-    }
+    this.LOGGER.verbose(`Section ${sectionName} not found, creating new one`);
 
     return await this.sectionService.create({ name: sectionName }, eventManager);
    } else {
-    if (this.options?.isVerbose) {
-     const errorMessage: string = error instanceof Error ? error.message : String(error);
-     this.LOGGER.error(`Error fetching section: ${errorMessage}`);
-    }
+    const errorMessage: string = error instanceof Error ? error.message : String(error);
+    this.LOGGER.error(`Error fetching section: ${errorMessage}`);
 
     throw error;
    }

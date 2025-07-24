@@ -62,4 +62,4 @@ describe("createDynamicDataController", () => {
   // The controller should be decorated with ApiController
   expect(DynamicController).toBeDefined();
  });
-}); 
+});
