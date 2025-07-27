@@ -48,8 +48,35 @@ describe("Migration E2E Tests", () => {
     let mockDataSource: DataSource;
     let mockConfigService: CrudConfigService;
     let migrationService: ConfigMigrationService;
+    let mockMigrationService: any;
 
     beforeEach(() => {
+      // Create mock migration service
+      mockMigrationService = {
+        getList: vi.fn().mockResolvedValue({
+          items: [],
+          count: 0,
+          totalCount: 0,
+          currentPage: 1,
+          totalPages: 0,
+        }),
+        create: vi.fn().mockResolvedValue({
+          id: "test-id",
+          name: "001_initial_setup",
+          status: EConfigMigrationStatus.COMPLETED,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+        update: vi.fn().mockResolvedValue({
+          id: "test-id",
+          name: "001_initial_setup",
+          status: EConfigMigrationStatus.COMPLETED,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+        delete: vi.fn().mockResolvedValue(undefined),
+      };
+
       // Create mocks
       mockDataSource = {
         isInitialized: true,
@@ -95,7 +122,11 @@ describe("Migration E2E Tests", () => {
         mockDataSource,
         createConfigOptions(testMigrations),
         mockConfigService,
+        mockMigrationService,
       );
+
+      // Call onModuleInit to simulate NestJS lifecycle
+      migrationService.onModuleInit();
     });
 
     it("should initialize migration service", () => {
@@ -106,35 +137,6 @@ describe("Migration E2E Tests", () => {
     });
 
     it("should execute migrations successfully", async () => {
-      const mockMigrationService = {
-        getList: vi.fn().mockResolvedValue({
-          items: [],
-          count: 0,
-          totalCount: 0,
-          currentPage: 1,
-          totalPages: 0,
-        }),
-        create: vi.fn().mockResolvedValue({
-          id: "test-id",
-          name: "001_initial_setup",
-          status: EConfigMigrationStatus.COMPLETED,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }),
-        update: vi.fn().mockResolvedValue({
-          id: "test-id",
-          name: "001_initial_setup",
-          status: EConfigMigrationStatus.COMPLETED,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }),
-      };
-
-      migrationService["migrationService"] = mockMigrationService as any;
-      
-      // Mock the initialization
-      migrationService["initializeMigrationService"] = vi.fn();
-
       await migrationService.executeMigrations(testMigrations);
 
       expect(testMigrations[0].up).toHaveBeenCalled();
@@ -241,7 +243,13 @@ describe("Migration E2E Tests", () => {
           {
             provide: ConfigMigrationService,
             useFactory: (dataSource: DataSource, options: IConfigOptions, configService: CrudConfigService) => {
-              const service = new ConfigMigrationService(dataSource, options, configService);
+              const mockService = {
+                getList: vi.fn().mockResolvedValue({ items: [], count: 0 }),
+                create: vi.fn(),
+                update: vi.fn(),
+                delete: vi.fn(),
+              } as any;
+              const service = new ConfigMigrationService(dataSource, options, configService, mockService);
               // Mock the initialization that causes problems
               service.onModuleInit = vi.fn();
               return service;
