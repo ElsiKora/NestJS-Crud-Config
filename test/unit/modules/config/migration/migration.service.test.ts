@@ -79,12 +79,24 @@ describe("ConfigMigrationService", () => {
    },
   };
 
-  service = new ConfigMigrationService(mockDataSource, mockOptions, mockConfigService);
+  service = new ConfigMigrationService(
+   mockDataSource,
+   mockOptions,
+   mockConfigService,
+   mockMigrationService,
+  );
 
-  // Mock the private migrationService
-  (service as any).migrationService = mockMigrationService;
+  // Mock onModuleInit - it should be a no-op in our tests
+  service.onModuleInit();
 
   // Mock logger
+  const mockLogger: Logger = {
+   log: vi.fn(),
+   error: vi.fn(),
+   warn: vi.fn(),
+   debug: vi.fn(),
+   verbose: vi.fn(),
+  } as any;
   vi.spyOn(service["LOGGER"], "verbose").mockImplementation(() => {});
   vi.spyOn(service["LOGGER"], "warn").mockImplementation(() => {});
   vi.spyOn(service["LOGGER"], "error").mockImplementation(() => {});
