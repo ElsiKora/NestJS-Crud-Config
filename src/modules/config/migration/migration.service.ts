@@ -1,4 +1,4 @@
-import type { ApiServiceBase, IApiBaseEntity } from "@elsikora/nestjs-crud-automator";
+import type { ApiServiceBase } from "@elsikora/nestjs-crud-automator";
 import type { IConfigOptions } from "@shared/interface/config";
 
 import type { IConfigMigration, IConfigMigrationDefinition } from "./interface";
@@ -6,26 +6,25 @@ import type { IConfigMigration, IConfigMigrationDefinition } from "./interface";
 import { CrudConfigService } from "@modules/config/config.service";
 import { Inject, Injectable, Logger, type OnModuleInit } from "@nestjs/common";
 import { CONFIG_MIGRATION_CONSTANT, TOKEN_CONSTANT } from "@shared/constant";
-import { TDynamicEntity } from "@shared/type/dynamic-entity.type";
-import { createDynamicService } from "@shared/utility/create-dynamic";
-import { DataSource, type EntityManager, Repository } from "typeorm";
+import { DataSource, type EntityManager } from "typeorm";
 
-import { createConfigMigrationEntity } from "./entity";
 import { EConfigMigrationStatus } from "./enum";
 
 @Injectable()
 export class ConfigMigrationService implements OnModuleInit {
  private readonly LOGGER: Logger = new Logger(ConfigMigrationService.name);
 
- private migrationService!: ApiServiceBase<IConfigMigration>;
+ private readonly MIGRATION_SERVICE: ApiServiceBase<IConfigMigration>;
 
  constructor(
-  @Inject(DataSource)
-  private readonly dataSource: DataSource,
-  @Inject(TOKEN_CONSTANT.CONFIG_OPTIONS)
-  private readonly options: IConfigOptions,
+  @Inject(DataSource) private readonly dataSource: DataSource,
+  @Inject(TOKEN_CONSTANT.CONFIG_OPTIONS) private readonly options: IConfigOptions,
   private readonly configService: CrudConfigService,
- ) {}
+  @Inject(TOKEN_CONSTANT.CONFIG_MIGRATION_SERVICE)
+  migrationService: ApiServiceBase<IConfigMigration>,
+ ) {
+  this.MIGRATION_SERVICE = migrationService;
+ }
 
  /**
   * Cleans up failed migrations
@@ -40,7 +39,7 @@ export class ConfigMigrationService implements OnModuleInit {
 
    // Use bulk delete operation to avoid N+1 problem
    const result: { count: number; items: Array<IConfigMigration> } =
-    await this.migrationService.getList({ where: whereCondition });
+    await this.MIGRATION_SERVICE.getList({ where: whereCondition });
 
    if (result.items.length === 0) {
     this.LOGGER.verbose("No failed migrations found to clean up");
@@ -52,7 +51,7 @@ export class ConfigMigrationService implements OnModuleInit {
    const migrationIds: Array<string> = result.items.map((m: IConfigMigration) => m.id);
 
    for (const id of migrationIds) {
-    await this.migrationService.delete({ id });
+    await this.MIGRATION_SERVICE.delete({ id });
    }
 
    this.LOGGER.verbose(
@@ -78,7 +77,7 @@ export class ConfigMigrationService implements OnModuleInit {
    cutoffTime.setMinutes(cutoffTime.getMinutes() - timeoutMinutes);
 
    const runningMigrations: { count: number; items: Array<IConfigMigration> } =
-    await this.migrationService.getList({
+    await this.MIGRATION_SERVICE.getList({
      where: { status: EConfigMigrationStatus.RUNNING },
     });
 
@@ -100,7 +99,7 @@ export class ConfigMigrationService implements OnModuleInit {
 
    // Mark stuck migrations as STUCK status
    for (const migration of stuckMigrations) {
-    await this.migrationService.update(
+    await this.MIGRATION_SERVICE.update(
      { id: migration.id },
      {
       failedAt: new Date(),
@@ -217,7 +216,7 @@ export class ConfigMigrationService implements OnModuleInit {
  async getExecutedMigrations(): Promise<Array<IConfigMigration>> {
   try {
    const result: { count: number; items: Array<IConfigMigration> } =
-    await this.migrationService.getList({
+    await this.MIGRATION_SERVICE.getList({
      order: { name: "ASC" },
     });
 
@@ -239,7 +238,7 @@ export class ConfigMigrationService implements OnModuleInit {
  async isMigrationExecuted(migrationName: string): Promise<boolean> {
   try {
    const result: { count: number; items: Array<IConfigMigration> } =
-    await this.migrationService.getList({
+    await this.MIGRATION_SERVICE.getList({
      where: { name: migrationName },
     });
 
@@ -252,27 +251,8 @@ export class ConfigMigrationService implements OnModuleInit {
  }
 
  onModuleInit(): void {
-  const tableName: string =
-   this.options.migrationOptions?.tableName ?? CONFIG_MIGRATION_CONSTANT.DEFAULT_TABLE_NAME;
-  const tablePrefix: string = this.options.entityOptions?.tablePrefix ?? "";
-  const finalTableName: string = `${tablePrefix}${tableName}`;
-
-  const migrationEntity: TDynamicEntity = createConfigMigrationEntity({
-   maxNameLength: CONFIG_MIGRATION_CONSTANT.MAX_NAME_LENGTH,
-   tableName: finalTableName,
-  });
-
-  const repository: Repository<IApiBaseEntity> = this.dataSource.getRepository(migrationEntity);
-
-  const DynamicServiceClass: ApiServiceBase<IConfigMigration> = createDynamicService(
-   migrationEntity,
-   "ConfigMigrationService",
-  ) as unknown as ApiServiceBase<IConfigMigration>;
-
-  // @ts-ignore
-  this.migrationService = new DynamicServiceClass(
-   repository,
-  ) as unknown as ApiServiceBase<IConfigMigration>;
+  // Remove the dynamic entity creation - we already have the service injected
+  this.LOGGER.log("Migration service initialized");
  }
 
  /**
@@ -310,7 +290,7 @@ export class ConfigMigrationService implements OnModuleInit {
      }
 
      // Delete the migration record
-     await this.migrationService.delete({ name: migrationName });
+     await this.MIGRATION_SERVICE.delete({ name: migrationName });
 
      this.LOGGER.verbose(`Successfully rolled back migration: ${migration.name}`);
     } catch (downError) {
@@ -336,7 +316,7 @@ export class ConfigMigrationService implements OnModuleInit {
    const failedTime: Date = new Date();
 
    // Update migration status to FAILED
-   await this.migrationService.update(
+   await this.MIGRATION_SERVICE.update(
     { name: migrationName },
     {
      failedAt: failedTime,
@@ -365,7 +345,7 @@ export class ConfigMigrationService implements OnModuleInit {
   const startTime: Date = new Date();
 
   try {
-   migrationRecord = await this.migrationService.create(
+   migrationRecord = await this.MIGRATION_SERVICE.create(
     {
      name: migration.name,
      startedAt: startTime,
@@ -396,7 +376,7 @@ export class ConfigMigrationService implements OnModuleInit {
 
    // Update status to completed with executedAt timestamp
    const completedTime: Date = new Date();
-   await this.migrationService.update(
+   await this.MIGRATION_SERVICE.update(
     { id: migrationRecord.id },
     {
      executedAt: completedTime,
@@ -414,7 +394,7 @@ export class ConfigMigrationService implements OnModuleInit {
    const failedTime: Date = new Date();
 
    try {
-    await this.migrationService.update(
+    await this.MIGRATION_SERVICE.update(
      { id: migrationRecord.id },
      {
       failedAt: failedTime,
