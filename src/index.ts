@@ -8,11 +8,5 @@
  * @module nestjs-crud-config
  */
 
-// Export core module
-export * from "./modules/config";
-
-// Export constants and enums
+export * from "./modules";
 export * from "./shared";
-
-export * from "./shared/enum";
-export type * from "./shared/interface/config";
