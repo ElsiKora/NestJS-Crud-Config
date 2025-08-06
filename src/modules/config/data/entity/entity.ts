@@ -76,7 +76,7 @@ export function createConfigDataEntity(options: {
      format: EApiPropertyDateType.DATE_TIME,
      identifier: EApiPropertyDateIdentifier.CREATED_AT,
      type: EApiPropertyDescribeType.DATE,
-    }) as PropertyDecorator,
+    }),
    ],
    description: [
     ApiPropertyDescribe({
@@ -88,7 +88,7 @@ export function createConfigDataEntity(options: {
      minLength: API_PROPERTY_CONSTANT.MIN_STRING_LENGTH,
      pattern: `/.{0,${options.maxDescriptionLength}}/`,
      type: EApiPropertyDescribeType.STRING,
-    }) as PropertyDecorator,
+    }),
    ],
    environment: [
     ApiPropertyDescribe({
@@ -99,18 +99,18 @@ export function createConfigDataEntity(options: {
      minLength: API_PROPERTY_CONSTANT.MIN_NAME_LENGTH,
      pattern: `/.{1,${options.maxEnvironmentLength}}/`,
      type: EApiPropertyDescribeType.STRING,
-    }) as PropertyDecorator,
+    }),
    ],
    id: [
     ApiPropertyDescribe({
      type: EApiPropertyDescribeType.UUID,
-    }) as PropertyDecorator,
+    }),
    ],
    isEncrypted: [
     ApiPropertyDescribe({
      description: "isEncrypted",
      type: EApiPropertyDescribeType.BOOLEAN,
-    }) as PropertyDecorator,
+    }),
    ],
    name: [
     ApiPropertyDescribe({
@@ -121,13 +121,13 @@ export function createConfigDataEntity(options: {
      minLength: API_PROPERTY_CONSTANT.MIN_NAME_LENGTH,
      pattern: `/^[A-Za-z0-9_-]{1,${options.maxNameLength}}/`,
      type: EApiPropertyDescribeType.STRING,
-    }) as PropertyDecorator,
+    }),
    ],
    section: [
     ApiPropertyDescribe({
      description: "section",
      type: EApiPropertyDescribeType.RELATION,
-    }) as PropertyDecorator,
+    }),
    ],
    updatedAt: [
     UpdateDateColumn(),
@@ -135,7 +135,7 @@ export function createConfigDataEntity(options: {
      format: EApiPropertyDateType.DATE_TIME,
      identifier: EApiPropertyDateIdentifier.UPDATED_AT,
      type: EApiPropertyDescribeType.DATE,
-    }) as PropertyDecorator,
+    }),
    ],
    value: [
     ApiPropertyDescribe({
@@ -146,7 +146,7 @@ export function createConfigDataEntity(options: {
      minLength: API_PROPERTY_CONSTANT.MIN_STRING_LENGTH,
      pattern: `/.{0,${options.maxValueLength}}/`,
      type: EApiPropertyDescribeType.STRING,
-    }) as PropertyDecorator,
+    }),
    ],
   },
   name: "ConfigData",

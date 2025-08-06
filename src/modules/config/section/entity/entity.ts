@@ -55,7 +55,7 @@ export function createConfigSectionEntity(options: {
      format: EApiPropertyDateType.DATE_TIME,
      identifier: EApiPropertyDateIdentifier.CREATED_AT,
      type: EApiPropertyDescribeType.DATE,
-    }) as PropertyDecorator,
+    }),
    ],
    description: [
     ApiPropertyDescribe({
@@ -67,12 +67,12 @@ export function createConfigSectionEntity(options: {
      minLength: API_PROPERTY_CONSTANT.MIN_NAME_LENGTH,
      pattern: `/.{1,${options.maxDescriptionLength}}/`,
      type: EApiPropertyDescribeType.STRING,
-    }) as PropertyDecorator,
+    }),
    ],
    id: [
     ApiPropertyDescribe({
      type: EApiPropertyDescribeType.UUID,
-    }) as PropertyDecorator,
+    }),
    ],
    name: [
     ApiPropertyDescribe({
@@ -83,7 +83,7 @@ export function createConfigSectionEntity(options: {
      minLength: API_PROPERTY_CONSTANT.MIN_NAME_LENGTH,
      pattern: `/^[a-z0-9-]{1,${options.maxNameLength}}/`,
      type: EApiPropertyDescribeType.STRING,
-    }) as PropertyDecorator,
+    }),
    ],
    updatedAt: [
     UpdateDateColumn(),
@@ -91,7 +91,7 @@ export function createConfigSectionEntity(options: {
      format: EApiPropertyDateType.DATE_TIME,
      identifier: EApiPropertyDateIdentifier.UPDATED_AT,
      type: EApiPropertyDescribeType.DATE,
-    }) as PropertyDecorator,
+    }),
    ],
   },
   name: "ConfigSection",
