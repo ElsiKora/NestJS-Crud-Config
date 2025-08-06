@@ -66,7 +66,7 @@ export function createConfigMigrationEntity(options: {
      format: EApiPropertyDateType.DATE_TIME,
      identifier: EApiPropertyDateIdentifier.CREATED_AT,
      type: EApiPropertyDescribeType.DATE,
-    }) as PropertyDecorator,
+    }),
    ],
    executedAt: [
     ApiPropertyDescribe({
@@ -74,7 +74,7 @@ export function createConfigMigrationEntity(options: {
      identifier: EApiPropertyDateIdentifier.CREATED_AT,
      isNullable: true,
      type: EApiPropertyDescribeType.DATE,
-    }) as PropertyDecorator,
+    }),
    ],
    failedAt: [
     ApiPropertyDescribe({
@@ -82,12 +82,12 @@ export function createConfigMigrationEntity(options: {
      identifier: EApiPropertyDateIdentifier.CREATED_AT,
      isNullable: true,
      type: EApiPropertyDescribeType.DATE,
-    }) as PropertyDecorator,
+    }),
    ],
    id: [
     ApiPropertyDescribe({
      type: EApiPropertyDescribeType.UUID,
-    }) as PropertyDecorator,
+    }),
    ],
    name: [
     ApiPropertyDescribe({
@@ -98,7 +98,7 @@ export function createConfigMigrationEntity(options: {
      minLength: API_PROPERTY_CONSTANT.MIN_NAME_LENGTH,
      pattern: `/^[A-Za-z0-9_-]{1,${options.maxNameLength}}/`,
      type: EApiPropertyDescribeType.STRING,
-    }) as PropertyDecorator,
+    }),
    ],
    startedAt: [
     ApiPropertyDescribe({
@@ -106,7 +106,7 @@ export function createConfigMigrationEntity(options: {
      identifier: EApiPropertyDateIdentifier.CREATED_AT,
      isNullable: true,
      type: EApiPropertyDescribeType.DATE,
-    }) as PropertyDecorator,
+    }),
    ],
    status: [
     ApiPropertyDescribe({
@@ -117,7 +117,7 @@ export function createConfigMigrationEntity(options: {
      minLength: API_PROPERTY_CONSTANT.MIN_NAME_LENGTH,
      pattern: `/^[A-Z_]{1,${CONFIG_MIGRATION_CONSTANT.MAX_STATUS_LENGTH}}/`,
      type: EApiPropertyDescribeType.STRING,
-    }) as PropertyDecorator,
+    }),
    ],
    updatedAt: [
     UpdateDateColumn(),
@@ -125,7 +125,7 @@ export function createConfigMigrationEntity(options: {
      format: EApiPropertyDateType.DATE_TIME,
      identifier: EApiPropertyDateIdentifier.UPDATED_AT,
      type: EApiPropertyDescribeType.DATE,
-    }) as PropertyDecorator,
+    }),
    ],
   },
   indexes: [
