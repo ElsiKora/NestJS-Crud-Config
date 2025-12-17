@@ -211,10 +211,43 @@ export class CrudConfigModule {
  /**
   * Registers the module asynchronously. This implementation defers all dynamic provider
   * creation into factories to ensure correct instantiation order.
+  * Controllers must be configured via the static `controllersOptions` property,
+  * as NestJS does not support async controller registration.
   * @param {ICrudConfigAsyncModuleProperties} properties Async configuration options
   * @returns {DynamicModule} Dynamic module configuration
   */
  public static registerAsync(properties: ICrudConfigAsyncModuleProperties): DynamicModule {
+  const sectionEntity: TDynamicEntity = createConfigSectionEntity({
+   maxDescriptionLength: CONFIG_SECTION_CONSTANT.MAX_DESCRIPTION_LENGTH,
+   maxNameLength: CONFIG_SECTION_CONSTANT.MAX_NAME_LENGTH,
+   tableName: CONFIG_SECTION_CONSTANT.DEFAULT_TABLE_NAME,
+  });
+
+  const dataEntity: TDynamicEntity = createConfigDataEntity({
+   configSectionEntity: sectionEntity,
+   maxDescriptionLength: CONFIG_DATA_CONSTANT.MAX_DESCRIPTION_LENGTH,
+   maxEnvironmentLength: CONFIG_DATA_CONSTANT.MAX_ENVIRONMENT_LENGTH,
+   maxNameLength: CONFIG_DATA_CONSTANT.MAX_NAME_LENGTH,
+   maxValueLength: CONFIG_DATA_CONSTANT.MAX_VALUE_LENGTH,
+   tableName: CONFIG_DATA_CONSTANT.DEFAULT_TABLE_NAME,
+  });
+
+  const DynamicConfigSectionController: null | Type =
+   properties.controllersOptions?.section?.isEnabled === false
+    ? null
+    : createDynamicSectionController(sectionEntity, properties.controllersOptions?.section);
+
+  const DynamicConfigDataController: null | Type =
+   properties.controllersOptions?.data?.isEnabled === false
+    ? null
+    : createDynamicDataController(dataEntity, properties.controllersOptions?.data);
+
+  const controllers: Array<Type> = [];
+
+  if (DynamicConfigSectionController) controllers.push(DynamicConfigSectionController);
+
+  if (DynamicConfigDataController) controllers.push(DynamicConfigDataController);
+
   const providers: Array<Provider> = [
    this.createAsyncOptionsProvider(properties),
 
@@ -338,7 +371,7 @@ export class CrudConfigModule {
   }
 
   return {
-   controllers: [],
+   controllers,
    exports: [
     CrudConfigService,
     TOKEN_CONSTANT.CONFIG_OPTIONS,
