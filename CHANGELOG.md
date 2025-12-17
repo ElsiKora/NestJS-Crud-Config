@@ -1,3 +1,10 @@
+## [1.1.5](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.1.4...v1.1.5) (2025-12-17)
+
+
+### Bug Fixes
+
+* **config:** add controllers support to register async method ([32ccfd6](https://github.com/ElsiKora/NestJS-Crud-Config/commit/32ccfd6912f2327d09f74c391b4b38301e2bcc99))
+
 ## [1.1.4](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.1.3...v1.1.4) (2025-08-06)
 
 ## [1.1.3](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.1.2...v1.1.3) (2025-07-27)
