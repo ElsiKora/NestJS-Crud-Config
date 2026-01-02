@@ -8,6 +8,8 @@ import { CRYPTO_CONSTANT } from "@shared/constant/crypto.constant";
 /**
  * Utility class for encrypting and decrypting configuration values
  * Uses AES-256-GCM for encryption with authentication
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/core-concepts/encryption | Core Concepts - Encryption}
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/utilities/crypto-utility | API Reference - CryptoUtility}
  */
 @Injectable()
 export class CryptoUtility {

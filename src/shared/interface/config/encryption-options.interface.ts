@@ -1,5 +1,6 @@
 /**
  * Interface for encryption configuration options
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/interfaces/config-encryption-options | API Reference - IConfigEncryptionOptions}
  */
 export interface IConfigEncryptionOptions {
  /**

@@ -1,0 +1,16 @@
+export default {
+ "config-cache-options": "IConfigCacheOptions",
+ "config-controller-options": "IConfigControllerOptions",
+ "config-controllers-options": "IConfigControllersOptions",
+ "config-encryption-options": "IConfigEncryptionOptions",
+ "config-migration-definition": "IConfigMigrationDefinition",
+ "config-migration-options": "IConfigMigrationOptions",
+ "config-options": "IConfigOptions",
+ "config-static-options": "IConfigStaticOptions",
+ "crud-config-async-module-properties": "ICrudConfigAsyncModuleProperties",
+ "crud-config-delete-options": "Delete options",
+ "crud-config-entity-options": "ICrudConfigEntityOptions",
+ "crud-config-get-list-options": "Get list options",
+ "crud-config-get-options": "Get options",
+ "crud-config-set-options": "Set options",
+};

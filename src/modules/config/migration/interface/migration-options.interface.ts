@@ -2,6 +2,8 @@ import type { IConfigMigrationDefinition } from "./migration-definition.interfac
 
 /**
  * Interface for migration configuration options
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/migration-system | Migration System}
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/interfaces/config-migration-options | API Reference - IConfigMigrationOptions}
  */
 export interface IConfigMigrationOptions {
  /**

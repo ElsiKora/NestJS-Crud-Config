@@ -1,0 +1,84 @@
+# Dynamic Controllers
+
+The module can generate REST controllers dynamically:
+
+- Config sections controller
+- Config data controller
+
+They are enabled/disabled and customized via `controllersOptions`.
+
+In async registration, controller options must be provided via `staticOptions.controllersOptions`.
+
+## Default endpoints
+
+### Configuration Sections (default: `/config/section`)
+
+- `GET /config/section` — List all sections
+- `POST /config/section` — Create a new section
+- `GET /config/section/:id` — Get section by ID
+- `PUT /config/section/:id` — Update section
+- `DELETE /config/section/:id` — Delete section
+
+Request body (POST/PUT):
+
+```json copy
+{
+  "name": "api-settings",
+  "description": "API configuration settings"
+}
+```
+
+### Configuration Data (default: `/config/data`)
+
+- `GET /config/data` — List all configuration data
+- `POST /config/data` — Create new configuration
+- `GET /config/data/:id` — Get configuration by ID
+- `PUT /config/data/:id` — Update configuration
+- `DELETE /config/data/:id` — Delete configuration
+
+Request body (POST/PUT):
+
+```json copy
+{
+  "name": "API_KEY",
+  "value": "your-secret-key",
+  "environment": "production",
+  "description": "Production API key",
+  "isEncrypted": true,
+  "section": { "id": "section-uuid-here" }
+}
+```
+
+## Customizing endpoints
+
+```typescript copy
+CrudConfigModule.register({
+	controllersOptions: {
+		section: {
+			properties: {
+				path: "api/v1/settings/sections",
+				name: "CustomSectionController",
+				swagger: {
+					tags: ["Configuration Sections"],
+				},
+			},
+		},
+		data: {
+			properties: {
+				path: "api/v1/settings/data",
+				routes: {
+					DELETE: { isEnabled: false },
+				},
+			},
+		},
+	},
+});
+```
+
+## Headless mode
+
+If you don’t need HTTP endpoints, disable controllers:
+
+- [Headless Mode guide](/docs/nestjs-crud-config/guides/headless-mode)
+
+

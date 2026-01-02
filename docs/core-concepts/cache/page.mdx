@@ -1,0 +1,25 @@
+# Cache
+
+The module can cache config reads to reduce database load.
+
+Configure via `cacheOptions`.
+
+## How caching works
+
+- Enable caching globally via `cacheOptions.isEnabled`
+- Use caching per request via `useCache` on `get()` and `getList()`
+- Cache is invalidated automatically on `set()` and `delete()`
+
+## Example
+
+```typescript copy
+CrudConfigModule.register({
+	cacheOptions: {
+		isEnabled: true,
+		maxCacheItems: 1000,
+		maxCacheTTL: 3600000,
+	},
+});
+```
+
+

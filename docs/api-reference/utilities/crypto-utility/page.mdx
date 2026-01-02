@@ -1,0 +1,22 @@
+# `CryptoUtility`
+
+Utility class for encrypting and decrypting configuration values.
+
+*Defined in: `src/shared/utility/crypto.utility.ts`*
+
+## API
+
+```ts
+export class CryptoUtility {
+	decrypt(encryptedValue: string, encryptionKey: string): string;
+	encrypt(value: string, encryptionKey: string): string;
+	isEncryptedValue(value: string): boolean;
+}
+```
+
+## Related
+
+- [Encryption](/docs/nestjs-crud-config/core-concepts/encryption)
+- [`CRYPTO_CONSTANT`](/docs/nestjs-crud-config/api-reference/constants/crypto-constant)
+
+

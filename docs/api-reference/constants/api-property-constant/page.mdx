@@ -1,0 +1,26 @@
+# `API_PROPERTY_CONSTANT`
+
+Shared constants for API property configuration.
+
+*Defined in: `src/shared/constant/api-property.constant.ts`*
+
+## Definition
+
+```ts filename="src/shared/constant/api-property.constant.ts"
+const MIN_NAME_LENGTH: number = 1;
+const MIN_STRING_LENGTH: number = 1;
+
+export const API_PROPERTY_CONSTANT: {
+	readonly MIN_NAME_LENGTH: number;
+	readonly MIN_STRING_LENGTH: number;
+} = {
+	MIN_NAME_LENGTH,
+	MIN_STRING_LENGTH,
+} as const;
+```
+
+## Notes
+
+- Used as reusable validation constraints across entities.
+
+

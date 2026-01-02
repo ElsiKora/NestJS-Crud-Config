@@ -1,0 +1,28 @@
+# Customizing Endpoints
+
+Controllers are generated dynamically and can be configured via `controllersOptions`.
+
+Example:
+
+```typescript copy
+CrudConfigModule.register({
+	controllersOptions: {
+		section: {
+			isEnabled: true,
+			properties: {
+				path: "api/config/sections",
+			},
+		},
+		data: {
+			isEnabled: true,
+			properties: {
+				path: "api/config/data",
+			},
+		},
+	},
+});
+```
+
+In async registration, configure endpoints via `staticOptions.controllersOptions`.
+
+

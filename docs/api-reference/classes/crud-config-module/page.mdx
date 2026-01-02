@@ -1,0 +1,27 @@
+# `CrudConfigModule`
+
+NestJS module entrypoint providing `register()` and `registerAsync()` methods.
+
+*Defined in: `src/modules/config/config.module.ts`*
+
+## API
+
+```ts
+export class CrudConfigModule {
+	static register(options: IConfigOptions): DynamicModule;
+	static registerAsync(properties: ICrudConfigAsyncModuleProperties): DynamicModule;
+}
+```
+
+## Notes
+
+- `register()` is fully synchronous.
+- `registerAsync()` requires compile-time options (controllers/entities) in `staticOptions`.
+
+## Related
+
+- [Module Registration](/docs/nestjs-crud-config/core-concepts/module-registration)
+- [`IConfigOptions`](/docs/nestjs-crud-config/api-reference/interfaces/config-options)
+- [`ICrudConfigAsyncModuleProperties`](/docs/nestjs-crud-config/api-reference/interfaces/crud-config-async-module-properties)
+
+

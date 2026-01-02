@@ -1,0 +1,26 @@
+# `ConfigMigrationRunnerService`
+
+Low-level runner that executes individual migration definitions.
+
+*Defined in: `src/modules/config/migration/migration-runner.service.ts`*
+
+## API
+
+```ts
+export class ConfigMigrationRunnerService {
+	onApplicationBootstrap(): Promise<void>;
+	runMigrations(): Promise<void>;
+}
+```
+
+## Notes
+
+- Runs migrations on startup when `migrationOptions.isEnabled` and `migrationOptions.shouldRunOnStartup` are enabled.
+
+## Related
+
+- [Migration System](/docs/nestjs-crud-config/migration-system)
+- [`IConfigMigrationOptions`](/docs/nestjs-crud-config/api-reference/interfaces/config-migration-options)
+- [`ConfigMigrationService`](/docs/nestjs-crud-config/api-reference/classes/config-migration-service)
+
+
