@@ -1,0 +1,56 @@
+# Dynamic Entities
+
+The module creates TypeORM entities dynamically at runtime:
+
+- `ConfigSection` entity
+- `ConfigData` entity
+- `ConfigMigration` entity (migration tracking)
+
+These entities are exported via tokens so you can plug them into `TypeOrmModule.forRootAsync`.
+
+## Exported entity tokens
+
+- `TOKEN_CONSTANT.CONFIG_SECTION_ENTITY`
+- `TOKEN_CONSTANT.CONFIG_DATA_ENTITY`
+- `TOKEN_CONSTANT.CONFIG_MIGRATION_ENTITY`
+
+## Entity customization
+
+You can customize table names and column lengths via `entityOptions`.
+
+In async registration, provide entity customization via `staticOptions.entityOptions` (and `staticOptions.migrationEntityOptions` for migration tracking table) so controllers and providers use the same entities.
+
+## Default schema
+
+### Configuration Sections table (`config_section`)
+
+```sql copy
+CREATE TABLE config_section (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(128) NOT NULL UNIQUE,
+  description VARCHAR(512),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Configuration Data table (`config_data`)
+
+```sql copy
+CREATE TABLE config_data (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(128) NOT NULL,
+  value VARCHAR(8192) NOT NULL,
+  environment VARCHAR(64) NOT NULL,
+  description VARCHAR(512),
+  is_encrypted BOOLEAN DEFAULT FALSE,
+  section_id UUID NOT NULL REFERENCES config_section(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(name, environment, section_id)
+);
+```
+
+See: [TypeORM Integration](/docs/nestjs-crud-config/guides/typeorm-integration)
+
+

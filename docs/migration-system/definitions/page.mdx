@@ -1,0 +1,76 @@
+# Definitions
+
+Migrations are defined via migration definition interfaces and executed by the migration services.
+
+## Basic configuration
+
+Enable migrations in module options:
+
+```typescript filename="app.module.ts" copy
+import { Module } from "@nestjs/common";
+import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
+import { initialAppConfigMigration } from "./migrations/001-initial-app-config.migration";
+
+@Module({
+	imports: [
+		CrudConfigModule.register({
+			environment: process.env.NODE_ENV || "development",
+			migrationOptions: {
+				isEnabled: true,
+				shouldRunOnStartup: true,
+				useTransaction: true,
+				stuckMigrationTimeoutMinutes: 30,
+				migrations: [initialAppConfigMigration],
+			},
+		}),
+	],
+})
+export class AppModule {}
+```
+
+## Creating migration files
+
+Each migration is described by `IConfigMigrationDefinition`:
+
+```typescript filename="migrations/001-initial-app-config.migration.ts" copy
+import type { CrudConfigService, IConfigMigrationDefinition } from "@elsikora/nestjs-crud-config";
+import type { EntityManager } from "typeorm";
+
+export const initialAppConfigMigration: IConfigMigrationDefinition = {
+	name: "001_initial_app_config",
+	description: "Initialize basic application configuration",
+
+	async up(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
+		await configService.set({
+			section: "app-settings",
+			name: "APP_NAME",
+			value: "My Application",
+			description: "Application name",
+			environment: "default",
+			eventManager: entityManager,
+		});
+	},
+
+	async down(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
+		await configService.delete({
+			section: "app-settings",
+			name: "APP_NAME",
+			environment: "default",
+			eventManager: entityManager,
+		});
+	},
+};
+```
+
+## Best practices
+
+- Use sortable names: `001_...`, `002_...`
+- Prefer idempotent migrations (safe to run multiple times)
+- Always implement `down()` when possible
+
+See also:
+
+- [Execution](/docs/nestjs-crud-config/migration-system/execution)
+- [API Reference – IConfigMigrationDefinition](/docs/nestjs-crud-config/api-reference/interfaces/config-migration-definition)
+
+

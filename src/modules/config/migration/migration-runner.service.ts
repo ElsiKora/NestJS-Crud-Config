@@ -12,6 +12,8 @@ import { ConfigMigrationService } from "./migration.service";
 
 /**
  * Service that runs migrations on application startup
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/migration-system | Migration System}
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/classes/config-migration-runner-service | API Reference - ConfigMigrationRunnerService}
  */
 @Injectable()
 export class ConfigMigrationRunnerService implements OnApplicationBootstrap {

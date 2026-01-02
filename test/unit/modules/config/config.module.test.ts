@@ -158,6 +158,89 @@ describe("CrudConfigModule", () => {
 
    expect(configPropertiesProvider?.inject).toContain(TEST_TOKEN);
   });
+
+  it("should register module asynchronously with staticOptions for controllers", () => {
+   const dynamicModule = CrudConfigModule.registerAsync({
+    useFactory: () => ({ environment: "test" }),
+    staticOptions: {
+     controllersOptions: {
+      section: { isEnabled: true },
+      data: { isEnabled: true },
+     },
+    },
+   });
+
+   expect(dynamicModule.controllers).toBeDefined();
+   expect(dynamicModule.controllers?.length).toBe(2);
+  });
+
+  it("should register module asynchronously with controllers disabled via staticOptions", () => {
+   const dynamicModule = CrudConfigModule.registerAsync({
+    useFactory: () => ({ environment: "test" }),
+    staticOptions: {
+     controllersOptions: {
+      section: { isEnabled: false },
+      data: { isEnabled: false },
+     },
+    },
+   });
+
+   expect(dynamicModule.controllers).toHaveLength(0);
+  });
+
+  it("should register module asynchronously with custom entity options via staticOptions", () => {
+   const dynamicModule = CrudConfigModule.registerAsync({
+    useFactory: () => ({ environment: "test" }),
+    staticOptions: {
+     entityOptions: {
+      tablePrefix: "custom_",
+      configSection: {
+       tableName: "sections",
+       maxNameLength: 200,
+      },
+      configData: {
+       tableName: "data",
+       maxValueLength: 5000,
+      },
+     },
+    },
+   });
+
+   expect(dynamicModule).toBeDefined();
+   expect(dynamicModule.module).toBe(CrudConfigModule);
+
+   // Verify entity providers are created with useValue
+   const sectionEntityProvider = dynamicModule.providers?.find(
+    (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
+   ) as any;
+   const dataEntityProvider = dynamicModule.providers?.find(
+    (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
+   ) as any;
+
+   expect(sectionEntityProvider).toBeDefined();
+   expect(dataEntityProvider).toBeDefined();
+   expect(sectionEntityProvider?.useValue).toBeDefined();
+   expect(dataEntityProvider?.useValue).toBeDefined();
+  });
+
+  it("should register module asynchronously with custom migration entity options via staticOptions", () => {
+   const dynamicModule = CrudConfigModule.registerAsync({
+    useFactory: () => ({ environment: "test" }),
+    staticOptions: {
+     migrationEntityOptions: {
+      tableName: "my_migrations",
+      maxNameLength: 300,
+     },
+    },
+   });
+
+   const migrationEntityProvider = dynamicModule.providers?.find(
+    (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_MIGRATION_ENTITY,
+   ) as any;
+
+   expect(migrationEntityProvider).toBeDefined();
+   expect(migrationEntityProvider?.useValue).toBeDefined();
+  });
  });
 
  describe("entity injection", () => {
@@ -185,7 +268,7 @@ describe("CrudConfigModule", () => {
    expect(dataEntityProvider?.useValue).toBeDefined();
   });
 
-  it("should provide entities via tokens in async registration", () => {
+  it("should provide entities via tokens in async registration with useValue", () => {
    const options: IConfigOptions = {};
    const module = CrudConfigModule.registerAsync({
     useFactory: () => options,
@@ -195,7 +278,7 @@ describe("CrudConfigModule", () => {
    expect(module.exports).toContain(TOKEN_CONSTANT.CONFIG_SECTION_ENTITY);
    expect(module.exports).toContain(TOKEN_CONSTANT.CONFIG_DATA_ENTITY);
 
-   // Check that entity providers are available with factories
+   // Check that entity providers are available with useValue (not factories)
    const sectionEntityProvider = module.providers?.find(
     (provider: any) =>
      typeof provider === "object" && provider.provide === TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
@@ -207,8 +290,10 @@ describe("CrudConfigModule", () => {
 
    expect(sectionEntityProvider).toBeDefined();
    expect(dataEntityProvider).toBeDefined();
-   expect(sectionEntityProvider?.useFactory).toBeDefined();
-   expect(dataEntityProvider?.useFactory).toBeDefined();
+   // In async registration, entities are now created synchronously via staticOptions
+   // and provided as useValue instead of useFactory
+   expect(sectionEntityProvider?.useValue).toBeDefined();
+   expect(dataEntityProvider?.useValue).toBeDefined();
   });
  });
 });

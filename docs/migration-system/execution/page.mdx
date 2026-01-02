@@ -1,0 +1,57 @@
+# Execution
+
+Migrations are executed via:
+
+- `ConfigMigrationService`
+- `ConfigMigrationRunnerService`
+
+They store execution status in the migration tracking entity.
+
+## Running on startup
+
+When `migrationOptions.isEnabled` and `migrationOptions.shouldRunOnStartup` are true, migrations run automatically on application bootstrap.
+
+## Migration status enum
+
+The migration system uses `EConfigMigrationStatus`:
+
+```typescript copy
+import { EConfigMigrationStatus } from "@elsikora/nestjs-crud-config";
+
+EConfigMigrationStatus.PENDING;
+EConfigMigrationStatus.RUNNING;
+EConfigMigrationStatus.COMPLETED;
+EConfigMigrationStatus.FAILED;
+EConfigMigrationStatus.STUCK;
+```
+
+## Advanced configuration (async registration)
+
+Custom migration table name must be provided statically (module compilation time) via `staticOptions.migrationEntityOptions`:
+
+```typescript copy
+CrudConfigModule.registerAsync({
+	imports: [ConfigModule],
+	inject: [ConfigService],
+	useFactory: async (configService: ConfigService) => ({
+		environment: configService.get("NODE_ENV", "development"),
+		migrationOptions: {
+			isEnabled: true,
+			shouldRunOnStartup: true,
+			useTransaction: true,
+			stuckMigrationTimeoutMinutes: 60,
+			migrations: [
+				/* your migrations */
+			],
+		},
+	}),
+	staticOptions: {
+		migrationEntityOptions: {
+			tableName: "my_migrations",
+			maxNameLength: 256,
+		},
+	},
+});
+```
+
+

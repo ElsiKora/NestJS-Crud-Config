@@ -1,0 +1,79 @@
+# Module Registration
+
+NestJS CRUD Config can be registered synchronously or asynchronously.
+
+## `register(options)`
+
+Use `CrudConfigModule.register()` when you already have the configuration at bootstrap time.
+
+```typescript filename="app.module.ts" copy
+import { Module } from "@nestjs/common";
+import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
+
+@Module({
+	imports: [
+		CrudConfigModule.register({
+			environment: "development",
+			shouldAutoCreateSections: true,
+			controllersOptions: {
+				section: { isEnabled: true },
+				data: { isEnabled: true },
+			},
+		}),
+	],
+})
+export class AppModule {}
+```
+
+## `registerAsync(properties)`
+
+Use `CrudConfigModule.registerAsync()` when configuration must be resolved asynchronously.
+
+### `staticOptions`
+
+NestJS does not support async controller registration. Because controllers (and their entities) must be known at module compilation time, **controllers and entity customization must be passed via `staticOptions`**.
+
+```typescript filename="app.module.ts" copy
+import { Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
+
+@Module({
+	imports: [
+		ConfigModule.forRoot(),
+		CrudConfigModule.registerAsync({
+			imports: [ConfigModule],
+			inject: [ConfigService],
+			useFactory: async (config: ConfigService) => ({
+				environment: config.get("NODE_ENV", "development"),
+			}),
+			staticOptions: {
+				controllersOptions: {
+					section: { isEnabled: true },
+					data: { isEnabled: true },
+				},
+				entityOptions: {
+					tablePrefix: "app_",
+				},
+				migrationEntityOptions: {
+					tableName: "config_migrations",
+				},
+			},
+		}),
+	],
+})
+export class AppModule {}
+```
+
+`staticOptions` contains configuration that must be known at module compilation time:
+
+- `controllersOptions`
+- `entityOptions`
+- `migrationEntityOptions`
+
+See also:
+
+- [Dynamic Entities](/docs/nestjs-crud-config/core-concepts/dynamic-entities)
+- [Dynamic Controllers](/docs/nestjs-crud-config/core-concepts/dynamic-controllers)
+
+

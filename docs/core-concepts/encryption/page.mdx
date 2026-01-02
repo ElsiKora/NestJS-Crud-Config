@@ -1,0 +1,43 @@
+# Encryption
+
+Encryption can be enabled via `encryptionOptions`. When enabled, values can be stored encrypted at rest.
+
+## How it works
+
+- Encryption uses **AES-256-GCM**
+- On `set()`, the value is encrypted and stored with `isEncrypted = true`
+- On `get()` / `getList()`, encrypted values are decrypted automatically (requires `encryptionKey`)
+
+## Example
+
+```typescript copy
+CrudConfigModule.register({
+	encryptionOptions: {
+		isEnabled: true,
+		encryptionKey: process.env.CONFIG_ENCRYPTION_KEY,
+	},
+});
+```
+
+```typescript copy
+await configService.set({
+	section: "database",
+	name: "DB_PASSWORD",
+	value: "my-secret-password",
+});
+
+const config = await configService.get({
+	section: "database",
+	name: "DB_PASSWORD",
+});
+
+console.log(config.value); // decrypted value
+console.log(config.isEncrypted); // true
+```
+
+See also:
+
+- [Config Service](/docs/nestjs-crud-config/core-concepts/config-service)
+- [API Reference – Interfaces](/docs/nestjs-crud-config/api-reference/interfaces)
+
+

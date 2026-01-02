@@ -1,5 +1,6 @@
 /**
  * Interface for cache configuration options
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/interfaces/config-cache-options | API Reference - IConfigCacheOptions}
  */
 export interface IConfigCacheOptions {
  /**

@@ -10,6 +10,11 @@ import { DataSource, type EntityManager } from "typeorm";
 
 import { EConfigMigrationStatus } from "./enum";
 
+/**
+ * Service responsible for coordinating and tracking execution of migrations.
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/migration-system | Migration System}
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/classes/config-migration-service | API Reference - ConfigMigrationService}
+ */
 @Injectable()
 export class ConfigMigrationService implements OnModuleInit {
  private readonly LOGGER: Logger = new Logger(ConfigMigrationService.name);

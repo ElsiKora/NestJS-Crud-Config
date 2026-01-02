@@ -6,6 +6,7 @@ import "dotenv/config";
 
 /**
  * Custom logger that extends NestJS's ConsoleLogger with environment-based log level filtering
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/utilities/logger-utility | API Reference - LoggerUtility}
  */
 @Injectable()
 export class LoggerUtility extends ConsoleLogger {

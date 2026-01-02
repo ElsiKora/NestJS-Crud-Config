@@ -1,3 +1,12 @@
+import type {
+ IConfigControllersOptions,
+ IConfigOptions,
+ IConfigPropertiesFactory,
+ IConfigStaticMigrationEntityOptions,
+ ICrudConfigAsyncModuleProperties,
+ ICrudConfigEntityOptions,
+} from "@shared/interface/config";
+
 import { ApiServiceBase, IApiBaseEntity } from "@elsikora/nestjs-crud-automator";
 import { createConfigDataEntity, IConfigData } from "@modules/config/data";
 import { createDynamicDataController } from "@modules/config/data/controller";
@@ -18,11 +27,6 @@ import {
  CONFIG_SECTION_CONSTANT,
  TOKEN_CONSTANT,
 } from "@shared/constant";
-import {
- IConfigOptions,
- IConfigPropertiesFactory,
- ICrudConfigAsyncModuleProperties,
-} from "@shared/interface/config";
 import { TDynamicEntity } from "@shared/type";
 import { createDynamicService, CryptoUtility } from "@shared/utility";
 import { DataSource, Repository } from "typeorm";
@@ -211,36 +215,74 @@ export class CrudConfigModule {
  /**
   * Registers the module asynchronously. This implementation defers all dynamic provider
   * creation into factories to ensure correct instantiation order.
-  * Controllers must be configured via the static `controllersOptions` property,
-  * as NestJS does not support async controller registration.
+  *
+  * Controllers and entities must be configured via the `staticOptions` property,
+  * as NestJS does not support async controller registration. Options provided in
+  * `staticOptions.entityOptions` will be used for both controllers and service providers.
+  * @see {@link https://elsikora.com/docs/nestjs-crud-config/core-concepts/module-registration | Core Concepts - Module Registration}
+  * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/classes/crud-config-module | API Reference - CrudConfigModule}
   * @param {ICrudConfigAsyncModuleProperties} properties Async configuration options
   * @returns {DynamicModule} Dynamic module configuration
+  * @example
+  * ```typescript
+  * CrudConfigModule.registerAsync({
+  *   imports: [ConfigModule],
+  *   inject: [ConfigService],
+  *   useFactory: (config: ConfigService) => ({
+  *     encryptionOptions: { isEnabled: true, encryptionKey: config.get('KEY') },
+  *   }),
+  *   staticOptions: {
+  *     controllersOptions: { section: { isEnabled: true } },
+  *     entityOptions: { tablePrefix: 'app_' },
+  *   },
+  * });
+  * ```
   */
  public static registerAsync(properties: ICrudConfigAsyncModuleProperties): DynamicModule {
+  const staticEntityOptions: ICrudConfigEntityOptions | undefined =
+   properties.staticOptions?.entityOptions;
+  const prefix: string = staticEntityOptions?.tablePrefix ?? "";
+
   const sectionEntity: TDynamicEntity = createConfigSectionEntity({
-   maxDescriptionLength: CONFIG_SECTION_CONSTANT.MAX_DESCRIPTION_LENGTH,
-   maxNameLength: CONFIG_SECTION_CONSTANT.MAX_NAME_LENGTH,
-   tableName: CONFIG_SECTION_CONSTANT.DEFAULT_TABLE_NAME,
+   maxDescriptionLength:
+    staticEntityOptions?.configSection?.maxDescriptionLength ??
+    CONFIG_SECTION_CONSTANT.MAX_DESCRIPTION_LENGTH,
+   maxNameLength:
+    staticEntityOptions?.configSection?.maxNameLength ?? CONFIG_SECTION_CONSTANT.MAX_NAME_LENGTH,
+   tableName:
+    prefix +
+    (staticEntityOptions?.configSection?.tableName ?? CONFIG_SECTION_CONSTANT.DEFAULT_TABLE_NAME),
   });
 
   const dataEntity: TDynamicEntity = createConfigDataEntity({
    configSectionEntity: sectionEntity,
-   maxDescriptionLength: CONFIG_DATA_CONSTANT.MAX_DESCRIPTION_LENGTH,
-   maxEnvironmentLength: CONFIG_DATA_CONSTANT.MAX_ENVIRONMENT_LENGTH,
-   maxNameLength: CONFIG_DATA_CONSTANT.MAX_NAME_LENGTH,
-   maxValueLength: CONFIG_DATA_CONSTANT.MAX_VALUE_LENGTH,
-   tableName: CONFIG_DATA_CONSTANT.DEFAULT_TABLE_NAME,
+   maxDescriptionLength:
+    staticEntityOptions?.configData?.maxDescriptionLength ??
+    CONFIG_DATA_CONSTANT.MAX_DESCRIPTION_LENGTH,
+   maxEnvironmentLength:
+    staticEntityOptions?.configData?.maxEnvironmentLength ??
+    CONFIG_DATA_CONSTANT.MAX_ENVIRONMENT_LENGTH,
+   maxNameLength:
+    staticEntityOptions?.configData?.maxNameLength ?? CONFIG_DATA_CONSTANT.MAX_NAME_LENGTH,
+   maxValueLength:
+    staticEntityOptions?.configData?.maxValueLength ?? CONFIG_DATA_CONSTANT.MAX_VALUE_LENGTH,
+   tableName:
+    prefix +
+    (staticEntityOptions?.configData?.tableName ?? CONFIG_DATA_CONSTANT.DEFAULT_TABLE_NAME),
   });
 
+  const staticControllersOptions: IConfigControllersOptions | undefined =
+   properties.staticOptions?.controllersOptions;
+
   const DynamicConfigSectionController: null | Type =
-   properties.controllersOptions?.section?.isEnabled === false
+   staticControllersOptions?.section?.isEnabled === false
     ? null
-    : createDynamicSectionController(sectionEntity, properties.controllersOptions?.section);
+    : createDynamicSectionController(sectionEntity, staticControllersOptions?.section);
 
   const DynamicConfigDataController: null | Type =
-   properties.controllersOptions?.data?.isEnabled === false
+   staticControllersOptions?.data?.isEnabled === false
     ? null
-    : createDynamicDataController(dataEntity, properties.controllersOptions?.data);
+    : createDynamicDataController(dataEntity, staticControllersOptions?.data);
 
   const controllers: Array<Type> = [];
 
@@ -248,69 +290,32 @@ export class CrudConfigModule {
 
   if (DynamicConfigDataController) controllers.push(DynamicConfigDataController);
 
+  const staticMigrationOptions: IConfigStaticMigrationEntityOptions | undefined =
+   properties.staticOptions?.migrationEntityOptions;
+
+  const migrationEntity: TDynamicEntity = createConfigMigrationEntity({
+   maxNameLength:
+    staticMigrationOptions?.maxNameLength ?? CONFIG_MIGRATION_CONSTANT.MAX_NAME_LENGTH,
+   tableName:
+    prefix + (staticMigrationOptions?.tableName ?? CONFIG_MIGRATION_CONSTANT.DEFAULT_TABLE_NAME),
+  });
+
   const providers: Array<Provider> = [
    this.createAsyncOptionsProvider(properties),
 
    {
-    inject: [TOKEN_CONSTANT.CONFIG_OPTIONS],
     provide: TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
-    useFactory: (options: IConfigOptions): TDynamicEntity => {
-     const prefix: string = options.entityOptions?.tablePrefix ?? "";
-
-     return createConfigSectionEntity({
-      maxDescriptionLength:
-       options.entityOptions?.configSection?.maxDescriptionLength ??
-       CONFIG_SECTION_CONSTANT.MAX_DESCRIPTION_LENGTH,
-      maxNameLength:
-       options.entityOptions?.configSection?.maxNameLength ??
-       CONFIG_SECTION_CONSTANT.MAX_NAME_LENGTH,
-      tableName:
-       prefix +
-       (options.entityOptions?.configSection?.tableName ??
-        CONFIG_SECTION_CONSTANT.DEFAULT_TABLE_NAME),
-     });
-    },
+    useValue: sectionEntity,
    },
 
    {
-    inject: [TOKEN_CONSTANT.CONFIG_OPTIONS, TOKEN_CONSTANT.CONFIG_SECTION_ENTITY],
     provide: TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
-    useFactory: (options: IConfigOptions, configSectionEntity: TDynamicEntity): TDynamicEntity => {
-     const prefix: string = options.entityOptions?.tablePrefix ?? "";
-
-     return createConfigDataEntity({
-      configSectionEntity,
-      maxDescriptionLength:
-       options.entityOptions?.configData?.maxDescriptionLength ??
-       CONFIG_DATA_CONSTANT.MAX_DESCRIPTION_LENGTH,
-      maxEnvironmentLength:
-       options.entityOptions?.configData?.maxEnvironmentLength ??
-       CONFIG_DATA_CONSTANT.MAX_ENVIRONMENT_LENGTH,
-      maxNameLength:
-       options.entityOptions?.configData?.maxNameLength ?? CONFIG_DATA_CONSTANT.MAX_NAME_LENGTH,
-      maxValueLength:
-       options.entityOptions?.configData?.maxValueLength ?? CONFIG_DATA_CONSTANT.MAX_VALUE_LENGTH,
-      tableName:
-       prefix +
-       (options.entityOptions?.configData?.tableName ?? CONFIG_DATA_CONSTANT.DEFAULT_TABLE_NAME),
-     });
-    },
+    useValue: dataEntity,
    },
 
    {
-    inject: [TOKEN_CONSTANT.CONFIG_OPTIONS],
     provide: TOKEN_CONSTANT.CONFIG_MIGRATION_ENTITY,
-    useFactory: (options: IConfigOptions): TDynamicEntity => {
-     const prefix: string = options.entityOptions?.tablePrefix ?? "";
-
-     return createConfigMigrationEntity({
-      maxNameLength:
-       options.migrationOptions?.maxNameLength ?? CONFIG_MIGRATION_CONSTANT.MAX_NAME_LENGTH,
-      tableName:
-       prefix +
-       (options.migrationOptions?.tableName ?? CONFIG_MIGRATION_CONSTANT.DEFAULT_TABLE_NAME),
-     });
-    },
+    useValue: migrationEntity,
    },
 
    {
