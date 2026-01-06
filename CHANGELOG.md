@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.1.6...v1.2.0) (2026-01-06)
+
+
+### Features
+
+* **config:** add async staticoptions and nextra docs ([5c145ad](https://github.com/ElsiKora/NestJS-Crud-Config/commit/5c145adad9504f01f27e97b559c731ae9f016979))
+
 ## [1.1.6](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.1.5...v1.1.6) (2025-12-17)
 
 
