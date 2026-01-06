@@ -2,25 +2,22 @@
 
 Service responsible for coordinating and tracking execution of migrations.
 
-*Defined in: `src/modules/config/migration/migration.service.ts`*
+_Defined in: `src/modules/config/migration/migration.service.ts`_
 
 ## API
 
 ```ts
 export class ConfigMigrationService {
-	cleanupFailedMigrations(migrationName?: string): Promise<void>;
-	cleanupStuckMigrations(timeoutMinutes?: number): Promise<void>;
-	executeMigrations(
-		migrations: IConfigMigrationDefinition[],
-		useTransaction?: boolean
-	): Promise<void>;
-	getExecutedMigrationList(): Promise<string[]>;
-	getExecutedMigrations(): Promise<IConfigMigration[]>;
-	isMigrationExecuted(migrationName: string): Promise<boolean>;
-	rollbackMigration(
-		migrationName: string,
-		migrations: IConfigMigrationDefinition[]
-	): Promise<void>;
+ cleanupFailedMigrations(migrationName?: string): Promise<void>;
+ cleanupStuckMigrations(timeoutMinutes?: number): Promise<void>;
+ executeMigrations(
+  migrations: IConfigMigrationDefinition[],
+  useTransaction?: boolean,
+ ): Promise<void>;
+ getExecutedMigrationList(): Promise<string[]>;
+ getExecutedMigrations(): Promise<IConfigMigration[]>;
+ isMigrationExecuted(migrationName: string): Promise<boolean>;
+ rollbackMigration(migrationName: string, migrations: IConfigMigrationDefinition[]): Promise<void>;
 }
 ```
 
@@ -30,5 +27,3 @@ export class ConfigMigrationService {
 - [`IConfigMigrationOptions`](/docs/nestjs-crud-config/api-reference/interfaces/config-migration-options)
 - [`IConfigMigrationDefinition`](/docs/nestjs-crud-config/api-reference/interfaces/config-migration-definition)
 - [`EConfigMigrationStatus`](/docs/nestjs-crud-config/api-reference/enums/config-migration-status)
-
-

@@ -2,18 +2,16 @@
 
 Custom logger utility (extends NestJS `ConsoleLogger`).
 
-*Defined in: `src/shared/utility/logger.utility.ts`*
+_Defined in: `src/shared/utility/logger.utility.ts`_
 
 ## API
 
 ```ts
 export class LoggerUtility {
-	static getLogger(context?: string): LoggerUtility;
+ static getLogger(context?: string): LoggerUtility;
 }
 ```
 
 ## Notes
 
 - Controlled via the `NCC_LOG_LEVEL` environment variable (`debug`, `verbose`, `log`, `warn`, `error`, `none`).
-
-

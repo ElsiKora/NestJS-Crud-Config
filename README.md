@@ -301,6 +301,7 @@ export class AppModule {}
 ```
 
 **Important:** The `staticOptions` property contains configuration that must be known at module compilation time:
+
 - `controllersOptions` - REST API controller configuration
 - `entityOptions` - Database entity customization (table names, field lengths)
 - `migrationEntityOptions` - Migration tracking table configuration
