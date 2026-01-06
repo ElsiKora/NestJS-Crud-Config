@@ -1,3 +1,5 @@
+## [1.2.1](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.2.0...v1.2.1) (2026-01-06)
+
 # [1.2.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.1.6...v1.2.0) (2026-01-06)
 
 
