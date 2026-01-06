@@ -31,27 +31,25 @@ Custom migration table name must be provided statically (module compilation time
 
 ```typescript copy
 CrudConfigModule.registerAsync({
-	imports: [ConfigModule],
-	inject: [ConfigService],
-	useFactory: async (configService: ConfigService) => ({
-		environment: configService.get("NODE_ENV", "development"),
-		migrationOptions: {
-			isEnabled: true,
-			shouldRunOnStartup: true,
-			useTransaction: true,
-			stuckMigrationTimeoutMinutes: 60,
-			migrations: [
-				/* your migrations */
-			],
-		},
-	}),
-	staticOptions: {
-		migrationEntityOptions: {
-			tableName: "my_migrations",
-			maxNameLength: 256,
-		},
-	},
+ imports: [ConfigModule],
+ inject: [ConfigService],
+ useFactory: async (configService: ConfigService) => ({
+  environment: configService.get("NODE_ENV", "development"),
+  migrationOptions: {
+   isEnabled: true,
+   shouldRunOnStartup: true,
+   useTransaction: true,
+   stuckMigrationTimeoutMinutes: 60,
+   migrations: [
+    /* your migrations */
+   ],
+  },
+ }),
+ staticOptions: {
+  migrationEntityOptions: {
+   tableName: "my_migrations",
+   maxNameLength: 256,
+  },
+ },
 });
 ```
-
-

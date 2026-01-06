@@ -2,16 +2,16 @@
 
 Main programmatic API to read/write configuration values.
 
-*Defined in: `src/modules/config/config.service.ts`*
+_Defined in: `src/modules/config/config.service.ts`_
 
 ## API
 
 ```ts
 export class CrudConfigService {
-	delete(options: IConfigDeleteOptions): Promise<void>;
-	get(options: IConfigGetOptions): Promise<IConfigData>;
-	getList(options: IConfigGetListOptions): Promise<IConfigData[]>;
-	set(options: IConfigSetOptions): Promise<IConfigData>;
+ delete(options: IConfigDeleteOptions): Promise<void>;
+ get(options: IConfigGetOptions): Promise<IConfigData>;
+ getList(options: IConfigGetListOptions): Promise<IConfigData[]>;
+ set(options: IConfigSetOptions): Promise<IConfigData>;
 }
 ```
 
@@ -22,5 +22,3 @@ export class CrudConfigService {
 - [`IConfigGetListOptions`](/docs/nestjs-crud-config/api-reference/interfaces/crud-config-get-list-options)
 - [`IConfigSetOptions`](/docs/nestjs-crud-config/api-reference/interfaces/crud-config-set-options)
 - [`IConfigDeleteOptions`](/docs/nestjs-crud-config/api-reference/interfaces/crud-config-delete-options)
-
-

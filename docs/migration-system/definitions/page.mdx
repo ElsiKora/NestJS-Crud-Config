@@ -12,18 +12,18 @@ import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
 import { initialAppConfigMigration } from "./migrations/001-initial-app-config.migration";
 
 @Module({
-	imports: [
-		CrudConfigModule.register({
-			environment: process.env.NODE_ENV || "development",
-			migrationOptions: {
-				isEnabled: true,
-				shouldRunOnStartup: true,
-				useTransaction: true,
-				stuckMigrationTimeoutMinutes: 30,
-				migrations: [initialAppConfigMigration],
-			},
-		}),
-	],
+ imports: [
+  CrudConfigModule.register({
+   environment: process.env.NODE_ENV || "development",
+   migrationOptions: {
+    isEnabled: true,
+    shouldRunOnStartup: true,
+    useTransaction: true,
+    stuckMigrationTimeoutMinutes: 30,
+    migrations: [initialAppConfigMigration],
+   },
+  }),
+ ],
 })
 export class AppModule {}
 ```
@@ -37,28 +37,28 @@ import type { CrudConfigService, IConfigMigrationDefinition } from "@elsikora/ne
 import type { EntityManager } from "typeorm";
 
 export const initialAppConfigMigration: IConfigMigrationDefinition = {
-	name: "001_initial_app_config",
-	description: "Initialize basic application configuration",
+ name: "001_initial_app_config",
+ description: "Initialize basic application configuration",
 
-	async up(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
-		await configService.set({
-			section: "app-settings",
-			name: "APP_NAME",
-			value: "My Application",
-			description: "Application name",
-			environment: "default",
-			eventManager: entityManager,
-		});
-	},
+ async up(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
+  await configService.set({
+   section: "app-settings",
+   name: "APP_NAME",
+   value: "My Application",
+   description: "Application name",
+   environment: "default",
+   eventManager: entityManager,
+  });
+ },
 
-	async down(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
-		await configService.delete({
-			section: "app-settings",
-			name: "APP_NAME",
-			environment: "default",
-			eventManager: entityManager,
-		});
-	},
+ async down(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
+  await configService.delete({
+   section: "app-settings",
+   name: "APP_NAME",
+   environment: "default",
+   eventManager: entityManager,
+  });
+ },
 };
 ```
 
@@ -72,5 +72,3 @@ See also:
 
 - [Execution](/docs/nestjs-crud-config/migration-system/execution)
 - [API Reference – IConfigMigrationDefinition](/docs/nestjs-crud-config/api-reference/interfaces/config-migration-definition)
-
-

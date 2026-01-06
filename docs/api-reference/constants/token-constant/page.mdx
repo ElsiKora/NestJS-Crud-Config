@@ -2,7 +2,7 @@
 
 Injection tokens used by the module to expose entities/services/options.
 
-*Defined in: `src/shared/constant/token.constant.ts`*
+_Defined in: `src/shared/constant/token.constant.ts`_
 
 ## Definition
 
@@ -18,23 +18,23 @@ const DYNAMIC_PROVIDERS_FACTORY: symbol = Symbol("CRUD_CONFIG_DYNAMIC_PROVIDERS_
 
 // eslint-disable-next-line @elsikora/no-secrets/no-pattern-match
 export const TOKEN_CONSTANT: {
-	readonly CONFIG_DATA_ENTITY: symbol;
-	readonly CONFIG_DATA_SERVICE: symbol;
-	readonly CONFIG_MIGRATION_ENTITY: symbol;
-	readonly CONFIG_MIGRATION_SERVICE: symbol;
-	readonly CONFIG_OPTIONS: symbol;
-	readonly CONFIG_SECTION_ENTITY: symbol;
-	readonly CONFIG_SECTION_SERVICE: symbol;
-	readonly DYNAMIC_PROVIDERS_FACTORY: symbol;
+ readonly CONFIG_DATA_ENTITY: symbol;
+ readonly CONFIG_DATA_SERVICE: symbol;
+ readonly CONFIG_MIGRATION_ENTITY: symbol;
+ readonly CONFIG_MIGRATION_SERVICE: symbol;
+ readonly CONFIG_OPTIONS: symbol;
+ readonly CONFIG_SECTION_ENTITY: symbol;
+ readonly CONFIG_SECTION_SERVICE: symbol;
+ readonly DYNAMIC_PROVIDERS_FACTORY: symbol;
 } = {
-	CONFIG_DATA_ENTITY,
-	CONFIG_DATA_SERVICE,
-	CONFIG_MIGRATION_ENTITY,
-	CONFIG_MIGRATION_SERVICE,
-	CONFIG_OPTIONS,
-	CONFIG_SECTION_ENTITY,
-	CONFIG_SECTION_SERVICE,
-	DYNAMIC_PROVIDERS_FACTORY,
+ CONFIG_DATA_ENTITY,
+ CONFIG_DATA_SERVICE,
+ CONFIG_MIGRATION_ENTITY,
+ CONFIG_MIGRATION_SERVICE,
+ CONFIG_OPTIONS,
+ CONFIG_SECTION_ENTITY,
+ CONFIG_SECTION_SERVICE,
+ DYNAMIC_PROVIDERS_FACTORY,
 } as const;
 ```
 
@@ -48,11 +48,9 @@ import { TOKEN_CONSTANT, type IConfigOptions } from "@elsikora/nestjs-crud-confi
 
 @Injectable()
 export class MyService {
-	constructor(
-		@Inject(TOKEN_CONSTANT.CONFIG_OPTIONS)
-		private readonly options: IConfigOptions
-	) {}
+ constructor(
+  @Inject(TOKEN_CONSTANT.CONFIG_OPTIONS)
+  private readonly options: IConfigOptions,
+ ) {}
 }
 ```
-
-

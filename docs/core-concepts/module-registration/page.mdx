@@ -11,16 +11,16 @@ import { Module } from "@nestjs/common";
 import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
 
 @Module({
-	imports: [
-		CrudConfigModule.register({
-			environment: "development",
-			shouldAutoCreateSections: true,
-			controllersOptions: {
-				section: { isEnabled: true },
-				data: { isEnabled: true },
-			},
-		}),
-	],
+ imports: [
+  CrudConfigModule.register({
+   environment: "development",
+   shouldAutoCreateSections: true,
+   controllersOptions: {
+    section: { isEnabled: true },
+    data: { isEnabled: true },
+   },
+  }),
+ ],
 })
 export class AppModule {}
 ```
@@ -39,28 +39,28 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
 
 @Module({
-	imports: [
-		ConfigModule.forRoot(),
-		CrudConfigModule.registerAsync({
-			imports: [ConfigModule],
-			inject: [ConfigService],
-			useFactory: async (config: ConfigService) => ({
-				environment: config.get("NODE_ENV", "development"),
-			}),
-			staticOptions: {
-				controllersOptions: {
-					section: { isEnabled: true },
-					data: { isEnabled: true },
-				},
-				entityOptions: {
-					tablePrefix: "app_",
-				},
-				migrationEntityOptions: {
-					tableName: "config_migrations",
-				},
-			},
-		}),
-	],
+ imports: [
+  ConfigModule.forRoot(),
+  CrudConfigModule.registerAsync({
+   imports: [ConfigModule],
+   inject: [ConfigService],
+   useFactory: async (config: ConfigService) => ({
+    environment: config.get("NODE_ENV", "development"),
+   }),
+   staticOptions: {
+    controllersOptions: {
+     section: { isEnabled: true },
+     data: { isEnabled: true },
+    },
+    entityOptions: {
+     tablePrefix: "app_",
+    },
+    migrationEntityOptions: {
+     tableName: "config_migrations",
+    },
+   },
+  }),
+ ],
 })
 export class AppModule {}
 ```
@@ -75,5 +75,3 @@ See also:
 
 - [Dynamic Entities](/docs/nestjs-crud-config/core-concepts/dynamic-entities)
 - [Dynamic Controllers](/docs/nestjs-crud-config/core-concepts/dynamic-controllers)
-
-

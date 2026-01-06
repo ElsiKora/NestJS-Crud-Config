@@ -2,7 +2,7 @@
 
 Enum representing different deployment environments.
 
-*Defined in: `src/shared/enum/environment.enum.ts`*
+_Defined in: `src/shared/enum/environment.enum.ts`_
 
 ## Definition
 
@@ -11,17 +11,17 @@ Enum representing different deployment environments.
  * Enum representing different deployment environments.
  */
 export enum EEnvironment {
-	DOCKER = "docker",
-	EC2 = "ec2",
-	ECS = "ecs",
-	EKS = "eks",
-	ELASTIC_BEANSTALK = "elastic-beanstalk",
-	HEROKU = "heroku",
-	KUBERNETES = "kubernetes",
-	LOCAL = "local",
-	PRODUCTION = "production",
-	STAGING = "staging",
-	TEST = "test",
+ DOCKER = "docker",
+ EC2 = "ec2",
+ ECS = "ecs",
+ EKS = "eks",
+ ELASTIC_BEANSTALK = "elastic-beanstalk",
+ HEROKU = "heroku",
+ KUBERNETES = "kubernetes",
+ LOCAL = "local",
+ PRODUCTION = "production",
+ STAGING = "staging",
+ TEST = "test",
 }
 ```
 
@@ -33,12 +33,10 @@ export enum EEnvironment {
 import { CrudConfigService, EEnvironment } from "@elsikora/nestjs-crud-config";
 
 export async function example(config: CrudConfigService) {
-	return await config.get({
-		section: "app",
-		name: "featureFlag",
-		environment: EEnvironment.PRODUCTION,
-	});
+ return await config.get({
+  section: "app",
+  name: "featureFlag",
+  environment: EEnvironment.PRODUCTION,
+ });
 }
 ```
-
-
