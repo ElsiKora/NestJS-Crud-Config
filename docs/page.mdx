@@ -1,0 +1,35 @@
+---
+title: NestJS CRUD Config
+asIndexPage: true
+---
+
+# Introduction
+
+Welcome to the documentation for **NestJS CRUD Config** — a database-backed configuration module for NestJS applications.
+
+It provides:
+
+- CRUD operations to manage configuration values stored in a database
+- Optional REST controllers (generated dynamically) for managing config over HTTP
+- Optional encryption for sensitive values
+- Optional caching
+- A migration system to seed/upgrade configuration on startup
+
+## Key features
+
+- **Database-backed config**: store config values in any TypeORM-supported database
+- **Dynamic entities**: entities are generated at runtime and exported via injection tokens
+- **REST endpoints (optional)**: auto-generated controllers for sections and data
+- **AES-256-GCM encryption (optional)**: encrypt values at rest with automatic decrypt on read
+- **Caching (optional)**: cache reads with configurable TTL
+- **Migration system**: run config migrations on startup with tracking and rollback
+
+## Where to start
+
+- [Getting Started](/docs/nestjs-crud-config/getting-started)
+- [Core Concepts](/docs/nestjs-crud-config/core-concepts)
+- [Guides](/docs/nestjs-crud-config/guides)
+- [Migration System](/docs/nestjs-crud-config/migration-system)
+- [API Reference](/docs/nestjs-crud-config/api-reference)
+
+

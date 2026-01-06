@@ -8,3 +8,7 @@ export { type IConfigEncryptionOptions } from "./encryption-options.interface";
 export type * from "./entity";
 export { type IConfigOptions } from "./options.interface";
 export { type IConfigPropertiesFactory } from "./properties-factory.interface";
+export {
+ type IConfigStaticMigrationEntityOptions,
+ type IConfigStaticOptions,
+} from "./static-options.interface";

@@ -2,6 +2,7 @@ import type { EntityManager } from "typeorm/entity-manager/EntityManager";
 
 /**
  * Context options for configuration retrieval
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/interfaces/crud-config-get-options | API Reference - IConfigGetOptions}
  */
 export interface IConfigGetOptions {
  /**

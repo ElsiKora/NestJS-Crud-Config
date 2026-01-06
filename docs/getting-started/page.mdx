@@ -1,0 +1,134 @@
+import { Tabs } from "nextra/components";
+
+# Getting Started
+
+This guide shows the minimal setup to start using **NestJS CRUD Config**.
+
+## Installation
+
+<Tabs items={["npm", "yarn", "pnpm", "bun"]} storageKey="nestjs-crud-config-install-tabs">
+	<Tabs.Tab>```bash copy npm install @elsikora/nestjs-crud-config ```</Tabs.Tab>
+	<Tabs.Tab>```bash copy yarn add @elsikora/nestjs-crud-config ```</Tabs.Tab>
+	<Tabs.Tab>```bash copy pnpm add @elsikora/nestjs-crud-config ```</Tabs.Tab>
+	<Tabs.Tab>```bash copy bun install @elsikora/nestjs-crud-config ```</Tabs.Tab>
+</Tabs>
+
+## Peer dependencies
+
+Install the required peer dependencies (if not already installed in your app):
+
+```bash copy
+npm install @nestjs/common @nestjs/typeorm typeorm @elsikora/nestjs-crud-automator
+```
+
+## Basic setup (sync registration)
+
+Register the module first (to create dynamic entities), then register TypeORM using the exported entity tokens.
+
+```typescript filename="app.module.ts" copy
+import { Module } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { CrudConfigModule, TOKEN_CONSTANT } from "@elsikora/nestjs-crud-config";
+
+@Module({
+	imports: [
+		CrudConfigModule.register({
+			environment: "development",
+			shouldAutoCreateSections: true,
+
+			cacheOptions: {
+				isEnabled: true,
+				maxCacheItems: 1000,
+				maxCacheTTL: 3600000,
+			},
+
+			encryptionOptions: {
+				isEnabled: true,
+				encryptionKey: process.env.CONFIG_ENCRYPTION_KEY,
+			},
+
+			controllersOptions: {
+				section: { isEnabled: true, properties: { path: "api/config/sections" } },
+				data: { isEnabled: true, properties: { path: "api/config/data" } },
+			},
+
+			entityOptions: {
+				tablePrefix: "app_",
+				configSection: { tableName: "config_sections" },
+				configData: { tableName: "config_data" },
+			},
+		}),
+
+		TypeOrmModule.forRootAsync({
+			imports: [CrudConfigModule],
+			inject: [
+				TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
+				TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
+				TOKEN_CONSTANT.CONFIG_MIGRATION_ENTITY,
+			],
+			useFactory: async (sectionEntity, dataEntity, migrationEntity) => ({
+				type: "postgres",
+				// ... connection options ...
+				entities: [sectionEntity, dataEntity, migrationEntity],
+				synchronize: true,
+			}),
+		}),
+	],
+})
+export class AppModule {}
+```
+
+## Basic setup (async registration)
+
+When using `registerAsync()`, static options (controllers and entity customization) must be provided via `staticOptions`.
+
+```typescript filename="app.module.ts" copy
+import { Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
+import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
+
+@Module({
+	imports: [
+		ConfigModule.forRoot(),
+		CrudConfigModule.registerAsync({
+			imports: [ConfigModule],
+			inject: [ConfigService],
+			useFactory: async (configService: ConfigService) => ({
+				environment: configService.get("NODE_ENV", "development"),
+				encryptionOptions: {
+					isEnabled: true,
+					encryptionKey: configService.get("ENCRYPTION_KEY"),
+				},
+				cacheOptions: {
+					isEnabled: true,
+					maxCacheItems: 1000,
+					maxCacheTTL: 3600000,
+				},
+			}),
+			staticOptions: {
+				controllersOptions: {
+					section: { isEnabled: true, properties: { path: "api/config/sections" } },
+					data: { isEnabled: true, properties: { path: "api/config/data" } },
+				},
+				entityOptions: {
+					tablePrefix: "app_",
+					configSection: { tableName: "config_sections" },
+					configData: { tableName: "config_data" },
+				},
+				migrationEntityOptions: {
+					tableName: "config_migrations",
+				},
+			},
+		}),
+	],
+})
+export class AppModule {}
+```
+
+## Next steps
+
+- [Module Registration](/docs/nestjs-crud-config/core-concepts/module-registration)
+- [TypeORM Integration](/docs/nestjs-crud-config/guides/typeorm-integration)
+ - [Config Service](/docs/nestjs-crud-config/core-concepts/config-service)
+
+

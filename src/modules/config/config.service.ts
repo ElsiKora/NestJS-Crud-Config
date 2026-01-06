@@ -32,6 +32,8 @@ import {
 /**
  * Service for managing configuration data with caching support
  * Provides methods to retrieve configuration values with optional decryption
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/core-concepts/config-service | Core Concepts - Config Service}
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/classes/crud-config-service | API Reference - CrudConfigService}
  */
 @Injectable()
 export class CrudConfigService {

@@ -100,7 +100,6 @@ import { CrudConfigModule, TOKEN_CONSTANT } from "@elsikora/nestjs-crud-config";
   // First register CrudConfigModule to create dynamic entities
   CrudConfigModule.register({
    environment: "development",
-   isVerbose: true,
    shouldAutoCreateSections: true,
 
    // Cache configuration
@@ -237,6 +236,8 @@ export class MyConfigService {
 
 ### Async Module Registration
 
+When using `registerAsync()`, static options like controllers and entity configuration must be provided via the `staticOptions` property, as NestJS does not support async controller registration:
+
 ```typescript
 // app.module.ts
 import { Module } from "@nestjs/common";
@@ -249,9 +250,9 @@ import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
   CrudConfigModule.registerAsync({
    imports: [ConfigModule],
    inject: [ConfigService],
+   // Dynamic options - resolved asynchronously
    useFactory: async (configService: ConfigService) => ({
     environment: configService.get("NODE_ENV", "development"),
-    isVerbose: configService.get("VERBOSE", false),
     encryptionOptions: {
      isEnabled: true,
      encryptionKey: configService.get("ENCRYPTION_KEY"),
@@ -262,11 +263,47 @@ import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
      maxCacheTTL: 3600000,
     },
    }),
+   // Static options - must be known at module registration time
+   staticOptions: {
+    controllersOptions: {
+     section: {
+      isEnabled: true,
+      properties: {
+       path: "api/config/sections",
+      },
+     },
+     data: {
+      isEnabled: true,
+      properties: {
+       path: "api/config/data",
+      },
+     },
+    },
+    entityOptions: {
+     tablePrefix: "app_",
+     configSection: {
+      tableName: "config_sections",
+      maxNameLength: 128,
+     },
+     configData: {
+      tableName: "config_data",
+      maxValueLength: 8192,
+     },
+    },
+    migrationEntityOptions: {
+     tableName: "config_migrations",
+    },
+   },
   }),
  ],
 })
 export class AppModule {}
 ```
+
+**Important:** The `staticOptions` property contains configuration that must be known at module compilation time:
+- `controllersOptions` - REST API controller configuration
+- `entityOptions` - Database entity customization (table names, field lengths)
+- `migrationEntityOptions` - Migration tracking table configuration
 
 ## 🚀 Migration System
 
@@ -477,6 +514,8 @@ Configure migrations with custom options:
 
 ```typescript
 CrudConfigModule.registerAsync({
+ imports: [ConfigModule],
+ inject: [ConfigService],
  useFactory: async (configService: ConfigService) => ({
   environment: configService.get("NODE_ENV", "development"),
 
@@ -485,7 +524,6 @@ CrudConfigModule.registerAsync({
    shouldRunOnStartup: true,
    useTransaction: true,
    stuckMigrationTimeoutMinutes: 60, // Custom timeout
-   tableName: "my_migrations", // Custom table name
 
    migrations: [
     initialAppConfigMigration,
@@ -494,9 +532,19 @@ CrudConfigModule.registerAsync({
    ],
   },
 
-  // Other options...
+  // Other dynamic options...
  }),
- inject: [ConfigService],
+ // Static options for entities and controllers
+ staticOptions: {
+  migrationEntityOptions: {
+   tableName: "my_migrations", // Custom table name must be in staticOptions
+   maxNameLength: 256,
+  },
+  controllersOptions: {
+   section: { isEnabled: true },
+   data: { isEnabled: true },
+  },
+ },
 });
 ```
 

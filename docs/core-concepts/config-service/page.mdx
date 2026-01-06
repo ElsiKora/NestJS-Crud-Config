@@ -1,0 +1,121 @@
+# Config Service
+
+`CrudConfigService` is the main programmatic API for reading and writing config values.
+
+Typical operations:
+
+- `get` — read a single value
+- `getList` — list values in a section / environment
+- `set` — upsert value
+- `delete` — delete value
+
+## Example
+
+```typescript filename="my-config.service.ts" copy
+import { Injectable } from "@nestjs/common";
+import { CrudConfigService } from "@elsikora/nestjs-crud-config";
+
+@Injectable()
+export class MyConfigService {
+	constructor(private readonly configService: CrudConfigService) {}
+
+	async setupApplicationConfig() {
+		await this.configService.set({
+			section: "api-settings",
+			name: "API_KEY",
+			value: "my-secret-api-key",
+			description: "Production API key",
+			environment: "production",
+		});
+
+		const apiConfig = await this.configService.get({
+			section: "api-settings",
+			name: "API_KEY",
+			environment: "production",
+			shouldLoadSectionInfo: true,
+			useCache: true,
+		});
+
+		return apiConfig;
+	}
+
+	async getConfigurationList() {
+		return await this.configService.getList({
+			section: "api-settings",
+			environment: "production",
+			useCache: true,
+		});
+	}
+
+	async deleteConfiguration() {
+		await this.configService.delete({
+			section: "api-settings",
+			name: "API_KEY",
+			environment: "production",
+		});
+	}
+}
+```
+
+## Caching
+
+Caching is controlled by:
+
+- global `cacheOptions.isEnabled` (module options)
+- per-call `useCache` flag (`get` / `getList`)
+
+## Encryption
+
+When `encryptionOptions.isEnabled` is enabled, values are encrypted on `set()` and decrypted automatically on `get()`/`getList()` when `isEncrypted` is true.
+
+## Transactions (migrations / manual units of work)
+
+All methods accept an optional `eventManager` (TypeORM `EntityManager`). This allows running multiple operations in the same transaction, for example inside a migration:
+
+```typescript copy
+await configService.set({
+	section: "app-settings",
+	name: "APP_NAME",
+	value: "My Application",
+	eventManager: entityManager,
+});
+```
+
+## Event-driven architecture (hooks)
+
+The module includes an event/listener/subscriber pipeline around ConfigData inserts:
+
+- TypeORM subscriber: emits `config-data.beforeInsert`
+- Event listener(s): handle `config-data.beforeInsert`
+
+This can be used for validation, enrichment, auditing, etc.
+
+## Working with multiple environments
+
+```typescript filename="multi-env.service.ts" copy
+import { Injectable } from "@nestjs/common";
+import { CrudConfigService } from "@elsikora/nestjs-crud-config";
+
+@Injectable()
+export class MultiEnvironmentService {
+	constructor(private readonly configService: CrudConfigService) {}
+
+	async setupEnvironmentConfigs() {
+		const environments = ["development", "staging", "production"];
+
+		for (const env of environments) {
+			await this.configService.set({
+				section: "database",
+				name: "DATABASE_URL",
+				environment: env,
+				value: `postgres://localhost:5432/${env}_db`,
+				description: `Database URL for ${env} environment`,
+			});
+		}
+	}
+}
+```
+
+See: [API Reference](/docs/nestjs-crud-config/api-reference)
+
+

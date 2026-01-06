@@ -3,6 +3,8 @@ import type { EntityManager } from "typeorm";
 
 /**
  * Interface for defining a migration
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/migration-system/definitions | Migration System - Definitions}
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/interfaces/config-migration-definition | API Reference - IConfigMigrationDefinition}
  */
 export interface IConfigMigrationDefinition {
  /**

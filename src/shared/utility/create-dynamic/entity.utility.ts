@@ -15,6 +15,7 @@ import { Entity } from "typeorm";
 /**
  * Creates a dynamic entity class with TypeORM decorators
  * This approach allows full customization of table names and properties at runtime
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/utilities/create-dynamic-entity-class | API Reference - createDynamicEntityClass}
  * @param {ICreateDynamicEntityOptions} options Configuration options for the dynamic entity
  * @returns {TDynamicEntity<unknown>} Dynamically created entity class with all decorators applied
  */

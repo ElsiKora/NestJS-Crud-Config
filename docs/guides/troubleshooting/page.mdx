@@ -1,0 +1,19 @@
+# Troubleshooting
+
+## Controllers not registered in `registerAsync()`
+
+Use `staticOptions.controllersOptions`. NestJS does not support async controller registration.
+
+## Entities mismatch (table names / prefix)
+
+In async registration, provide entity customization via `staticOptions.entityOptions` so controllers and providers use the same entities.
+
+## Migration repository errors
+
+If you enable migrations, make sure `TOKEN_CONSTANT.CONFIG_MIGRATION_ENTITY` is included in `TypeOrmModule` entities.
+
+## Encryption key issues
+
+Ensure your encryption key matches the requirements of the encryption mode used by the module (length/format).
+
+

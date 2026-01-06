@@ -2,6 +2,7 @@ import type { IConfigEntityDataOptions, IConfigEntitySectionOptions } from "./";
 
 /**
  * Interface for entity customization options
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/interfaces/crud-config-entity-options | API Reference - ICrudConfigEntityOptions}
  */
 export interface ICrudConfigEntityOptions {
  /**

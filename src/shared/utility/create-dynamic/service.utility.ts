@@ -6,6 +6,7 @@ import { Repository } from "typeorm";
 
 /**
  * Factory to create dynamic service classes with the correct entity decorator
+ * @see {@link https://elsikora.com/docs/nestjs-crud-config/api-reference/utilities/create-dynamic-service | API Reference - createDynamicService}
  * @param {TDynamicEntity} entity The entity type to create service for
  * @param {string} name The name for the service class
  * @returns {Type} The dynamic service class
