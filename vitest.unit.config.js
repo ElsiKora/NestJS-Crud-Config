@@ -10,6 +10,9 @@ export default defineConfig({
    "lodash/random": "lodash/random.js",
   },
  },
+ ssr: {
+  noExternal: ["@elsikora/nestjs-crud-automator"],
+ },
  test: {
   coverage: {
    include: ["src/**/*"],
