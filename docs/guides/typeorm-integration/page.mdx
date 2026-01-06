@@ -10,24 +10,24 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { CrudConfigModule, TOKEN_CONSTANT } from "@elsikora/nestjs-crud-config";
 
 @Module({
-	imports: [
-		CrudConfigModule.register({
-			environment: "development",
-		}),
-		TypeOrmModule.forRootAsync({
-			imports: [CrudConfigModule],
-			inject: [
-				TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
-				TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
-				TOKEN_CONSTANT.CONFIG_MIGRATION_ENTITY,
-			],
-			useFactory: async (sectionEntity, dataEntity, migrationEntity) => ({
-				type: "postgres",
-				// ... connection options ...
-				entities: [sectionEntity, dataEntity, migrationEntity],
-			}),
-		}),
-	],
+ imports: [
+  CrudConfigModule.register({
+   environment: "development",
+  }),
+  TypeOrmModule.forRootAsync({
+   imports: [CrudConfigModule],
+   inject: [
+    TOKEN_CONSTANT.CONFIG_SECTION_ENTITY,
+    TOKEN_CONSTANT.CONFIG_DATA_ENTITY,
+    TOKEN_CONSTANT.CONFIG_MIGRATION_ENTITY,
+   ],
+   useFactory: async (sectionEntity, dataEntity, migrationEntity) => ({
+    type: "postgres",
+    // ... connection options ...
+    entities: [sectionEntity, dataEntity, migrationEntity],
+   }),
+  }),
+ ],
 })
 export class AppModule {}
 ```
@@ -36,5 +36,3 @@ export class AppModule {}
 
 - If you enable the migration system, the **migration entity must be included** in TypeORM entities, otherwise repositories for migration tracking will fail at runtime.
 - With `registerAsync()`, the entity tokens are still exported — you can keep the same `TypeOrmModule.forRootAsync` wiring.
-
-

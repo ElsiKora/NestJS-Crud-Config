@@ -6,23 +6,21 @@ Example:
 
 ```typescript copy
 CrudConfigModule.register({
-	controllersOptions: {
-		section: {
-			isEnabled: true,
-			properties: {
-				path: "api/config/sections",
-			},
-		},
-		data: {
-			isEnabled: true,
-			properties: {
-				path: "api/config/data",
-			},
-		},
-	},
+ controllersOptions: {
+  section: {
+   isEnabled: true,
+   properties: {
+    path: "api/config/sections",
+   },
+  },
+  data: {
+   isEnabled: true,
+   properties: {
+    path: "api/config/data",
+   },
+  },
+ },
 });
 ```
 
 In async registration, configure endpoints via `staticOptions.controllersOptions`.
-
-

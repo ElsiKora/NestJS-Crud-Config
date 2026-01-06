@@ -4,10 +4,10 @@ If you want to use the module programmatically (without REST endpoints), disable
 
 ```typescript copy
 CrudConfigModule.register({
-	controllersOptions: {
-		section: { isEnabled: false },
-		data: { isEnabled: false },
-	},
+ controllersOptions: {
+  section: { isEnabled: false },
+  data: { isEnabled: false },
+ },
 });
 ```
 
@@ -15,14 +15,12 @@ In async registration, disable controllers via `staticOptions.controllersOptions
 
 ```typescript copy
 CrudConfigModule.registerAsync({
-	useFactory: async () => ({ environment: "production" }),
-	staticOptions: {
-		controllersOptions: {
-			section: { isEnabled: false },
-			data: { isEnabled: false },
-		},
-	},
+ useFactory: async () => ({ environment: "production" }),
+ staticOptions: {
+  controllersOptions: {
+   section: { isEnabled: false },
+   data: { isEnabled: false },
+  },
+ },
 });
 ```
-
-

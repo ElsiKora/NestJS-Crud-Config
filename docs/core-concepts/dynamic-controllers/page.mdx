@@ -23,8 +23,8 @@ Request body (POST/PUT):
 
 ```json copy
 {
-  "name": "api-settings",
-  "description": "API configuration settings"
+ "name": "api-settings",
+ "description": "API configuration settings"
 }
 ```
 
@@ -40,12 +40,12 @@ Request body (POST/PUT):
 
 ```json copy
 {
-  "name": "API_KEY",
-  "value": "your-secret-key",
-  "environment": "production",
-  "description": "Production API key",
-  "isEncrypted": true,
-  "section": { "id": "section-uuid-here" }
+ "name": "API_KEY",
+ "value": "your-secret-key",
+ "environment": "production",
+ "description": "Production API key",
+ "isEncrypted": true,
+ "section": { "id": "section-uuid-here" }
 }
 ```
 
@@ -53,25 +53,25 @@ Request body (POST/PUT):
 
 ```typescript copy
 CrudConfigModule.register({
-	controllersOptions: {
-		section: {
-			properties: {
-				path: "api/v1/settings/sections",
-				name: "CustomSectionController",
-				swagger: {
-					tags: ["Configuration Sections"],
-				},
-			},
-		},
-		data: {
-			properties: {
-				path: "api/v1/settings/data",
-				routes: {
-					DELETE: { isEnabled: false },
-				},
-			},
-		},
-	},
+ controllersOptions: {
+  section: {
+   properties: {
+    path: "api/v1/settings/sections",
+    name: "CustomSectionController",
+    swagger: {
+     tags: ["Configuration Sections"],
+    },
+   },
+  },
+  data: {
+   properties: {
+    path: "api/v1/settings/data",
+    routes: {
+     DELETE: { isEnabled: false },
+    },
+   },
+  },
+ },
 });
 ```
 
@@ -80,5 +80,3 @@ CrudConfigModule.register({
 If you don’t need HTTP endpoints, disable controllers:
 
 - [Headless Mode guide](/docs/nestjs-crud-config/guides/headless-mode)
-
-
