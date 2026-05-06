@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.2.1...v1.2.2) (2026-05-06)
+
+
+### Bug Fixes
+
+* **deps:** make crud automator a peer dependency ([4313651](https://github.com/ElsiKora/NestJS-Crud-Config/commit/431365175395d6f6df32077614d25bbebd9c2875))
+
 ## [1.2.1](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.2.0...v1.2.1) (2026-01-06)
 
 # [1.2.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.1.6...v1.2.0) (2026-01-06)
