@@ -1,6 +1,7 @@
+import type { IApiBaseEntity } from "@elsikora/nestjs-crud-automator";
 import type { IConfigSection } from "@modules/config/section";
 
-export interface IConfigData {
+export interface IConfigData extends IApiBaseEntity {
  createdAt: Date;
  description: string;
  environment: string;

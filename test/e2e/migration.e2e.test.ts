@@ -101,6 +101,7 @@ describe("Migration E2E Tests", () => {
       save: vi.fn(),
       update: vi.fn(),
       find: vi.fn().mockResolvedValue([]),
+      getRepository: vi.fn(),
      };
      return await runInTransaction(mockEntityManager);
     }),

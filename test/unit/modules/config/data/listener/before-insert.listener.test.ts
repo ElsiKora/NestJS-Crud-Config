@@ -8,6 +8,11 @@ describe("ConfigDataBeforeInsertListener", () => {
  let listener: ConfigDataBeforeInsertListener;
  let mockService: any;
 
+ const createMockEntityManager = () =>
+  ({
+   getRepository: vi.fn(),
+  }) as any;
+
  beforeEach(() => {
   vi.clearAllMocks();
   mockService = {
@@ -25,21 +30,20 @@ describe("ConfigDataBeforeInsertListener", () => {
    name: "test-config",
    value: "test-value",
    environment: "test",
+   section: { id: "section-id" },
   } as any;
-  event.eventManager = {} as any;
+  event.eventManager = createMockEntityManager();
 
   const result = await listener.handleBeforeInsert(event);
 
   expect(result).toEqual({ isSuccess: true });
-  expect(mockService.get).toHaveBeenCalledWith(
-   {
-    where: {
-     environment: "test",
-     name: "test-config",
-    },
+  expect(mockService.get).toHaveBeenCalledWith({
+   where: {
+    environment: "test",
+    name: "test-config",
+    section: { id: "section-id" },
    },
-   event.eventManager,
-  );
+  });
  });
 
  it("should return error if duplicate is found", async () => {
@@ -54,15 +58,16 @@ describe("ConfigDataBeforeInsertListener", () => {
    name: "test-config",
    value: "test-value",
    environment: "test",
+   section: { id: "section-id" },
   } as any;
-  event.eventManager = {} as any;
+  event.eventManager = createMockEntityManager();
 
   const result = await listener.handleBeforeInsert(event);
 
   expect(result.isSuccess).toBe(false);
   expect(result.error).toBeInstanceOf(ConflictException);
   expect((result.error as ConflictException).message).toBe(
-   "ConfigData with this environment and name already exists",
+   "ConfigData with this section, environment and name already exists",
   );
  });
 
@@ -74,8 +79,9 @@ describe("ConfigDataBeforeInsertListener", () => {
    name: "test-config",
    value: "test-value",
    environment: "test",
+   section: { id: "section-id" },
   } as any;
-  event.eventManager = {} as any;
+  event.eventManager = createMockEntityManager();
 
   const result = await listener.handleBeforeInsert(event);
 
@@ -91,8 +97,9 @@ describe("ConfigDataBeforeInsertListener", () => {
    name: "test-config",
    value: "test-value",
    environment: "test",
+   section: { id: "section-id" },
   } as any;
-  event.eventManager = {} as any;
+  event.eventManager = createMockEntityManager();
 
   const result = await listener.handleBeforeInsert(event);
 

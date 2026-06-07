@@ -1,4 +1,4 @@
-import { ApiServiceBase } from "@elsikora/nestjs-crud-automator";
+import { ApiFunctionTransactionScope, ApiServiceBase } from "@elsikora/nestjs-crud-automator";
 import { HttpException, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CrudConfigService } from "../../../../src/modules/config/config.service";
@@ -75,7 +75,9 @@ describe("CrudConfigService", () => {
    commitTransaction: vi.fn(),
    rollbackTransaction: vi.fn(),
    release: vi.fn(),
-   manager: {},
+   manager: {
+    getRepository: vi.fn(),
+   },
   };
 
   dataSource = {
@@ -114,7 +116,7 @@ describe("CrudConfigService", () => {
    });
 
    expect(result).toEqual(mockConfigData);
-   expect(sectionService.get).toHaveBeenCalledWith({ where: { name: "test-section" } }, undefined);
+   expect(sectionService.get).toHaveBeenCalledWith({ where: { name: "test-section" } });
    expect(dataService.get).toHaveBeenCalled();
   });
 
@@ -230,8 +232,23 @@ describe("CrudConfigService", () => {
       environment: "production",
      }),
     }),
-    undefined,
    );
+  });
+
+  it("should run service calls in the provided event manager scope", async () => {
+   const eventManager = {
+    getRepository: vi.fn(),
+   } as any;
+   const scopeSpy = vi.spyOn(ApiFunctionTransactionScope, "runWithEntityManager");
+
+   await service.get({
+    eventManager,
+    section: "test-section",
+    name: "test-config",
+   });
+
+   expect(scopeSpy).toHaveBeenCalledWith(eventManager, expect.any(Function));
+   scopeSpy.mockRestore();
   });
 
   it("should load section info when requested", async () => {
@@ -245,7 +262,6 @@ describe("CrudConfigService", () => {
     expect.objectContaining({
      relations: { section: true },
     }),
-    undefined,
    );
   });
  });
@@ -300,7 +316,6 @@ describe("CrudConfigService", () => {
      value: encryptedValue,
      isEncrypted: true,
     }),
-    expect.any(Object),
    );
   });
 
@@ -379,7 +394,7 @@ describe("CrudConfigService", () => {
     value: "test-value",
    });
 
-   expect(sectionService.create).toHaveBeenCalledWith({ name: "new-section" }, expect.any(Object));
+   expect(sectionService.create).toHaveBeenCalledWith({ name: "new-section" });
   });
 
   it("should not auto-create section when shouldAutoCreateSections is disabled", async () => {
@@ -421,7 +436,7 @@ describe("CrudConfigService", () => {
     name: "test-config",
    });
 
-   expect(dataService.delete).toHaveBeenCalledWith({ id: "data-1" }, undefined);
+   expect(dataService.delete).toHaveBeenCalledWith({ id: "data-1" });
    expect(cacheManager.del).toHaveBeenCalledTimes(2);
   });
 
@@ -452,7 +467,6 @@ describe("CrudConfigService", () => {
       environment: "production",
      }),
     }),
-    undefined,
    );
   });
 
@@ -486,7 +500,7 @@ describe("CrudConfigService", () => {
    });
 
    expect(result).toEqual([mockConfigData]);
-   expect(sectionService.get).toHaveBeenCalledWith({ where: { name: "test-section" } }, undefined);
+   expect(sectionService.get).toHaveBeenCalledWith({ where: { name: "test-section" } });
    expect(dataService.getList).toHaveBeenCalled();
   });
 
@@ -543,7 +557,6 @@ describe("CrudConfigService", () => {
       environment: "production",
      }),
     }),
-    undefined,
    );
   });
 
@@ -564,7 +577,7 @@ describe("CrudConfigService", () => {
    const result = await (service as any).getOrCreateSection("test-section");
 
    expect(result).toEqual(mockSection);
-   expect(sectionService.get).toHaveBeenCalledWith({ where: { name: "test-section" } }, undefined);
+   expect(sectionService.get).toHaveBeenCalledWith({ where: { name: "test-section" } });
    expect(sectionService.create).not.toHaveBeenCalled();
   });
 
@@ -574,7 +587,7 @@ describe("CrudConfigService", () => {
 
    const result = await (service as any).getOrCreateSection("new-section");
 
-   expect(sectionService.create).toHaveBeenCalledWith({ name: "new-section" }, undefined);
+   expect(sectionService.create).toHaveBeenCalledWith({ name: "new-section" });
    expect(result).toEqual(mockSection);
   });
 

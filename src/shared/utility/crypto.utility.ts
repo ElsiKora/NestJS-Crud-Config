@@ -51,10 +51,13 @@ export class CryptoUtility {
    const decrypted: Buffer = Buffer.concat([decipher.update(encrypted), decipher.final()]);
 
    return decrypted.toString("utf8");
-  } catch (error) {
-   throw new Error(
+  } catch (error: unknown) {
+   const decryptionError: { cause?: unknown } & Error = new Error(
     `Failed to decrypt value: ${error instanceof Error ? error.message : "Unknown error"}`,
    );
+   decryptionError.cause = error;
+
+   throw decryptionError;
   }
  }
 

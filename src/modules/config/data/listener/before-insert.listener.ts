@@ -1,4 +1,4 @@
-import { ApiServiceBase } from "@elsikora/nestjs-crud-automator";
+import { ApiFunctionTransactionScope, ApiServiceBase } from "@elsikora/nestjs-crud-automator";
 import { IConfigData } from "@modules/config/data";
 import { ConfigDataEventBeforeInsert } from "@modules/config/data/event";
 import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
@@ -29,18 +29,21 @@ export class ConfigDataBeforeInsertListener {
    const entity: IConfigData = payload.item;
    const entityManager: EntityManager = payload.eventManager;
 
-   const existingConfigData: IConfigData | null = await this.service.get(
-    {
-     where: {
-      environment: entity.environment,
-      name: entity.name,
-     },
-    },
-    entityManager,
-   );
+   const existingConfigData: IConfigData | null =
+    await ApiFunctionTransactionScope.runWithEntityManager(entityManager, () =>
+     this.service.get({
+      where: {
+       environment: entity.environment,
+       name: entity.name,
+       section: { id: entity.section.id },
+      },
+     }),
+    );
 
    if (existingConfigData) {
-    throw new ConflictException("ConfigData with this environment and name already exists");
+    throw new ConflictException(
+     "ConfigData with this section, environment and name already exists",
+    );
    }
 
    // Return success if no duplicate found

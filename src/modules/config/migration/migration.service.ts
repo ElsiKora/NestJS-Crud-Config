@@ -3,6 +3,7 @@ import type { IConfigOptions } from "@shared/interface/config";
 
 import type { IConfigMigration, IConfigMigrationDefinition } from "./interface";
 
+import { ApiFunctionTransactionScope } from "@elsikora/nestjs-crud-automator";
 import { CrudConfigService } from "@modules/config/config.service";
 import { Inject, Injectable, Logger, type OnModuleInit } from "@nestjs/common";
 import { CONFIG_MIGRATION_CONSTANT, TOKEN_CONSTANT } from "@shared/constant";
@@ -145,9 +146,19 @@ export class ConfigMigrationService implements OnModuleInit {
   this.validateMigrations(migrations);
 
   // Sort migrations by name to ensure consistent order
-  const sortedMigrations: Array<IConfigMigrationDefinition> = [...migrations].sort(
-   (a: IConfigMigrationDefinition, b: IConfigMigrationDefinition) => a.name.localeCompare(b.name),
-  );
+  const sortedMigrations: Array<IConfigMigrationDefinition> = [];
+
+  for (const migration of migrations) {
+   const insertIndex: number = sortedMigrations.findIndex(
+    (item: IConfigMigrationDefinition) => migration.name.localeCompare(item.name) < 0,
+   );
+
+   if (insertIndex === -1) {
+    sortedMigrations.push(migration);
+   } else {
+    sortedMigrations.splice(insertIndex, 0, migration);
+   }
+  }
 
   this.LOGGER.verbose(`Starting migration execution for ${sortedMigrations.length} migrations`);
 
@@ -294,8 +305,10 @@ export class ConfigMigrationService implements OnModuleInit {
       await migration.down(this.configService, transactionalEntityManager);
      }
 
-     // Delete the migration record
-     await this.MIGRATION_SERVICE.delete({ name: migrationName });
+     // Delete the migration record in the rollback transaction context.
+     await this.runWithEntityManager(transactionalEntityManager, () =>
+      this.MIGRATION_SERVICE.delete({ name: migrationName }),
+     );
 
      this.LOGGER.verbose(`Successfully rolled back migration: ${migration.name}`);
     } catch (downError) {
@@ -350,13 +363,12 @@ export class ConfigMigrationService implements OnModuleInit {
   const startTime: Date = new Date();
 
   try {
-   migrationRecord = await this.MIGRATION_SERVICE.create(
-    {
+   migrationRecord = await this.runWithEntityManager(transactionalEntityManager, () =>
+    this.MIGRATION_SERVICE.create({
      name: migration.name,
      startedAt: startTime,
      status: EConfigMigrationStatus.RUNNING,
-    },
-    transactionalEntityManager,
+    }),
    );
   } catch (error) {
    // If creation fails due to unique constraint violation, migration might already be running
@@ -381,13 +393,14 @@ export class ConfigMigrationService implements OnModuleInit {
 
    // Update status to completed with executedAt timestamp
    const completedTime: Date = new Date();
-   await this.MIGRATION_SERVICE.update(
-    { id: migrationRecord.id },
-    {
-     executedAt: completedTime,
-     status: EConfigMigrationStatus.COMPLETED,
-    },
-    transactionalEntityManager,
+   await this.runWithEntityManager(transactionalEntityManager, () =>
+    this.MIGRATION_SERVICE.update(
+     { id: migrationRecord.id },
+     {
+      executedAt: completedTime,
+      status: EConfigMigrationStatus.COMPLETED,
+     },
+    ),
    );
 
    const duration: number = completedTime.getTime() - startTime.getTime();
@@ -399,13 +412,14 @@ export class ConfigMigrationService implements OnModuleInit {
    const failedTime: Date = new Date();
 
    try {
-    await this.MIGRATION_SERVICE.update(
-     { id: migrationRecord.id },
-     {
-      failedAt: failedTime,
-      status: EConfigMigrationStatus.FAILED,
-     },
-     transactionalEntityManager,
+    await this.runWithEntityManager(transactionalEntityManager, () =>
+     this.MIGRATION_SERVICE.update(
+      { id: migrationRecord.id },
+      {
+       failedAt: failedTime,
+       status: EConfigMigrationStatus.FAILED,
+      },
+     ),
     );
    } catch (updateError) {
     this.LOGGER.error(`Failed to update migration status for ${migration.name}:`, updateError);
@@ -413,6 +427,17 @@ export class ConfigMigrationService implements OnModuleInit {
 
    throw error;
   }
+ }
+
+ private async runWithEntityManager<R>(
+  entityManager: EntityManager | undefined,
+  callback: () => Promise<R>,
+ ): Promise<R> {
+  if (!entityManager) {
+   return await callback();
+  }
+
+  return await ApiFunctionTransactionScope.runWithEntityManager(entityManager, callback);
  }
 
  /**

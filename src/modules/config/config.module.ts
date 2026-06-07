@@ -39,7 +39,7 @@ export class CrudConfigModule {
  public static register(options: IConfigOptions): DynamicModule {
   const prefix: string = options.entityOptions?.tablePrefix ?? "";
 
-  const sectionEntity: TDynamicEntity = createConfigSectionEntity({
+  const sectionEntity: TDynamicEntity<IConfigSection> = createConfigSectionEntity({
    maxDescriptionLength:
     options.entityOptions?.configSection?.maxDescriptionLength ??
     CONFIG_SECTION_CONSTANT.MAX_DESCRIPTION_LENGTH,
@@ -50,7 +50,7 @@ export class CrudConfigModule {
     (options.entityOptions?.configSection?.tableName ?? CONFIG_SECTION_CONSTANT.DEFAULT_TABLE_NAME),
   });
 
-  const dataEntity: TDynamicEntity = createConfigDataEntity({
+  const dataEntity: TDynamicEntity<IConfigData> = createConfigDataEntity({
    configSectionEntity: sectionEntity,
    maxDescriptionLength:
     options.entityOptions?.configData?.maxDescriptionLength ??
@@ -67,7 +67,7 @@ export class CrudConfigModule {
     (options.entityOptions?.configData?.tableName ?? CONFIG_DATA_CONSTANT.DEFAULT_TABLE_NAME),
   });
 
-  const migrationEntity: TDynamicEntity = createConfigMigrationEntity({
+  const migrationEntity: TDynamicEntity<IConfigMigration> = createConfigMigrationEntity({
    maxNameLength:
     options.migrationOptions?.maxNameLength ?? CONFIG_MIGRATION_CONSTANT.MAX_NAME_LENGTH,
    tableName:
@@ -243,7 +243,7 @@ export class CrudConfigModule {
    properties.staticOptions?.entityOptions;
   const prefix: string = staticEntityOptions?.tablePrefix ?? "";
 
-  const sectionEntity: TDynamicEntity = createConfigSectionEntity({
+  const sectionEntity: TDynamicEntity<IConfigSection> = createConfigSectionEntity({
    maxDescriptionLength:
     staticEntityOptions?.configSection?.maxDescriptionLength ??
     CONFIG_SECTION_CONSTANT.MAX_DESCRIPTION_LENGTH,
@@ -254,7 +254,7 @@ export class CrudConfigModule {
     (staticEntityOptions?.configSection?.tableName ?? CONFIG_SECTION_CONSTANT.DEFAULT_TABLE_NAME),
   });
 
-  const dataEntity: TDynamicEntity = createConfigDataEntity({
+  const dataEntity: TDynamicEntity<IConfigData> = createConfigDataEntity({
    configSectionEntity: sectionEntity,
    maxDescriptionLength:
     staticEntityOptions?.configData?.maxDescriptionLength ??
@@ -293,7 +293,7 @@ export class CrudConfigModule {
   const staticMigrationOptions: IConfigStaticMigrationEntityOptions | undefined =
    properties.staticOptions?.migrationEntityOptions;
 
-  const migrationEntity: TDynamicEntity = createConfigMigrationEntity({
+  const migrationEntity: TDynamicEntity<IConfigMigration> = createConfigMigrationEntity({
    maxNameLength:
     staticMigrationOptions?.maxNameLength ?? CONFIG_MIGRATION_CONSTANT.MAX_NAME_LENGTH,
    tableName:
@@ -323,7 +323,7 @@ export class CrudConfigModule {
     provide: TOKEN_CONSTANT.CONFIG_SECTION_SERVICE,
     useFactory: (
      dataSource: DataSource,
-     sectionEntity: TDynamicEntity,
+     sectionEntity: TDynamicEntity<IConfigSection>,
     ): ApiServiceBase<IConfigSection> => {
      const repository: Repository<IApiBaseEntity> = dataSource.getRepository(sectionEntity);
      const DynamicService: Type = createDynamicService(sectionEntity, "ConfigSectionService");
@@ -337,7 +337,7 @@ export class CrudConfigModule {
     provide: TOKEN_CONSTANT.CONFIG_DATA_SERVICE,
     useFactory: (
      dataSource: DataSource,
-     dataEntity: TDynamicEntity,
+     dataEntity: TDynamicEntity<IConfigData>,
     ): ApiServiceBase<IConfigData> => {
      const repository: Repository<IApiBaseEntity> = dataSource.getRepository(dataEntity);
      const DynamicService: Type = createDynamicService(dataEntity, "ConfigDataService");
@@ -351,7 +351,7 @@ export class CrudConfigModule {
     provide: TOKEN_CONSTANT.CONFIG_MIGRATION_SERVICE,
     useFactory: (
      dataSource: DataSource,
-     migrationEntity: TDynamicEntity,
+     migrationEntity: TDynamicEntity<IConfigMigration>,
     ): ApiServiceBase<IConfigMigration> => {
      const repository: Repository<IApiBaseEntity> = dataSource.getRepository(migrationEntity);
      const DynamicService: Type = createDynamicService(migrationEntity, "ConfigMigrationService");

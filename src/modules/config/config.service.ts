@@ -1,14 +1,16 @@
 import type { IConfigData } from "@modules/config/data";
 import type { IConfigSection } from "@modules/config/section";
 import type { IConfigOptions } from "@shared/interface/config";
+import type { Cache } from "cache-manager";
 
 import {
+ ApiFunctionTransactionScope,
  ApiServiceBase,
  EErrorStringAction,
  ErrorString,
  IApiGetListResponseResult,
 } from "@elsikora/nestjs-crud-automator";
-import { Cache, CACHE_MANAGER } from "@nestjs/cache-manager";
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
 import {
  ConsoleLogger,
  HttpException,
@@ -44,10 +46,9 @@ export class CrudConfigService {
   private readonly sectionService: ApiServiceBase<IConfigSection>,
   @Inject(TOKEN_CONSTANT.CONFIG_DATA_SERVICE)
   private readonly dataService: ApiServiceBase<IConfigData>,
-  // @ts-ignore
-  @Optional() @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
-  @Optional() @Inject(TOKEN_CONSTANT.CONFIG_OPTIONS) private readonly options?: IConfigOptions,
-  @Optional() @Inject(DataSource) private readonly dataSource?: DataSource,
+  @Inject(CACHE_MANAGER) @Optional() private readonly cacheManager: Cache,
+  @Inject(TOKEN_CONSTANT.CONFIG_OPTIONS) @Optional() private readonly options?: IConfigOptions,
+  @Inject(DataSource) @Optional() private readonly dataSource?: DataSource,
   private readonly cryptoUtility?: CryptoUtility,
  ) {}
 
@@ -67,23 +68,21 @@ export class CrudConfigService {
   const finalEnvironment: string = environment ?? this.options?.environment ?? "default";
 
   try {
-   const section: IConfigSection = await this.sectionService.get(
-    { where: { name: sectionName } },
-    eventManager,
+   const section: IConfigSection = await this.runWithEventManager(eventManager, () =>
+    this.sectionService.get({ where: { name: sectionName } }),
    );
 
-   const data: IConfigData = await this.dataService.get(
-    {
+   const data: IConfigData = await this.runWithEventManager(eventManager, () =>
+    this.dataService.get({
      where: {
       environment: finalEnvironment,
       name,
       section: { id: section.id },
      },
-    },
-    eventManager,
+    }),
    );
 
-   await this.dataService.delete({ id: data.id }, eventManager);
+   await this.runWithEventManager(eventManager, () => this.dataService.delete({ id: data.id }));
 
    if (this.options?.cacheOptions?.isEnabled && this.cacheManager) {
     const cacheKey: string = `config:${sectionName}:${name}:${finalEnvironment}`;
@@ -142,20 +141,18 @@ export class CrudConfigService {
    // Fetch section
    this.LOGGER.verbose(`Fetching section: ${section}`);
 
-   const sectionData: IConfigSection = await this.sectionService.get(
-    { where: { name: section } },
-    eventManager,
+   const sectionData: IConfigSection = await this.runWithEventManager(eventManager, () =>
+    this.sectionService.get({ where: { name: section } }),
    );
 
    this.LOGGER.verbose(`Fetching config data for name: ${name}, environment: ${finalEnvironment}`);
 
-   const data: IConfigData = await this.dataService.get(
-    {
+   const data: IConfigData = await this.runWithEventManager(eventManager, () =>
+    this.dataService.get({
      // eslint-disable-next-line @elsikora/typescript/naming-convention
      relations: { section: shouldLoadSectionInfo },
      where: { environment: finalEnvironment, name, section: { id: sectionData.id } },
-    },
-    eventManager,
+    }),
    );
 
    if (data.isEncrypted) {
@@ -243,18 +240,20 @@ export class CrudConfigService {
 
    this.LOGGER.verbose(`Fetching section: ${sectionName}`);
 
-   const section: IConfigSection = await this.sectionService.get(
-    { where: { name: sectionName } },
-    eventManager,
+   const section: IConfigSection = await this.runWithEventManager(eventManager, () =>
+    this.sectionService.get({ where: { name: sectionName } }),
    );
 
    this.LOGGER.verbose(
     `Fetching config list for section: ${sectionName}, environment: ${finalEnvironment}`,
    );
 
-   const result: IApiGetListResponseResult<IConfigData> = await this.dataService.getList(
-    { where: { environment: finalEnvironment, section: { id: section.id } } },
+   const result: IApiGetListResponseResult<IConfigData> = await this.runWithEventManager(
     eventManager,
+    () =>
+     this.dataService.getList({
+      where: { environment: finalEnvironment, section: { id: section.id } },
+     }),
    );
 
    if (useCache && this.options?.cacheOptions?.isEnabled && this.cacheManager) {
@@ -368,17 +367,22 @@ export class CrudConfigService {
    try {
     this.LOGGER.verbose(`Checking for existing config: ${name}`);
 
-    const existingData: IConfigData = await this.dataService.get(
-     { where: { environment: finalEnvironment, name, section: { id: section.id } } },
-     localEventManager,
+    const existingData: IConfigData = await this.runWithEventManager(localEventManager, () =>
+     this.dataService.get({
+      where: { environment: finalEnvironment, name, section: { id: section.id } },
+     }),
     );
 
     this.LOGGER.verbose(`Updating existing config: ${name}`);
-    result = await this.dataService.update({ id: existingData.id }, configData, localEventManager);
+    result = await this.runWithEventManager(localEventManager, () =>
+     this.dataService.update({ id: existingData.id }, configData),
+    );
    } catch (error: unknown) {
     if (error instanceof NotFoundException) {
      this.LOGGER.verbose(`Config ${name} not found, creating new one`);
-     result = await this.dataService.create(configData, localEventManager);
+     result = await this.runWithEventManager(localEventManager, () =>
+      this.dataService.create(configData),
+     );
     } else {
      const errorMessage: string = error instanceof Error ? error.message : String(error);
      this.LOGGER.error(`Error updating config: ${errorMessage}`);
@@ -426,12 +430,16 @@ export class CrudConfigService {
   eventManager?: EntityManager,
  ): Promise<IConfigSection> {
   try {
-   return await this.sectionService.get({ where: { name: sectionName } }, eventManager);
+   return await this.runWithEventManager(eventManager, () =>
+    this.sectionService.get({ where: { name: sectionName } }),
+   );
   } catch (error: unknown) {
    if (error instanceof NotFoundException && this.options?.shouldAutoCreateSections) {
     this.LOGGER.verbose(`Section ${sectionName} not found, creating new one`);
 
-    return await this.sectionService.create({ name: sectionName }, eventManager);
+    return await this.runWithEventManager(eventManager, () =>
+     this.sectionService.create({ name: sectionName }),
+    );
    } else {
     const errorMessage: string = error instanceof Error ? error.message : String(error);
     this.LOGGER.error(`Error fetching section: ${errorMessage}`);
@@ -439,5 +447,16 @@ export class CrudConfigService {
     throw error;
    }
   }
+ }
+
+ private async runWithEventManager<R>(
+  eventManager: EntityManager | undefined,
+  callback: () => Promise<R>,
+ ): Promise<R> {
+  if (!eventManager) {
+   return await callback();
+  }
+
+  return await ApiFunctionTransactionScope.runWithEntityManager(eventManager, callback);
  }
 }
