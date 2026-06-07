@@ -70,8 +70,33 @@ pnpm add @elsikora/nestjs-crud-config
 Install the required peer dependencies:
 
 ```bash
-npm install @nestjs/common @nestjs/typeorm typeorm @elsikora/nestjs-crud-automator
+npm install @elsikora/nestjs-crud-automator@^2.8.0 @nestjs/common@^11.1.24 @nestjs/core@^11.1.24 @nestjs/typeorm@^11.0.0 typeorm@^0.3.20
+npm install @nestjs/passport@^11.0.5 @nestjs/platform-fastify@^11.1.24 @nestjs/swagger@^11.0.3 @nestjs/throttler@^6.5.0 class-transformer@^0.5.1 class-validator@^0.15.1 fastify@^5.8.5 lodash@^4.18.1
 ```
+
+### Automator 2.8 compatibility
+
+This package now requires `@elsikora/nestjs-crud-automator@^2.8.0`.
+
+If you customize generated routes, replace Automator 1.x route flags:
+
+```typescript
+DELETE: {
+ isEnabled: false;
+}
+```
+
+with Automator 2.8 generation config:
+
+```typescript
+DELETE: {
+ generation: {
+  isEnabled: false;
+ }
+}
+```
+
+ConfigData `CREATE` and `UPDATE` now use Automator 2.8 nested request relation loading. The built-in section relation expects request bodies such as `{ "section": { "id": "section-uuid" } }`.
 
 ### Database Support
 
@@ -326,7 +351,7 @@ The NestJS CRUD Config module includes a powerful **production-ready migration s
 The migration system uses the `EConfigMigrationStatus` enum to track migration states:
 
 ```typescript
-import { EConfigMigrationStatus } from "@your-org/nestjs-crud-config";
+import { EConfigMigrationStatus } from "@elsikora/nestjs-crud-config";
 
 // Available statuses:
 EConfigMigrationStatus.PENDING; // Migration is pending execution
@@ -341,7 +366,7 @@ EConfigMigrationStatus.STUCK; // Migration is stuck (timeout)
 Configure migrations in your module registration:
 
 ```typescript
-import { CrudConfigModule } from "@your-org/nestjs-crud-config";
+import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
 import { initialAppConfigMigration } from "./migrations/001-initial-app-config.migration";
 
 @Module({
@@ -376,8 +401,8 @@ Create a migration file with the required structure:
 
 ```typescript
 // migrations/001-initial-app-config.migration.ts
-import type { IConfigMigrationDefinition } from "@your-org/nestjs-crud-config";
-import type { CrudConfigService } from "@your-org/nestjs-crud-config";
+import type { IConfigMigrationDefinition } from "@elsikora/nestjs-crud-config";
+import type { CrudConfigService } from "@elsikora/nestjs-crud-config";
 import type { EntityManager } from "typeorm";
 
 export const initialAppConfigMigration: IConfigMigrationDefinition = {
@@ -604,7 +629,7 @@ CrudConfigModule.registerAsync({
 Monitor migration execution with logging:
 
 ```typescript
-import { EConfigMigrationStatus } from "@your-org/nestjs-crud-config";
+import { EConfigMigrationStatus } from "@elsikora/nestjs-crud-config";
 
 @Injectable()
 export class MigrationMonitorService {
@@ -730,13 +755,15 @@ CrudConfigModule.register({
    properties: {
     path: "api/v1/settings/data",
     routes: {
-     DELETE: { isEnabled: false }, // Disable deletion
+     DELETE: { generation: { isEnabled: false } }, // Disable deletion
     },
    },
   },
  },
 });
 ```
+
+`@elsikora/nestjs-crud-automator` 2.8 route options use `generation.isEnabled` for route generation. Relation loading uses TypeORM `relationLoadStrategy` values (`"query"` or `"join"`); Automator 2.8 does not export a dedicated relation-load-strategy enum yet, so this package uses the `"query"` literal for the built-in ConfigData section relation.
 
 ## 🗄️ Database Schema
 

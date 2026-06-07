@@ -18,8 +18,23 @@ This guide shows the minimal setup to start using **NestJS CRUD Config**.
 Install the required peer dependencies (if not already installed in your app):
 
 ```bash copy
-npm install @nestjs/common @nestjs/typeorm typeorm @elsikora/nestjs-crud-automator
+npm install @elsikora/nestjs-crud-automator@^2.8.0 @nestjs/common@^11.1.24 @nestjs/core@^11.1.24 @nestjs/typeorm@^11.0.0 typeorm@^0.3.20
+npm install @nestjs/passport@^11.0.5 @nestjs/platform-fastify@^11.1.24 @nestjs/swagger@^11.0.3 @nestjs/throttler@^6.5.0 class-transformer@^0.5.1 class-validator@^0.15.1 fastify@^5.8.5 lodash@^4.18.1
 ```
+
+## Automator 2.8 compatibility
+
+This package now requires `@elsikora/nestjs-crud-automator@^2.8.0`. Route overrides now use Automator 2.8 generation config:
+
+```typescript copy
+DELETE: {
+ generation: {
+  isEnabled: false;
+ }
+}
+```
+
+The old route shape `DELETE: { isEnabled: false }` is no longer supported by Automator 2.8.
 
 ## Basic setup (sync registration)
 

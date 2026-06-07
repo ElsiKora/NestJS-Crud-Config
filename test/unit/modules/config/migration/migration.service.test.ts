@@ -1,4 +1,4 @@
-import { ApiServiceBase } from "@elsikora/nestjs-crud-automator";
+import { ApiFunctionTransactionScope, ApiServiceBase } from "@elsikora/nestjs-crud-automator";
 import { Logger } from "@nestjs/common";
 import { DataSource, EntityManager } from "typeorm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -58,6 +58,7 @@ describe("ConfigMigrationService", () => {
   } as any;
 
   mockEntityManager = {
+   getRepository: vi.fn(),
    transaction: vi.fn(),
   } as any;
 
@@ -123,14 +124,12 @@ describe("ConfigMigrationService", () => {
      name: "001_test_migration",
      status: EConfigMigrationStatus.RUNNING,
     }),
-    mockEntityManager,
    );
    expect(mockMigrationService.update).toHaveBeenCalledWith(
     expect.objectContaining({ id: "migration-1" }),
     expect.objectContaining({
      status: EConfigMigrationStatus.COMPLETED,
     }),
-    mockEntityManager,
    );
   });
 
@@ -167,7 +166,6 @@ describe("ConfigMigrationService", () => {
     expect.objectContaining({
      status: EConfigMigrationStatus.FAILED,
     }),
-    mockEntityManager,
    );
   });
 
@@ -240,13 +238,16 @@ describe("ConfigMigrationService", () => {
    vi.mocked(mockDataSource.transaction).mockImplementation(async (callback: any) => {
     return await callback(mockEntityManager);
    });
+   const scopeSpy = vi.spyOn(ApiFunctionTransactionScope, "runWithEntityManager");
 
    await service.rollbackMigration("001_test_migration", [migrationWithDown]);
 
    expect(migrationWithDown.down).toHaveBeenCalledWith(mockConfigService, mockEntityManager);
+   expect(scopeSpy).toHaveBeenCalledWith(mockEntityManager, expect.any(Function));
    expect(mockMigrationService.delete).toHaveBeenCalledWith({
     name: "001_test_migration",
    });
+   scopeSpy.mockRestore();
   });
 
   it("should throw error when migration not found", async () => {

@@ -67,13 +67,15 @@ CrudConfigModule.register({
    properties: {
     path: "api/v1/settings/data",
     routes: {
-     DELETE: { isEnabled: false },
+     DELETE: { generation: { isEnabled: false } },
     },
    },
   },
  },
 });
 ```
+
+Automator 2.8 route options use `generation.isEnabled` for route generation. Relation loading uses TypeORM `relationLoadStrategy` values (`"query"` or `"join"`); Automator 2.8 does not export a dedicated relation-load-strategy enum yet, so the built-in ConfigData section relation uses the `"query"` literal.
 
 ## Headless mode
 

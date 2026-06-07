@@ -1,4 +1,10 @@
-import { describe, expect, it, vi, beforeAll } from "vitest";
+import {
+ CONTROLLER_API_DECORATOR_CONSTANT,
+ EApiControllerRelationReferenceShape,
+ EApiRouteType,
+ type IApiControllerProperties,
+} from "@elsikora/nestjs-crud-automator";
+import { describe, expect, it, beforeAll } from "vitest";
 import { createDynamicDataController } from "../../../../../src/modules/config/data/controller";
 import { createConfigDataEntity } from "../../../../../src/modules/config/data/entity";
 import { createConfigSectionEntity } from "../../../../../src/modules/config/section/entity";
@@ -45,6 +51,35 @@ describe("createDynamicDataController", () => {
   expect(DynamicController).toBeDefined();
  });
 
+ it("should merge custom route overrides with default data routes", () => {
+  const DynamicController = createDynamicDataController(mockDataEntity, {
+   properties: {
+    routes: {
+     [EApiRouteType.DELETE]: { generation: { isEnabled: false } },
+    },
+   },
+  });
+  const properties = Reflect.getMetadata(
+   CONTROLLER_API_DECORATOR_CONSTANT.PROPERTIES_METADATA_KEY,
+   DynamicController,
+  ) as IApiControllerProperties<typeof mockDataEntity>;
+
+  expect(properties.routes?.[EApiRouteType.DELETE]?.generation?.isEnabled).toBe(false);
+  expect(properties.routes?.[EApiRouteType.CREATE]?.generation?.isEnabled).toBe(true);
+  expect(properties.routes?.[EApiRouteType.UPDATE]?.relations?.request).toEqual({
+   load: {
+    include: {
+     section: true,
+    },
+    relationLoadStrategy: "query",
+   },
+   reference: {
+    key: "id",
+    shape: EApiControllerRelationReferenceShape.OBJECT,
+   },
+  });
+ });
+
  it("should inject required services", () => {
   const mockDataService = {} as any;
   const mockSectionService = {} as any;
@@ -58,8 +93,42 @@ describe("createDynamicDataController", () => {
 
  it("should have default route configuration", () => {
   const DynamicController = createDynamicDataController(mockDataEntity);
+  const properties = Reflect.getMetadata(
+   CONTROLLER_API_DECORATOR_CONSTANT.PROPERTIES_METADATA_KEY,
+   DynamicController,
+  ) as IApiControllerProperties<typeof mockDataEntity>;
 
-  // The controller should be decorated with ApiController
-  expect(DynamicController).toBeDefined();
+  for (const routeType of [
+   EApiRouteType.CREATE,
+   EApiRouteType.DELETE,
+   EApiRouteType.GET,
+   EApiRouteType.GET_LIST,
+   EApiRouteType.UPDATE,
+  ]) {
+   expect(properties.routes?.[routeType]?.generation?.isEnabled).toBe(true);
+  }
+ });
+
+ it("should configure section relation loading for create and update routes", () => {
+  const DynamicController = createDynamicDataController(mockDataEntity);
+  const properties = Reflect.getMetadata(
+   CONTROLLER_API_DECORATOR_CONSTANT.PROPERTIES_METADATA_KEY,
+   DynamicController,
+  ) as IApiControllerProperties<typeof mockDataEntity>;
+
+  for (const routeType of [EApiRouteType.CREATE, EApiRouteType.UPDATE]) {
+   expect(properties.routes?.[routeType]?.relations?.request).toEqual({
+    load: {
+     include: {
+      section: true,
+     },
+     relationLoadStrategy: "query",
+    },
+    reference: {
+     key: "id",
+     shape: EApiControllerRelationReferenceShape.OBJECT,
+    },
+   });
+  }
  });
 });
