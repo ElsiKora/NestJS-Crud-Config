@@ -1,6 +1,8 @@
 /* eslint-disable @elsikora/typescript/naming-convention */
 import type { TDynamicEntity } from "@shared/type";
 
+import type { IConfigSection } from "../interface";
+
 import {
  ApiPropertyDescribe,
  EApiPropertyDateIdentifier,
@@ -24,7 +26,7 @@ export function createConfigSectionEntity(options: {
  maxDescriptionLength: number;
  maxNameLength: number;
  tableName: string;
-}): TDynamicEntity {
+}): TDynamicEntity<IConfigSection> {
  return createDynamicEntityClass({
   columns: {
    createdAt: {

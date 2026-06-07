@@ -1,1 +1,5 @@
-export type TDynamicEntity<T = object> = new (...arguments_: Array<unknown>) => T;
+import type { IApiBaseEntity } from "@elsikora/nestjs-crud-automator";
+
+export type TDynamicEntity<T extends IApiBaseEntity = IApiBaseEntity> = new (
+ ...arguments_: Array<unknown>
+) => T;

@@ -1,5 +1,8 @@
 /* eslint-disable @elsikora/typescript/naming-convention */
+import type { IConfigSection } from "@modules/config/section";
 import type { TDynamicEntity } from "@shared/type";
+
+import type { IConfigData } from "../interface";
 
 import {
  ApiPropertyDescribe,
@@ -24,13 +27,13 @@ import { CreateDateColumn, UpdateDateColumn } from "typeorm";
  * @returns {TDynamicEntity} Dynamically created ConfigData entity class
  */
 export function createConfigDataEntity(options: {
- configSectionEntity: TDynamicEntity;
+ configSectionEntity: TDynamicEntity<IConfigSection>;
  maxDescriptionLength: number;
  maxEnvironmentLength: number;
  maxNameLength: number;
  maxValueLength: number;
  tableName: string;
-}): TDynamicEntity {
+}): TDynamicEntity<IConfigData> {
  return createDynamicEntityClass({
   columns: {
    createdAt: {

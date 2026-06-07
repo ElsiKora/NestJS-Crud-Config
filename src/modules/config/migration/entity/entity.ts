@@ -1,6 +1,8 @@
 /* eslint-disable @elsikora/typescript/naming-convention */
 import type { TDynamicEntity } from "@shared/type";
 
+import type { IConfigMigration } from "../interface";
+
 import {
  ApiPropertyDescribe,
  EApiPropertyDateIdentifier,
@@ -22,7 +24,7 @@ import { CreateDateColumn, UpdateDateColumn } from "typeorm";
 export function createConfigMigrationEntity(options: {
  maxNameLength: number;
  tableName: string;
-}): TDynamicEntity {
+}): TDynamicEntity<IConfigMigration> {
  return createDynamicEntityClass({
   columns: {
    createdAt: {

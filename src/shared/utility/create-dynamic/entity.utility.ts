@@ -1,3 +1,4 @@
+import type { IApiBaseEntity } from "@elsikora/nestjs-crud-automator";
 import type {
  ICreateDynamicEntityOptions,
  ICreateDynamicEntityRelationOptions,
@@ -19,7 +20,7 @@ import { Entity } from "typeorm";
  * @param {ICreateDynamicEntityOptions} options Configuration options for the dynamic entity
  * @returns {TDynamicEntity<unknown>} Dynamically created entity class with all decorators applied
  */
-export function createDynamicEntityClass<T = unknown>(
+export function createDynamicEntityClass<T extends IApiBaseEntity = IApiBaseEntity>(
  options: ICreateDynamicEntityOptions,
 ): TDynamicEntity<T> {
  const {
