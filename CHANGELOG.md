@@ -1,18 +1,28 @@
-## [1.2.2](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.2.1...v1.2.2) (2026-05-06)
+# [2.0.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.2.2...v2.0.0) (2026-06-07)
 
+- feat(config)!: support crud automator 2.8 ([a53d712](https://github.com/ElsiKora/NestJS-Crud-Config/commit/a53d7128b17966318c632842496c25df3b400eda))
 
 ### Bug Fixes
 
-* **deps:** make crud automator a peer dependency ([4313651](https://github.com/ElsiKora/NestJS-Crud-Config/commit/431365175395d6f6df32077614d25bbebd9c2875))
+- **deps:** pin compatible nest swagger ([2ca8bb5](https://github.com/ElsiKora/NestJS-Crud-Config/commit/2ca8bb5317bbe6a7b7d9927c7382e3fdc8f3c8c8))
+
+### BREAKING CHANGES
+
+- custom controller route overrides must use Automator 2.8 route generation config, such as `generation.isEnabled`, instead of the legacy flat `isEnabled` route flag.
+
+## [1.2.2](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.2.1...v1.2.2) (2026-05-06)
+
+### Bug Fixes
+
+- **deps:** make crud automator a peer dependency ([4313651](https://github.com/ElsiKora/NestJS-Crud-Config/commit/431365175395d6f6df32077614d25bbebd9c2875))
 
 ## [1.2.1](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.2.0...v1.2.1) (2026-01-06)
 
 # [1.2.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.1.6...v1.2.0) (2026-01-06)
 
-
 ### Features
 
-* **config:** add async staticoptions and nextra docs ([5c145ad](https://github.com/ElsiKora/NestJS-Crud-Config/commit/5c145adad9504f01f27e97b559c731ae9f016979))
+- **config:** add async staticoptions and nextra docs ([5c145ad](https://github.com/ElsiKora/NestJS-Crud-Config/commit/5c145adad9504f01f27e97b559c731ae9f016979))
 
 ## [1.1.6](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.1.5...v1.1.6) (2025-12-17)
 
