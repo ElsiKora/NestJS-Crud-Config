@@ -1,5 +1,7 @@
+import resolve from "@rollup/plugin-node-resolve";
 import typescript from "@rollup/plugin-typescript";
 import generatePackageJson from "rollup-plugin-generate-package-json";
+import dts from "unplugin-dts/rollup";
 
 const external = [
  "@nestjs/common",
@@ -12,8 +14,6 @@ const external = [
  "@elsikora/nestjs-crud-automator",
  "dotenv/config",
 ];
-import resolve from "@rollup/plugin-node-resolve";
-import dtsPathAlias from "rollup-plugin-dts-path-alias";
 
 export default [
  {
@@ -37,13 +37,16 @@ export default [
    resolve({
     include: ["node_modules/tslib/**"],
    }),
-   dtsPathAlias(),
    typescript({
-    declaration: true,
-    declarationDir: "dist/esm",
+    declaration: false,
     outDir: "dist/esm",
     sourceMap: true,
     tsconfig: "./tsconfig.build.json",
+   }),
+   dts({
+    entryRoot: "src",
+    outDirs: ["dist/esm", "dist/cjs"],
+    tsconfigPath: "./tsconfig.build.json",
    }),
    generatePackageJson({
     baseContents: { type: "module" },
@@ -75,13 +78,11 @@ export default [
    }),
 
    typescript({
-    declaration: true,
-    declarationDir: "dist/cjs",
+    declaration: false,
     outDir: "dist/cjs",
     sourceMap: true,
     tsconfig: "./tsconfig.build.json",
    }),
-   dtsPathAlias(),
    generatePackageJson({
     baseContents: { type: "commonjs" },
     outputFolder: "dist/cjs",
