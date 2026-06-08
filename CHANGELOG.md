@@ -1,3 +1,5 @@
+## [2.0.1](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v2.0.0...v2.0.1) (2026-06-08)
+
 # [2.0.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.2.2...v2.0.0) (2026-06-07)
 
 - feat(config)!: support crud automator 2.8 ([a53d712](https://github.com/ElsiKora/NestJS-Crud-Config/commit/a53d7128b17966318c632842496c25df3b400eda))
