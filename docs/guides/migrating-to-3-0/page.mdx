@@ -1,0 +1,132 @@
+# Migrating to 3.0
+
+The upcoming CrudConfig 3 release adopts the Automator 3 transaction model and removes the legacy ConfigData EventEmitter bridge. There is no Automator 2 compatibility path.
+
+## Install CrudConfig 3 and its peers
+
+Use a 3.x-only CrudConfig range. It intentionally fails until a 3.0 prerelease exists instead of resolving incompatible CrudConfig 2.x, and it continues to select compatible stable 3.x releases after publication:
+
+```bash copy
+npm install @elsikora/nestjs-crud-config@^3.0.0-0 @elsikora/nestjs-crud-automator@^3.0.2
+npm install @nestjs/swagger@11.4.2
+```
+
+CrudConfig requires `@elsikora/nestjs-crud-automator >=3.0.2-0 <4.0.0`.
+
+Ensure the application resolves CrudConfig 3 and one Automator copy:
+
+```bash copy
+npm ls @elsikora/nestjs-crud-config
+npm ls @elsikora/nestjs-crud-automator
+```
+
+## Remove the ConfigData EventEmitter bridge
+
+The following package exports and runtime providers are removed:
+
+- `ConfigDataEventBeforeInsert`
+- `ConfigDataBeforeInsertListener`
+- `ConfigDataBeforeInsertSubscriber`
+
+CrudConfig no longer depends on `@nestjs/event-emitter` and no longer requires consumer `EventEmitterModule.forRoot()` wiring. Remove that module import and direct dependency only when no other application feature uses them.
+
+ConfigData uniqueness remains enforced by the database across `name`, `environment`, and `section`. Automator maps a conflicting generated create or update to `409 CONFIGDATA_DUPLICATE_KEY`; do not replace this with an application-level preflight check.
+
+Move custom validation, enrichment, or auditing into the application's service or Automator lifecycle layer.
+
+## Join the migration owner
+
+Transaction-enabled execution and rollback own a named Automator transaction called `crud-config-migrations`. The callback receives its exact `EntityManager`. Pass it to every config operation:
+
+```typescript filename="migrations/001-application.migration.ts" copy
+import type { CrudConfigService, IConfigMigrationDefinition } from "@elsikora/nestjs-crud-config";
+import type { EntityManager } from "typeorm";
+
+export const applicationMigration: IConfigMigrationDefinition = {
+ name: "001_application",
+
+ async up(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
+  await configService.set({
+   eventManager: entityManager,
+   name: "APP_NAME",
+   section: "application",
+   value: "My Application",
+  });
+ },
+
+ async down(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
+  await configService.delete({
+   eventManager: entityManager,
+   name: "APP_NAME",
+   section: "application",
+  });
+ },
+};
+```
+
+In Automator 3, `runWithEntityManager()` is join-only. If a defined migration manager is omitted from `set()`, CrudConfig attempts to open its standalone `crud-config-set` owner inside the active migration owner, and Automator rejects the nested transaction.
+
+Migration history creates, updates, and rollback deletes join the same owner automatically.
+
+## Replace raw manual transaction contexts
+
+Do not pass a manager from raw `dataSource.transaction()` and expect CrudConfig to establish Automator context. Use a named Automator owner:
+
+```typescript copy
+import { ApiFunctionTransactionScope } from "@elsikora/nestjs-crud-automator";
+
+await ApiFunctionTransactionScope.runWithDataSource(
+ dataSource,
+ { name: "application-config-update" },
+ async (entityManager) => {
+  await configService.set({
+   eventManager: entityManager,
+   name: "APP_NAME",
+   section: "application",
+   value: "Updated Application",
+  });
+ },
+);
+```
+
+Standalone `CrudConfigService.set()` calls need no wrapper; without `eventManager`, `set()` owns `crud-config-set`.
+
+## Understand disabled migration transactions
+
+`migrationOptions.useTransaction` defaults to `true`.
+
+With `useTransaction: false`:
+
+- migration execution does not open `crud-config-migrations`;
+- `up()` callbacks receive `undefined`;
+- each `set()` still owns its own atomic `crud-config-set` transaction;
+- multiple writes are not one all-or-nothing unit.
+
+Rollback execution always uses `crud-config-migrations`.
+
+## Keep generated route configuration
+
+Generated route overrides continue to use `generation.isEnabled`:
+
+```typescript copy
+DELETE: {
+ generation: {
+  isEnabled: false,
+ },
+},
+```
+
+ConfigData relations still use nested identifier input such as `{ "section": { "id": "section-uuid" } }`.
+
+## Verify the upgrade
+
+Confirm that the application resolves CrudConfig 3 and one compatible Automator copy:
+
+```bash copy
+npm ls @elsikora/nestjs-crud-config
+npm ls @elsikora/nestjs-crud-automator
+```
+
+Then run the consuming application's own build, type-check, unit, and integration commands. Script names vary by application.
+
+Verify module compilation without consumer EventEmitter wiring, a duplicate ConfigData write returning `409`, transaction-enabled migration commit and rollback, retry after rollback, and the intentional behavior of `useTransaction: false`.

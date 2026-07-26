@@ -4,6 +4,8 @@ import { generateDefinition, TSDoc } from "nextra/tsdoc";
 
 Interface describing a migration definition (`up` / `down`).
 
+Transaction-enabled execution and rollback pass the exact `crud-config-migrations` owner manager to callbacks. Forward a defined manager as `eventManager` to each `CrudConfigService` operation. Execution with `useTransaction: false` passes `undefined`.
+
 _Defined in: `src/modules/config/migration/interface/migration-definition.interface.ts`_
 
 <TSDoc

@@ -16,6 +16,7 @@
 - [Description](#-description)
 - [Features](#-features)
 - [Installation](#-installation)
+- [Migrating to 3.0](#migrating-to-30)
 - [Usage](#-usage)
 - [Migration System](#-migration-system)
 - [API Documentation](#-api-documentation)
@@ -29,7 +30,7 @@
 
 NestJS CRUD Config is a powerful configuration management module that revolutionizes how NestJS applications handle configuration data. Unlike traditional environment variable approaches, this library stores configuration in a database with full CRUD operations, making it perfect for dynamic configuration management across multiple environments and services.
 
-The module provides hierarchical organization through sections and data entries, supports optional AES-256-GCM encryption for sensitive values, and includes automatic REST API endpoints for configuration management. Built with TypeScript-first design and leveraging the NestJS CRUD Automator for automatic API generation, it features dynamic entity creation at runtime, comprehensive event-driven architecture, and intelligent caching.
+The module provides hierarchical organization through sections and data entries, supports optional AES-256-GCM encryption for sensitive values, and includes automatic REST API endpoints for configuration management. Built with TypeScript-first design and leveraging the NestJS CRUD Automator for automatic API generation, it features dynamic entity creation at runtime, named transaction ownership, and intelligent caching.
 
 Whether you're managing API keys across different environments, storing feature flags, or maintaining application settings that need to change without redeployment, this module provides a robust, secure, and scalable solution for microservice architectures, multi-tenant applications, and any system requiring centralized, database-backed configuration management with real-time updates.
 
@@ -45,7 +46,7 @@ Whether you're managing API keys across different environments, storing feature 
 - **🎯 TypeScript-first design** - Full type safety with comprehensive interfaces and type definitions
 - **🚀 NestJS CRUD Automator integration** - Leverages advanced CRUD automation for controllers and services
 - **💾 Intelligent caching** - Built-in caching support with configurable TTL and cache size limits
-- **🔄 Event-driven architecture** - Comprehensive event system with before/after hooks and TypeORM subscribers
+- **🔄 Named transaction ownership** - Each Automator-owned unit of work uses one exact TypeORM manager, including joined migration writes
 - **🎛️ Highly customizable** - Configure table prefixes, field lengths, validation rules, and entity relationships
 - **🚦 Flexible controller configuration** - Customize API paths, disable endpoints, or run in headless mode
 - **🔧 Advanced CRUD customization** - Full control over routes, swagger documentation, and controller behavior
@@ -54,15 +55,17 @@ Whether you're managing API keys across different environments, storing feature 
 
 ## 🛠 Installation
 
+These docs describe the upcoming CrudConfig 3.0 contract. Use the 3.x-only range below. It intentionally fails until a 3.0 prerelease exists instead of resolving incompatible CrudConfig 2.x:
+
 ```bash
-# Using npm
-npm install @elsikora/nestjs-crud-config
+# npm
+npm install @elsikora/nestjs-crud-config@^3.0.0-0
 
-# Using yarn
-yarn add @elsikora/nestjs-crud-config
+# yarn
+yarn add @elsikora/nestjs-crud-config@^3.0.0-0
 
-# Using pnpm
-pnpm add @elsikora/nestjs-crud-config
+# pnpm
+pnpm add @elsikora/nestjs-crud-config@^3.0.0-0
 ```
 
 ### Prerequisites
@@ -70,33 +73,40 @@ pnpm add @elsikora/nestjs-crud-config
 Install the required peer dependencies:
 
 ```bash
-npm install @elsikora/nestjs-crud-automator@^2.8.0 @nestjs/common@^11.1.24 @nestjs/core@^11.1.24 @nestjs/typeorm@^11.0.0 typeorm@^0.3.20
-npm install @nestjs/passport@^11.0.5 @nestjs/platform-fastify@^11.1.24 @nestjs/swagger@^11.0.3 @nestjs/throttler@^6.5.0 class-transformer@^0.5.1 class-validator@^0.15.1 fastify@^5.8.5 lodash@^4.18.1
+npm install @elsikora/nestjs-crud-automator@^3.0.2 @nestjs/common@^11.1.24 @nestjs/core@^11.1.24 @nestjs/typeorm@^11.0.0 typeorm@^0.3.20
+npm install @nestjs/passport@^11.0.5 @nestjs/platform-fastify@^11.1.24 @nestjs/swagger@11.4.2 @nestjs/throttler@^6.5.0 class-transformer@^0.5.1 class-validator@^0.15.1 fastify@^5.8.5 lodash@^4.18.1
 ```
 
-### Automator 2.8 compatibility
+### Automator 3 compatibility
 
-This package now requires `@elsikora/nestjs-crud-automator@^2.8.0`.
+The upcoming CrudConfig 3 release requires `@elsikora/nestjs-crud-automator >=3.0.2-0 <4.0.0`. Automator 2 is not supported.
 
-If you customize generated routes, replace Automator 1.x route flags:
-
-```typescript
-DELETE: {
- isEnabled: false;
-}
-```
-
-with Automator 2.8 generation config:
+Generated route overrides continue to use Automator generation config:
 
 ```typescript
 DELETE: {
  generation: {
-  isEnabled: false;
- }
-}
+  isEnabled: false,
+ },
+},
 ```
 
-ConfigData `CREATE` and `UPDATE` now use Automator 2.8 nested request relation loading. The built-in section relation expects request bodies such as `{ "section": { "id": "section-uuid" } }`.
+ConfigData `CREATE` and `UPDATE` use Automator nested request relation loading. The built-in section relation expects request bodies such as `{ "section": { "id": "section-uuid" } }`.
+
+The tested Swagger baseline is exact `11.4.2`. See [Migrating to 3.0](#migrating-to-30) for transaction and EventEmitter changes.
+
+### Migrating to 3.0
+
+The upcoming 3.0 release is breaking:
+
+- Automator 2 compatibility is removed.
+- Transaction-enabled migration execution and rollback use the named `crud-config-migrations` Automator owner.
+- Standalone `CrudConfigService.set()` uses the named `crud-config-set` owner.
+- Migration config operations must receive the callback `EntityManager` through `eventManager` so they join instead of opening a nested owner.
+- The ConfigData before-insert EventEmitter pipeline and `@nestjs/event-emitter` dependency are removed.
+- The database unique constraint remains authoritative, and Automator maps duplicate writes to `409 CONFIGDATA_DUPLICATE_KEY`.
+
+See the complete [3.0 migration guide](docs/guides/migrating-to-3-0/page.mdx).
 
 ### Database Support
 
@@ -338,7 +348,7 @@ The NestJS CRUD Config module includes a powerful **production-ready migration s
 ### Key Features
 
 - **🔄 Automatic execution on startup** - Migrations run automatically when the application bootstraps
-- **💾 Transaction support** - All migrations run within database transactions for data consistency
+- **💾 Named transaction support** - Transaction-enabled migrations run inside one named Automator owner
 - **🌍 Environment-specific configurations** - Create different configurations for different environments
 - **📊 Migration tracking** - Complete audit trail with timestamps and execution status
 - **🔙 Rollback support** - Define rollback procedures for each migration
@@ -394,6 +404,10 @@ import { initialAppConfigMigration } from "./migrations/001-initial-app-config.m
 })
 export class AppModule {}
 ```
+
+With `useTransaction: true` (the default), execution owns one `crud-config-migrations` transaction and passes its exact `EntityManager` to each migration callback. Pass that manager as `eventManager` to every config operation in the migration. Omitting it from `set()` would attempt to open the separate `crud-config-set` owner, and Automator rejects nested owners.
+
+With `useTransaction: false`, there is no migration-wide owner and callbacks receive `undefined`. A standalone `set()` still owns its own atomic `crud-config-set` transaction, so several config writes are not one all-or-nothing unit. Rollback execution always uses the named migration owner.
 
 ### Creating Migration Files
 
@@ -581,29 +595,20 @@ CrudConfigModule.registerAsync({
    - ✅ `002_add_feature_flags`
    - ❌ `migration1`, `config_setup`
 
-2. **Idempotency**: Migrations should be safe to run multiple times
+2. **Retry safety**: Use `set()` as the upsert for a configuration key
 
    ```typescript
-   // Good: Check if configuration exists before creating
-   const existing = await configService.get({
-     section: 'app-settings',
-     name: 'APP_NAME',
-     environment: 'default',
-   }).catch(() => null);
-
-   if (!existing) {
-     await configService.set({...});
-   }
+   await configService.set({ eventManager: entityManager, ...properties });
    ```
 
 3. **Error Handling**: Always handle errors gracefully
 
    ```typescript
    try {
-     await configService.set({...});
+    await configService.set({ eventManager: entityManager, ...properties });
    } catch (error) {
-     console.error('Migration failed:', error);
-     throw error; // Re-throw to mark migration as failed
+    console.error("Migration failed:", error);
+    throw error; // Re-throw to mark migration as failed
    }
    ```
 
@@ -619,6 +624,7 @@ CrudConfigModule.registerAsync({
    ```typescript
    const currentEnv = process.env.NODE_ENV || "development";
    await configService.set({
+    eventManager: entityManager,
     environment: currentEnv,
     // ... other options
    });
@@ -763,7 +769,7 @@ CrudConfigModule.register({
 });
 ```
 
-`@elsikora/nestjs-crud-automator` 2.8 route options use `generation.isEnabled` for route generation. Relation loading uses TypeORM `relationLoadStrategy` values (`"query"` or `"join"`); Automator 2.8 does not export a dedicated relation-load-strategy enum yet, so this package uses the `"query"` literal for the built-in ConfigData section relation.
+Automator 3 route options use `generation.isEnabled` for route generation. Relation loading uses TypeORM `relationLoadStrategy` values (`"query"` or `"join"`); the built-in ConfigData section relation uses `"query"`.
 
 ## 🗄️ Database Schema
 
@@ -830,34 +836,11 @@ console.log(config.value); // Automatically decrypted value
 console.log(config.isEncrypted); // true
 ```
 
-### Event-Driven Architecture
+### Transaction and Duplicate Protection
 
-The module includes comprehensive event handling with both listeners and TypeORM subscribers:
+`CrudConfigService.set()` owns a named Automator transaction when called without `eventManager`. When a migration supplies its owner manager, all generated ConfigSection and ConfigData service operations join that same transaction.
 
-```typescript
-// Event listener example
-@Injectable()
-export class ConfigDataBeforeInsertListener {
- @OnEvent("config-data.beforeInsert")
- async handleBeforeInsert(payload: ConfigDataEventBeforeInsert) {
-  // Custom validation logic
-  const entity = payload.item;
-  const entityManager = payload.eventManager;
-
-  // Perform custom checks
-  return { isSuccess: true };
- }
-}
-
-// TypeORM subscriber for database-level events
-@EventSubscriber()
-export class ConfigDataBeforeInsertSubscriber {
- beforeInsert(event: InsertEvent<IConfigData>) {
-  // Database-level validation
-  return Promise.resolve(true);
- }
-}
-```
+The package does not require consumer `EventEmitterModule` wiring. ConfigData uniqueness is enforced by the database across `name`, `environment`, and `section`; Automator maps a conflicting generated create or update to `409 CONFIGDATA_DUPLICATE_KEY`. Put application-specific validation or auditing in the application service/lifecycle layer rather than a package before-insert event.
 
 ### Headless Mode (Without Controllers)
 
@@ -910,7 +893,7 @@ export class MultiEnvironmentService {
 | Full CRUD operations with REST API            | ✅ Done        |
 | Swagger/OpenAPI documentation                 | ✅ Done        |
 | Multi-environment support                     | ✅ Done        |
-| Event-driven architecture with hooks          | ✅ Done        |
+| Named Automator transaction ownership         | ✅ Done        |
 | Caching system with TTL                       | ✅ Done        |
 | Custom table names and prefixes               | ✅ Done        |
 | Validation and constraints                    | ✅ Done        |

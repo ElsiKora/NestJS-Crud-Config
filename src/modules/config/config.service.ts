@@ -22,7 +22,7 @@ import {
 } from "@nestjs/common";
 import { TOKEN_CONSTANT } from "@shared/constant";
 import { CryptoUtility, LoggerUtility } from "@shared/utility";
-import { DataSource, EntityManager, QueryRunner } from "typeorm";
+import { DataSource, EntityManager } from "typeorm";
 
 import {
  IConfigDeleteOptions,
@@ -281,6 +281,8 @@ export class CrudConfigService {
   * Sets a configuration value with optional encryption.
   * The specified section must already exist.
   * If a configuration with the same name and environment already exists, it will be updated. Otherwise, a new one will be created.
+  * Owns the named crud-config-set Automator transaction when eventManager is omitted.
+  * A provided eventManager must already belong to an active Automator owner.
   * @param {IConfigSetOptions} options Configuration set options
   * @returns {Promise<IConfigData>} Promise resolving to the saved configuration data
   */
@@ -293,7 +295,6 @@ export class CrudConfigService {
   this.LOGGER.verbose(`Entering set method with options: ${JSON.stringify(maskedOptions)}`);
 
   const {
-   description,
    environment,
    eventManager,
    name,
@@ -331,64 +332,22 @@ export class CrudConfigService {
    }
   }
 
-  let queryRunner: QueryRunner | undefined;
-  let useTransaction: boolean = false;
-  let localEventManager: EntityManager | undefined = eventManager;
-
   try {
-   useTransaction = !eventManager;
+   let result: IConfigData;
 
-   if (useTransaction) {
+   if (eventManager) {
+    result = await this.setWithEntityManager(options, finalValue, isEncrypted, eventManager);
+   } else {
     if (!this.dataSource) {
      throw new InternalServerErrorException("DataSource not available for transaction");
     }
-    queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-    localEventManager = queryRunner.manager;
-   }
 
-   this.LOGGER.verbose(`Fetching or creating section: ${sectionName}`);
-   const section: IConfigSection = await this.getOrCreateSection(sectionName, localEventManager);
-
-   this.LOGGER.verbose(`Preparing config data for ${name}`);
-
-   const configData: Partial<IConfigData> = {
-    description: description ?? undefined,
-    environment: finalEnvironment,
-    isEncrypted,
-    name,
-    section: { id: section.id },
-    value: finalValue,
-   };
-
-   let result: IConfigData;
-
-   try {
-    this.LOGGER.verbose(`Checking for existing config: ${name}`);
-
-    const existingData: IConfigData = await this.runWithEventManager(localEventManager, () =>
-     this.dataService.get({
-      where: { environment: finalEnvironment, name, section: { id: section.id } },
-     }),
+    result = await ApiFunctionTransactionScope.runWithDataSource(
+     this.dataSource,
+     { name: "crud-config-set" },
+     async (transactionalEntityManager: EntityManager): Promise<IConfigData> =>
+      await this.setWithEntityManager(options, finalValue, isEncrypted, transactionalEntityManager),
     );
-
-    this.LOGGER.verbose(`Updating existing config: ${name}`);
-    result = await this.runWithEventManager(localEventManager, () =>
-     this.dataService.update({ id: existingData.id }, configData),
-    );
-   } catch (error: unknown) {
-    if (error instanceof NotFoundException) {
-     this.LOGGER.verbose(`Config ${name} not found, creating new one`);
-     result = await this.runWithEventManager(localEventManager, () =>
-      this.dataService.create(configData),
-     );
-    } else {
-     const errorMessage: string = error instanceof Error ? error.message : String(error);
-     this.LOGGER.error(`Error updating config: ${errorMessage}`);
-
-     throw error;
-    }
    }
 
    if (this.options?.cacheOptions?.isEnabled && this.cacheManager) {
@@ -398,20 +357,10 @@ export class CrudConfigService {
     await Promise.all([this.cacheManager.del(cacheKey), this.cacheManager.del(listCacheKey)]);
    }
 
-   if (useTransaction && queryRunner) {
-    await queryRunner.commitTransaction();
-    await queryRunner.release();
-   }
-
    this.LOGGER.verbose(`Set method completed successfully for ${name}`);
 
    return result;
   } catch (error: unknown) {
-   if (useTransaction && queryRunner) {
-    await queryRunner.rollbackTransaction();
-    await queryRunner.release();
-   }
-
    const errorMessage: string = error instanceof Error ? error.message : String(error);
    this.LOGGER.error(`Error in set method: ${errorMessage}`);
 
@@ -458,5 +407,56 @@ export class CrudConfigService {
   }
 
   return await ApiFunctionTransactionScope.runWithEntityManager(eventManager, callback);
+ }
+
+ private async setWithEntityManager(
+  options: IConfigSetOptions,
+  value: string,
+  isEncrypted: boolean,
+  entityManager: EntityManager,
+ ): Promise<IConfigData> {
+  const { description, environment, name, section: sectionName }: IConfigSetOptions = options;
+  const finalEnvironment: string = environment ?? this.options?.environment ?? "default";
+
+  this.LOGGER.verbose(`Fetching or creating section: ${sectionName}`);
+  const section: IConfigSection = await this.getOrCreateSection(sectionName, entityManager);
+
+  this.LOGGER.verbose(`Preparing config data for ${name}`);
+
+  const configData: Partial<IConfigData> = {
+   description: description ?? undefined,
+   environment: finalEnvironment,
+   isEncrypted,
+   name,
+   section: { id: section.id },
+   value,
+  };
+
+  try {
+   this.LOGGER.verbose(`Checking for existing config: ${name}`);
+
+   const existingData: IConfigData = await this.runWithEventManager(entityManager, () =>
+    this.dataService.get({
+     where: { environment: finalEnvironment, name, section: { id: section.id } },
+    }),
+   );
+
+   this.LOGGER.verbose(`Updating existing config: ${name}`);
+
+   return await this.runWithEventManager(entityManager, () =>
+    this.dataService.update({ id: existingData.id }, configData),
+   );
+  } catch (error: unknown) {
+   if (error instanceof NotFoundException) {
+    this.LOGGER.verbose(`Config ${name} not found, creating new one`);
+
+    return await this.runWithEventManager(entityManager, () => this.dataService.create(configData));
+   }
+
+   const errorMessage: string = error instanceof Error ? error.message : String(error);
+   this.LOGGER.error(`Error updating config: ${errorMessage}`);
+
+   throw error;
+  }
  }
 }

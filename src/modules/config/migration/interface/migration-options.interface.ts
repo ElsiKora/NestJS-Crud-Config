@@ -37,7 +37,8 @@ export interface IConfigMigrationOptions {
  tableName?: string;
 
  /**
-  * Whether to run migrations in transaction
+  * Whether to run migrations inside the named crud-config-migrations owner.
+  * Defaults to true. Standalone set calls still own per-operation transactions when false.
   */
  useTransaction?: boolean;
 }

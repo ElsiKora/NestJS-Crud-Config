@@ -1,4 +1,4 @@
-import type { EntityManager } from "typeorm/entity-manager/EntityManager";
+import type { EntityManager } from "typeorm";
 
 /**
  * Context options for configuration retrieval
@@ -11,7 +11,8 @@ export interface IConfigGetOptions {
  environment?: string;
 
  /**
-  * Entity manager for database operations
+  * When provided, the exact entity manager already bound to an active Automator owner.
+  * Omit it for a standalone operation.
   */
  eventManager?: EntityManager;
 

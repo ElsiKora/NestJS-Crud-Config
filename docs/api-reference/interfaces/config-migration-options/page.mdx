@@ -4,6 +4,8 @@ import { generateDefinition, TSDoc } from "nextra/tsdoc";
 
 Migration system configuration options.
 
+`useTransaction` defaults to `true` and enables the migration-wide `crud-config-migrations` owner. When disabled, callbacks receive no manager, although each standalone `set()` still owns its own atomic transaction.
+
 _Defined in: `src/modules/config/migration/interface/migration-options.interface.ts`_
 
 <TSDoc

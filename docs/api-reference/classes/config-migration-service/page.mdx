@@ -21,6 +21,12 @@ export class ConfigMigrationService {
 }
 ```
 
+## Transaction contract
+
+`executeMigrations(migrations, true)` and `rollbackMigration()` own the named `crud-config-migrations` Automator transaction. Migration history writes and callbacks join its exact manager.
+
+`executeMigrations(migrations, false)` opens no migration-wide owner and passes `undefined` to `up()`. A standalone `CrudConfigService.set()` still owns its own `crud-config-set` transaction.
+
 ## Related
 
 - [Migration System](/docs/nestjs-crud-config/migration-system)

@@ -22,11 +22,13 @@ It provides:
 - **REST endpoints (optional)**: auto-generated controllers for sections and data
 - **AES-256-GCM encryption (optional)**: encrypt values at rest with automatic decrypt on read
 - **Caching (optional)**: cache reads with configurable TTL
-- **Migration system**: run config migrations on startup with tracking and rollback
+- **Migration system**: run tracked config migrations with named Automator ownership and rollback
+- **Database duplicate protection**: preserve native unique constraints and Automator `409` mapping
 
 ## Where to start
 
 - [Getting Started](/docs/nestjs-crud-config/getting-started)
+- [Migrating to 3.0](/docs/nestjs-crud-config/guides/migrating-to-3-0)
 - [Core Concepts](/docs/nestjs-crud-config/core-concepts)
 - [Guides](/docs/nestjs-crud-config/guides)
 - [Migration System](/docs/nestjs-crud-config/migration-system)
