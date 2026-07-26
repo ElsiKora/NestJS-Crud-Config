@@ -1,7 +1,12 @@
+import type { DynamicModule } from "@nestjs/common";
+
+import { CrudConfigService } from "../../../../src/modules/config/config.service";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CrudConfigModule } from "../../../../src/modules/config/config.module";
 import { TOKEN_CONSTANT } from "../../../../src/shared/constant";
 import type { IConfigOptions } from "../../../../src/shared/interface/config";
+import { Test } from "@nestjs/testing";
+import { getDataSourceToken } from "@nestjs/typeorm";
 
 describe("CrudConfigModule", () => {
  beforeEach(() => {
@@ -18,6 +23,36 @@ describe("CrudConfigModule", () => {
    expect(dynamicModule.module).toBe(CrudConfigModule);
    expect(dynamicModule.providers).toBeDefined();
    expect(dynamicModule.exports).toBeDefined();
+  });
+
+  it("should compile without consumer EventEmitter wiring", async () => {
+   const repository = {
+    manager: { getRepository: vi.fn().mockReturnValue({}) },
+   };
+   const dataSource = {
+    getRepository: vi.fn().mockReturnValue(repository),
+   };
+   const dataSourceModule: DynamicModule = {
+    exports: [getDataSourceToken()],
+    module: class TestDataSourceModule {},
+    providers: [{ provide: getDataSourceToken(), useValue: dataSource }],
+   };
+   const dynamicModule: DynamicModule = CrudConfigModule.register({
+    controllersOptions: {
+     data: { isEnabled: false },
+     section: { isEnabled: false },
+    },
+   });
+
+   dynamicModule.imports = [...(dynamicModule.imports ?? []), dataSourceModule];
+
+   const moduleReference = await Test.createTestingModule({
+    imports: [dynamicModule],
+   }).compile();
+
+   expect(moduleReference.get(CrudConfigService)).toBeDefined();
+
+   await moduleReference.close();
   });
 
   it("should register module with custom entity options", () => {
@@ -105,6 +140,39 @@ describe("CrudConfigModule", () => {
  });
 
  describe("registerAsync", () => {
+  it("should compile without consumer EventEmitter wiring", async () => {
+   const repository = {
+    manager: { getRepository: vi.fn().mockReturnValue({}) },
+   };
+   const dataSourceModule: DynamicModule = {
+    exports: [getDataSourceToken()],
+    module: class TestAsyncDataSourceModule {},
+    providers: [
+     {
+      provide: getDataSourceToken(),
+      useValue: { getRepository: vi.fn().mockReturnValue(repository) },
+     },
+    ],
+   };
+   const dynamicModule: DynamicModule = CrudConfigModule.registerAsync({
+    imports: [dataSourceModule],
+    staticOptions: {
+     controllersOptions: {
+      data: { isEnabled: false },
+      section: { isEnabled: false },
+     },
+    },
+    useFactory: () => ({}),
+   });
+   const moduleReference = await Test.createTestingModule({
+    imports: [dynamicModule],
+   }).compile();
+
+   expect(moduleReference.get(CrudConfigService)).toBeDefined();
+
+   await moduleReference.close();
+  });
+
   it("should register module asynchronously with useFactory", () => {
    const options: IConfigOptions = {
     environment: "test",

@@ -19,8 +19,7 @@
   "outDir": "./dist",
   "paths": {
    "@modules/*": ["./src/modules/*"],
-   "@shared/*": ["./src/shared/*"],
-   "typeorm/*": ["./node_modules/typeorm/*"]
+   "@shared/*": ["./src/shared/*"]
   },
   "skipLibCheck": true,
   "sourceMap": true,

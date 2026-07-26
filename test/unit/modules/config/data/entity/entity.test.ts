@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createConfigDataEntity } from "../../../../../../src/modules/config/data/entity";
 import { CONFIG_DATA_CONSTANT } from "../../../../../../src/shared/constant";
+import { getMetadataArgsStorage } from "typeorm";
 
 describe("createConfigDataEntity", () => {
  it("should create a ConfigData entity with default settings", () => {
@@ -35,6 +36,23 @@ describe("createConfigDataEntity", () => {
   });
 
   expect(ConfigDataEntity).toBeDefined();
+ });
+
+ it("should enforce section, environment, and name uniqueness in the database", () => {
+  const mockSectionEntity = class ConfigSection {};
+  const ConfigDataEntity = createConfigDataEntity({
+   configSectionEntity: mockSectionEntity as any,
+   maxDescriptionLength: CONFIG_DATA_CONSTANT.MAX_DESCRIPTION_LENGTH,
+   maxEnvironmentLength: CONFIG_DATA_CONSTANT.MAX_ENVIRONMENT_LENGTH,
+   maxNameLength: CONFIG_DATA_CONSTANT.MAX_NAME_LENGTH,
+   maxValueLength: CONFIG_DATA_CONSTANT.MAX_VALUE_LENGTH,
+   tableName: CONFIG_DATA_CONSTANT.DEFAULT_TABLE_NAME,
+  });
+  const unique = getMetadataArgsStorage().uniques.find(
+   (metadata) => metadata.target === ConfigDataEntity,
+  );
+
+  expect(unique?.columns).toEqual(["name", "environment", "section"]);
  });
 
  it("should create entity with custom column lengths", () => {

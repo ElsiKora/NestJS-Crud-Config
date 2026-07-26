@@ -76,7 +76,7 @@ describe("CrudConfigService", () => {
    rollbackTransaction: vi.fn(),
    release: vi.fn(),
    manager: {
-    getRepository: vi.fn(),
+    getRepository: vi.fn().mockReturnValue({}),
    },
   };
 
@@ -239,7 +239,9 @@ describe("CrudConfigService", () => {
    const eventManager = {
     getRepository: vi.fn(),
    } as any;
-   const scopeSpy = vi.spyOn(ApiFunctionTransactionScope, "runWithEntityManager");
+   const scopeSpy = vi
+    .spyOn(ApiFunctionTransactionScope, "runWithEntityManager")
+    .mockImplementation(async (_entityManager, callback) => await callback());
 
    await service.get({
     eventManager,
@@ -370,6 +372,7 @@ describe("CrudConfigService", () => {
 
   it("should create transaction when eventManager is not provided", async () => {
    const queryRunner = dataSource.createQueryRunner();
+   const scopeSpy = vi.spyOn(ApiFunctionTransactionScope, "runWithDataSource");
 
    await service.set({
     section: "test-section",
@@ -377,11 +380,35 @@ describe("CrudConfigService", () => {
     value: "test-value",
    });
 
+   expect(scopeSpy).toHaveBeenCalledWith(
+    dataSource,
+    { name: "crud-config-set" },
+    expect.any(Function),
+   );
    expect(dataSource.createQueryRunner).toHaveBeenCalled();
    expect(queryRunner.connect).toHaveBeenCalled();
    expect(queryRunner.startTransaction).toHaveBeenCalled();
    expect(queryRunner.commitTransaction).toHaveBeenCalled();
    expect(queryRunner.release).toHaveBeenCalled();
+   scopeSpy.mockRestore();
+  });
+
+  it("should join an active Automator owner without opening a nested transaction", async () => {
+   await ApiFunctionTransactionScope.runWithDataSource(
+    dataSource,
+    { name: "test-config-owner" },
+    async (entityManager): Promise<void> => {
+     await service.set({
+      eventManager: entityManager,
+      name: "test-config",
+      section: "test-section",
+      value: "updated-value",
+     });
+    },
+   );
+
+   expect(dataSource.createQueryRunner).toHaveBeenCalledTimes(1);
+   expect(dataService.update).toHaveBeenCalledTimes(1);
   });
 
   it("should auto-create section when shouldAutoCreateSections is enabled", async () => {

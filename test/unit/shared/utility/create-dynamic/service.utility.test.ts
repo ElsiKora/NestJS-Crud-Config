@@ -1,4 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { ConflictException } from "@nestjs/common";
+import { QueryFailedError } from "typeorm";
+import { describe, expect, it, vi } from "vitest";
 import { createDynamicService } from "../../../../../src/shared/utility/create-dynamic/service.utility";
 
 describe("createDynamicService", () => {
@@ -44,5 +46,35 @@ describe("createDynamicService", () => {
 
   // The service should be decorated with @Injectable()
   expect(DynamicService).toBeDefined();
+ });
+
+ it("should map database uniqueness violations through Automator", async () => {
+  const ConfigDataEntity = class ConfigData {
+   id!: string;
+  };
+  const uniqueError = new QueryFailedError("INSERT", [], {
+   code: "SQLITE_CONSTRAINT",
+   errno: 19,
+   message: "UNIQUE constraint failed: config_data.name",
+  });
+  const repository = {
+   save: vi.fn().mockRejectedValue(uniqueError),
+  };
+  const DynamicService = createDynamicService(ConfigDataEntity as any, "ConfigDataService");
+  const service = new DynamicService(repository as any);
+  let caughtError: unknown;
+
+  try {
+   await service.create({ id: "duplicate" });
+  } catch (error: unknown) {
+   caughtError = error;
+  }
+
+  expect(caughtError).toBeInstanceOf(ConflictException);
+  expect((caughtError as ConflictException).getResponse()).toMatchObject({
+   error: "Conflict",
+   message: "CONFIGDATA_DUPLICATE_KEY",
+   statusCode: 409,
+  });
  });
 });

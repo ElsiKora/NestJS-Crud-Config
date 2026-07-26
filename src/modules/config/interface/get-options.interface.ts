@@ -1,4 +1,4 @@
-import type { EntityManager } from "typeorm/entity-manager/EntityManager";
+import type { EntityManager } from "typeorm";
 
 /**
  * Context options for configuration retrieval

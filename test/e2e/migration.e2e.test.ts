@@ -1,5 +1,5 @@
 import { Test, TestingModule } from "@nestjs/testing";
-import { DataSource } from "typeorm";
+import { DataSource, type EntityManager, type QueryRunner } from "typeorm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CrudConfigService } from "../../src/modules/config/config.service";
@@ -52,8 +52,12 @@ describe("Migration E2E Tests", () => {
   let mockConfigService: CrudConfigService;
   let migrationService: ConfigMigrationService;
   let mockMigrationService: any;
+  let mockEntityManager: EntityManager;
+  let mockQueryRunner: QueryRunner;
 
   beforeEach(() => {
+   vi.clearAllMocks();
+
    // Create mock migration service
    mockMigrationService = {
     getList: vi.fn().mockResolvedValue({
@@ -80,31 +84,27 @@ describe("Migration E2E Tests", () => {
     delete: vi.fn().mockResolvedValue(undefined),
    };
 
+   mockEntityManager = {
+    save: vi.fn(),
+    update: vi.fn(),
+    find: vi.fn().mockResolvedValue([]),
+    getRepository: vi.fn().mockReturnValue({}),
+   } as any;
+
+   mockQueryRunner = {
+    connect: vi.fn().mockResolvedValue(undefined),
+    startTransaction: vi.fn().mockResolvedValue(undefined),
+    commitTransaction: vi.fn().mockResolvedValue(undefined),
+    rollbackTransaction: vi.fn().mockResolvedValue(undefined),
+    release: vi.fn().mockResolvedValue(undefined),
+    manager: mockEntityManager,
+   } as any;
+
    // Create mocks
    mockDataSource = {
     isInitialized: true,
     options: { type: "sqlite", database: ":memory:" },
-    createQueryRunner: vi.fn().mockReturnValue({
-     connect: vi.fn(),
-     startTransaction: vi.fn(),
-     commitTransaction: vi.fn(),
-     rollbackTransaction: vi.fn(),
-     release: vi.fn(),
-     manager: {
-      save: vi.fn(),
-      update: vi.fn(),
-      find: vi.fn().mockResolvedValue([]),
-     },
-    }),
-    transaction: vi.fn().mockImplementation(async (runInTransaction) => {
-     const mockEntityManager = {
-      save: vi.fn(),
-      update: vi.fn(),
-      find: vi.fn().mockResolvedValue([]),
-      getRepository: vi.fn(),
-     };
-     return await runInTransaction(mockEntityManager);
-    }),
+    createQueryRunner: vi.fn().mockReturnValue(mockQueryRunner),
     getRepository: vi.fn().mockReturnValue({
      find: vi.fn().mockResolvedValue([]),
      findOne: vi.fn().mockResolvedValue(null),
@@ -143,8 +143,10 @@ describe("Migration E2E Tests", () => {
   it("should execute migrations successfully", async () => {
    await migrationService.executeMigrations(testMigrations);
 
-   expect(testMigrations[0].up).toHaveBeenCalled();
-   expect(testMigrations[1].up).toHaveBeenCalled();
+   expect(testMigrations[0].up).toHaveBeenCalledWith(mockConfigService, mockEntityManager);
+   expect(testMigrations[1].up).toHaveBeenCalledWith(mockConfigService, mockEntityManager);
+   expect(mockQueryRunner.commitTransaction).toHaveBeenCalledTimes(1);
+   expect(mockQueryRunner.rollbackTransaction).not.toHaveBeenCalled();
   });
  });
 
