@@ -1,4 +1,4 @@
-import type { EntityManager } from "typeorm/entity-manager/EntityManager";
+import type { EntityManager } from "typeorm";
 
 /**
  * Context options for configuration setting
@@ -16,7 +16,8 @@ export interface IConfigSetOptions {
  environment?: string;
 
  /**
-  * Entity manager for database operations
+  * Exact entity manager already bound to an active Automator owner.
+  * Omit it for a standalone set, which owns the named crud-config-set transaction.
   */
  eventManager?: EntityManager;
 

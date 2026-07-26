@@ -1,6 +1,6 @@
 import { ApiFunctionTransactionScope, ApiServiceBase } from "@elsikora/nestjs-crud-automator";
-import { Logger } from "@nestjs/common";
-import { DataSource, EntityManager } from "typeorm";
+import { ConflictException, Logger } from "@nestjs/common";
+import type { DataSource, EntityManager, QueryRunner } from "typeorm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CrudConfigService } from "../../../../../src/modules/config/config.service";
@@ -12,6 +12,7 @@ import type {
 } from "../../../../../src/modules/config/migration/interface";
 import { CONFIG_MIGRATION_CONSTANT } from "../../../../../src/shared/constant/config";
 import type { IConfigOptions } from "../../../../../src/shared/interface/config";
+import { createDynamicService } from "../../../../../src/shared/utility";
 
 describe("ConfigMigrationService", () => {
  let service: ConfigMigrationService;
@@ -20,6 +21,8 @@ describe("ConfigMigrationService", () => {
  let mockOptions: IConfigOptions;
  let mockMigrationService: ApiServiceBase<IConfigMigration>;
  let mockEntityManager: EntityManager;
+ let mockQueryRunner: QueryRunner;
+ let mockMigrationDefinition: IConfigMigrationDefinition;
 
  const mockMigration: IConfigMigration = {
   id: "migration-1",
@@ -29,13 +32,6 @@ describe("ConfigMigrationService", () => {
   updatedAt: new Date(),
   startedAt: new Date(),
   executedAt: new Date(),
- };
-
- const mockMigrationDefinition: IConfigMigrationDefinition = {
-  name: "001_test_migration",
-  description: "Test migration",
-  up: vi.fn().mockResolvedValue(undefined),
-  down: vi.fn().mockResolvedValue(undefined),
  };
 
  const createMockApiListResult = <T>(items: T[], totalCount?: number) => ({
@@ -58,13 +54,21 @@ describe("ConfigMigrationService", () => {
   } as any;
 
   mockEntityManager = {
-   getRepository: vi.fn(),
+   getRepository: vi.fn().mockReturnValue({}),
    transaction: vi.fn(),
   } as any;
 
+  mockQueryRunner = {
+   manager: mockEntityManager,
+   connect: vi.fn().mockResolvedValue(undefined),
+   startTransaction: vi.fn().mockResolvedValue(undefined),
+   commitTransaction: vi.fn().mockResolvedValue(undefined),
+   rollbackTransaction: vi.fn().mockResolvedValue(undefined),
+   release: vi.fn().mockResolvedValue(undefined),
+  } as any;
+
   mockDataSource = {
-   transaction: vi.fn(),
-   createQueryRunner: vi.fn(),
+   createQueryRunner: vi.fn().mockReturnValue(mockQueryRunner),
   } as any;
 
   mockConfigService = {} as any;
@@ -78,6 +82,13 @@ describe("ConfigMigrationService", () => {
    entityOptions: {
     tablePrefix: "test_",
    },
+  };
+
+  mockMigrationDefinition = {
+   name: "001_test_migration",
+   description: "Test migration",
+   up: vi.fn().mockResolvedValue(undefined),
+   down: vi.fn().mockResolvedValue(undefined),
   };
 
   service = new ConfigMigrationService(
@@ -111,13 +122,15 @@ describe("ConfigMigrationService", () => {
 
    vi.mocked(mockMigrationService.create).mockResolvedValue(mockMigration);
    vi.mocked(mockMigrationService.update).mockResolvedValue(mockMigration);
-
-   vi.mocked(mockDataSource.transaction).mockImplementation(async (callback: any) => {
-    return await callback(mockEntityManager);
-   });
+   const scopeSpy = vi.spyOn(ApiFunctionTransactionScope, "runWithDataSource");
 
    await service.executeMigrations(migrations, true);
 
+   expect(scopeSpy).toHaveBeenCalledWith(
+    mockDataSource,
+    { name: "crud-config-migrations" },
+    expect.any(Function),
+   );
    expect(mockMigrationDefinition.up).toHaveBeenCalledWith(mockConfigService, mockEntityManager);
    expect(mockMigrationService.create).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -131,6 +144,50 @@ describe("ConfigMigrationService", () => {
      status: EConfigMigrationStatus.COMPLETED,
     }),
    );
+   expect(mockQueryRunner.startTransaction).toHaveBeenCalledTimes(1);
+   expect(mockQueryRunner.commitTransaction).toHaveBeenCalledTimes(1);
+   expect(mockQueryRunner.rollbackTransaction).not.toHaveBeenCalled();
+   expect(mockQueryRunner.release).toHaveBeenCalledTimes(1);
+   scopeSpy.mockRestore();
+  });
+
+  it("should persist migration history through the owner manager repository", async () => {
+   const ConfigMigrationEntity = class ConfigMigration {};
+   const transactionRepository = {
+    findOne: vi.fn().mockResolvedValue(mockMigration),
+    save: vi.fn().mockImplementation(async (properties: Partial<IConfigMigration>) => ({
+     ...mockMigration,
+     ...properties,
+    })),
+   };
+   const baseRepository = {
+    findAndCount: vi.fn().mockResolvedValue([[], 0]),
+    manager: { getRepository: vi.fn() },
+    save: vi.fn(),
+   };
+   const DynamicMigrationService = createDynamicService(
+    ConfigMigrationEntity as any,
+    "ConfigMigrationService",
+   );
+   const actualMigrationService = new DynamicMigrationService(
+    baseRepository as any,
+   ) as ApiServiceBase<IConfigMigration>;
+
+   vi.mocked(mockEntityManager.getRepository).mockReturnValue(transactionRepository as any);
+
+   service = new ConfigMigrationService(
+    mockDataSource,
+    mockOptions,
+    mockConfigService,
+    actualMigrationService,
+   );
+
+   await service.executeMigrations([mockMigrationDefinition], true);
+
+   expect(transactionRepository.save).toHaveBeenCalledTimes(2);
+   expect(transactionRepository.findOne).toHaveBeenCalledTimes(1);
+   expect(baseRepository.save).not.toHaveBeenCalled();
+   expect(mockQueryRunner.commitTransaction).toHaveBeenCalledTimes(1);
   });
 
   it("should skip already completed migrations", async () => {
@@ -155,10 +212,6 @@ describe("ConfigMigrationService", () => {
    vi.mocked(mockMigrationService.create).mockResolvedValue(mockMigration);
    vi.mocked(mockMigrationDefinition.up).mockRejectedValue(error);
 
-   vi.mocked(mockDataSource.transaction).mockImplementation(async (callback: any) => {
-    return await callback(mockEntityManager);
-   });
-
    await expect(service.executeMigrations(migrations, true)).rejects.toThrow(error);
 
    expect(mockMigrationService.update).toHaveBeenCalledWith(
@@ -167,6 +220,83 @@ describe("ConfigMigrationService", () => {
      status: EConfigMigrationStatus.FAILED,
     }),
    );
+   expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled();
+   expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalledTimes(1);
+   expect(mockQueryRunner.release).toHaveBeenCalledTimes(1);
+  });
+
+  it("should retry a transaction-enabled migration after rollback", async () => {
+   const error = new Error("Migration failed");
+
+   vi.mocked(mockMigrationService.getList).mockResolvedValue(createMockApiListResult([]));
+   vi.mocked(mockMigrationService.create).mockResolvedValue(mockMigration);
+   vi.mocked(mockMigrationService.update).mockResolvedValue(mockMigration);
+   vi
+    .mocked(mockMigrationDefinition.up)
+    .mockRejectedValueOnce(error)
+    .mockResolvedValueOnce(undefined);
+
+   await expect(service.executeMigrations([mockMigrationDefinition], true)).rejects.toThrow(error);
+   await expect(
+    service.executeMigrations([mockMigrationDefinition], true),
+   ).resolves.toBeUndefined();
+
+   expect(mockMigrationDefinition.up).toHaveBeenCalledTimes(2);
+   expect(mockDataSource.createQueryRunner).toHaveBeenCalledTimes(2);
+   expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalledTimes(1);
+   expect(mockQueryRunner.commitTransaction).toHaveBeenCalledTimes(1);
+  });
+
+  it("should join migration config writes without opening a nested owner", async () => {
+   const sectionService = {
+    get: vi.fn().mockResolvedValue({ id: "section-1", name: "application" }),
+   };
+   const dataService = {
+    get: vi.fn().mockResolvedValue({ id: "data-1" }),
+    update: vi.fn().mockResolvedValue({ id: "data-1" }),
+   };
+   const joinedConfigService = new CrudConfigService(
+    sectionService as any,
+    dataService as any,
+    undefined as any,
+    { environment: "test" },
+    mockDataSource,
+   );
+   const migration: IConfigMigrationDefinition = {
+    name: "001_joined_config_write",
+    async up(configService, entityManager): Promise<void> {
+     await configService.set({
+      eventManager: entityManager,
+      name: "API_KEY",
+      section: "application",
+      value: "secret",
+     });
+    },
+   };
+   const scopeSpy = vi.spyOn(ApiFunctionTransactionScope, "runWithDataSource");
+
+   vi.mocked(mockMigrationService.getList).mockResolvedValue(createMockApiListResult([]));
+   vi.mocked(mockMigrationService.create).mockResolvedValue(mockMigration);
+   vi.mocked(mockMigrationService.update).mockResolvedValue(mockMigration);
+
+   service = new ConfigMigrationService(
+    mockDataSource,
+    mockOptions,
+    joinedConfigService,
+    mockMigrationService,
+   );
+
+   await service.executeMigrations([migration], true);
+
+   expect(scopeSpy).toHaveBeenCalledTimes(1);
+   expect(scopeSpy).toHaveBeenCalledWith(
+    mockDataSource,
+    { name: "crud-config-migrations" },
+    expect.any(Function),
+   );
+   expect(mockDataSource.createQueryRunner).toHaveBeenCalledTimes(1);
+   expect(dataService.update).toHaveBeenCalledTimes(1);
+   scopeSpy.mockRestore();
   });
 
   it("should validate migrations before execution", async () => {
@@ -206,25 +336,27 @@ describe("ConfigMigrationService", () => {
 
    await service.executeMigrations(migrations, false);
 
-   expect(mockDataSource.transaction).not.toHaveBeenCalled();
+   expect(mockDataSource.createQueryRunner).not.toHaveBeenCalled();
    expect(testMigration.up).toHaveBeenCalledWith(mockConfigService, undefined);
   });
 
-  it("should handle race condition with unique constraint violation", async () => {
+  it("should preserve native duplicate-key failure for concurrent migration claims", async () => {
    const migrations = [mockMigrationDefinition];
-   const uniqueError = new Error("duplicate key value violates unique constraint");
+   const uniqueError = new ConflictException({
+    error: "Conflict",
+    message: "CONFIGMIGRATION_DUPLICATE_KEY",
+    statusCode: 409,
+   });
 
    vi.mocked(mockMigrationService.getList).mockResolvedValue(createMockApiListResult([]));
 
    vi.mocked(mockMigrationService.create).mockRejectedValue(uniqueError);
 
-   vi.mocked(mockDataSource.transaction).mockImplementation(async (callback: any) => {
-    return await callback(mockEntityManager);
-   });
-
-   await service.executeMigrations(migrations, true);
+   await expect(service.executeMigrations(migrations, true)).rejects.toBe(uniqueError);
 
    expect(mockMigrationDefinition.up).not.toHaveBeenCalled();
+   expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled();
+   expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalledTimes(1);
   });
  });
 
@@ -235,18 +367,22 @@ describe("ConfigMigrationService", () => {
     down: vi.fn().mockResolvedValue(undefined),
    };
 
-   vi.mocked(mockDataSource.transaction).mockImplementation(async (callback: any) => {
-    return await callback(mockEntityManager);
-   });
-   const scopeSpy = vi.spyOn(ApiFunctionTransactionScope, "runWithEntityManager");
+   const scopeSpy = vi.spyOn(ApiFunctionTransactionScope, "runWithDataSource");
 
    await service.rollbackMigration("001_test_migration", [migrationWithDown]);
 
    expect(migrationWithDown.down).toHaveBeenCalledWith(mockConfigService, mockEntityManager);
-   expect(scopeSpy).toHaveBeenCalledWith(mockEntityManager, expect.any(Function));
+   expect(scopeSpy).toHaveBeenCalledWith(
+    mockDataSource,
+    { name: "crud-config-migrations" },
+    expect.any(Function),
+   );
    expect(mockMigrationService.delete).toHaveBeenCalledWith({
     name: "001_test_migration",
    });
+   expect(mockQueryRunner.commitTransaction).toHaveBeenCalledTimes(1);
+   expect(mockQueryRunner.rollbackTransaction).not.toHaveBeenCalled();
+   expect(mockQueryRunner.release).toHaveBeenCalledTimes(1);
    scopeSpy.mockRestore();
   });
 
@@ -273,15 +409,21 @@ describe("ConfigMigrationService", () => {
     down: vi.fn().mockRejectedValue(new Error("Rollback failed")),
    };
 
-   vi.mocked(mockDataSource.transaction).mockImplementation(async (callback: any) => {
-    return await callback(mockEntityManager);
-   });
-
    await expect(
     service.rollbackMigration("001_test_migration", [migrationWithDown]),
    ).rejects.toThrow("Rollback failed");
 
    expect(mockMigrationService.delete).not.toHaveBeenCalled();
+   expect(mockMigrationService.update).toHaveBeenCalledWith(
+    { name: "001_test_migration" },
+    {
+     failedAt: expect.any(Date),
+     status: EConfigMigrationStatus.FAILED,
+    },
+   );
+   expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled();
+   expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalledTimes(1);
+   expect(mockQueryRunner.release).toHaveBeenCalledTimes(1);
   });
  });
 

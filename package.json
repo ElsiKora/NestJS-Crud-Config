@@ -1,6 +1,6 @@
 {
  "name": "@elsikora/nestjs-crud-config",
- "version": "2.0.1",
+ "version": "3.0.0-dev.1",
  "description": "NestJS application configuration via database storage",
  "homepage": "https://github.com/ElsiKora/NestJS-Crud-Config#readme",
  "bugs": {
@@ -29,6 +29,7 @@
   "branch": "npx @elsikora/git-branch-lint -b",
   "prebuild": "rimraf dist",
   "build": "npm run prebuild && rollup -c",
+  "postbuild": "node scripts/check-declaration-imports.cjs",
   "commit": "cz",
   "format": "prettier --check .",
   "format:fix": "prettier --write .",
@@ -53,7 +54,6 @@
  },
  "dependencies": {
   "@nestjs/cache-manager": "^3.1.2",
-  "@nestjs/event-emitter": "^3.1.0",
   "cache-manager": "^7.2.8",
   "dotenv": "^17.4.2",
   "keyv": "^5.6.0"
@@ -65,7 +65,7 @@
   "@elsikora/eslint-config": "^3.10.1",
   "@elsikora/eslint-plugin-nestjs-typed": "^3.1.0",
   "@elsikora/git-branch-lint": "^1.2.2",
-  "@elsikora/nestjs-crud-automator": "^2.8.0",
+  "@elsikora/nestjs-crud-automator": ">=3.0.2-0 <4.0.0",
   "@nestjs/cli": "^11.0.21",
   "@nestjs/common": "^11.1.24",
   "@nestjs/core": "^11.1.24",
@@ -92,7 +92,7 @@
   "class-validator": "^0.15.1",
   "commitizen": "^4.3.1",
   "conventional-changelog-conventionalcommits": "^9.3.1",
-  "eslint": "^10.4.1",
+  "eslint": "^10.8.0",
   "eslint-plugin-n": "^18.0.1",
   "eslint-plugin-ng-module-sort": "^1.4.0",
   "eslint-plugin-no-secrets": "^2.3.3",
@@ -107,6 +107,7 @@
   "rollup-plugin-generate-package-json": "^3.2.0",
   "rxjs": "^7.8.2",
   "semantic-release": "^25.0.3",
+  "sql.js": "^1.14.1",
   "sqlite3": "^6.0.1",
   "tslib": "^2.8.1",
   "typeorm": "^1.0.0",
@@ -116,7 +117,7 @@
   "vitest": "^4.1.8"
  },
  "peerDependencies": {
-  "@elsikora/nestjs-crud-automator": ">=2.8.0",
+  "@elsikora/nestjs-crud-automator": ">=3.0.2-0 <4.0.0",
   "@nestjs/common": ">=11.1.24",
   "@nestjs/core": ">=11.1.24",
   "@nestjs/passport": ">=11.0.5",

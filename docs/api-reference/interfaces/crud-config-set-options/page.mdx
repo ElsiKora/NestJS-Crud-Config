@@ -4,6 +4,8 @@ import { generateDefinition, TSDoc } from "nextra/tsdoc";
 
 Options for creating/updating a config value.
 
+`eventManager`, when provided, must be the exact manager already bound to an active Automator transaction. Omit it for a standalone `set()`, which owns the named `crud-config-set` transaction.
+
 _Defined in: `src/modules/config/interface/set-options.interface.ts`_
 
 <TSDoc

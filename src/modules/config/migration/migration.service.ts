@@ -129,7 +129,7 @@ export class ConfigMigrationService implements OnModuleInit {
  /**
   * Executes pending migrations
   * @param {Array<IConfigMigrationDefinition>} migrations - Array of migration definitions
-  * @param {boolean} [useTransaction] - Whether to run migrations in a transaction
+  * @param {boolean} [useTransaction] - Whether to use the named crud-config-migrations owner; defaults to true
   * @returns {Promise<void>} Promise that resolves when all migrations are executed
   */
  async executeMigrations(
@@ -199,11 +199,15 @@ export class ConfigMigrationService implements OnModuleInit {
   );
 
   if (useTransaction) {
-   await this.dataSource.transaction(async (transactionalEntityManager: EntityManager) => {
-    for (const migration of pendingMigrations) {
-     await this.executeSingleMigration(migration, transactionalEntityManager);
-    }
-   });
+   await ApiFunctionTransactionScope.runWithDataSource(
+    this.dataSource,
+    { name: "crud-config-migrations" },
+    async (transactionalEntityManager: EntityManager): Promise<void> => {
+     for (const migration of pendingMigrations) {
+      await this.executeSingleMigration(migration, transactionalEntityManager);
+     }
+    },
+   );
   } else {
    for (const migration of pendingMigrations) {
     await this.executeSingleMigration(migration);
@@ -272,7 +276,7 @@ export class ConfigMigrationService implements OnModuleInit {
  }
 
  /**
-  * Rolls back a migration
+  * Rolls back a migration inside the named crud-config-migrations owner
   * @param {string} migrationName - The name of the migration to roll back
   * @param {Array<IConfigMigrationDefinition>} migrations - Array of migration definitions
   * @returns {Promise<void>} Promise that resolves when rollback is complete
@@ -298,28 +302,28 @@ export class ConfigMigrationService implements OnModuleInit {
   try {
    this.LOGGER.verbose(`Starting rollback for migration: ${migration.name}`);
 
-   await this.dataSource.transaction(async (transactionalEntityManager: EntityManager) => {
-    try {
-     // Execute the down method
-     if (migration.down) {
-      await migration.down(this.configService, transactionalEntityManager);
+   await ApiFunctionTransactionScope.runWithDataSource(
+    this.dataSource,
+    { name: "crud-config-migrations" },
+    async (transactionalEntityManager: EntityManager): Promise<void> => {
+     try {
+      // Execute the down method
+      await migration.down?.(this.configService, transactionalEntityManager);
+
+      // Delete the migration record in the rollback transaction context.
+      await this.MIGRATION_SERVICE.delete({ name: migrationName });
+
+      this.LOGGER.verbose(`Successfully rolled back migration: ${migration.name}`);
+     } catch (downError) {
+      const errorMessage: string = `Failed to rollback migration '${migration.name}': ${downError instanceof Error ? downError.message : String(downError)}`;
+
+      this.LOGGER.error(errorMessage);
+
+      // Don't update the migration record on rollback failure
+      throw downError;
      }
-
-     // Delete the migration record in the rollback transaction context.
-     await this.runWithEntityManager(transactionalEntityManager, () =>
-      this.MIGRATION_SERVICE.delete({ name: migrationName }),
-     );
-
-     this.LOGGER.verbose(`Successfully rolled back migration: ${migration.name}`);
-    } catch (downError) {
-     const errorMessage: string = `Failed to rollback migration '${migration.name}': ${downError instanceof Error ? downError.message : String(downError)}`;
-
-     this.LOGGER.error(errorMessage);
-
-     // Don't update the migration record on rollback failure
-     throw downError;
-    }
-   });
+    },
+   );
 
    const completedTime: Date = new Date();
 
@@ -359,33 +363,13 @@ export class ConfigMigrationService implements OnModuleInit {
   this.LOGGER.verbose(`Executing migration: ${migration.name}`);
 
   // First, record the migration as started (to prevent race conditions)
-  let migrationRecord: IConfigMigration;
   const startTime: Date = new Date();
 
-  try {
-   migrationRecord = await this.runWithEntityManager(transactionalEntityManager, () =>
-    this.MIGRATION_SERVICE.create({
-     name: migration.name,
-     startedAt: startTime,
-     status: EConfigMigrationStatus.RUNNING,
-    }),
-   );
-  } catch (error) {
-   // If creation fails due to unique constraint violation, migration might already be running
-   const errorMessage: string = error instanceof Error ? error.message : String(error);
-
-   if (
-    errorMessage.includes("duplicate") ||
-    errorMessage.includes("unique") ||
-    errorMessage.includes("UNIQUE")
-   ) {
-    this.LOGGER.warn(`Migration '${migration.name}' is already running or has been executed`);
-
-    return;
-   }
-
-   throw error;
-  }
+  const migrationRecord: IConfigMigration = await this.MIGRATION_SERVICE.create({
+   name: migration.name,
+   startedAt: startTime,
+   status: EConfigMigrationStatus.RUNNING,
+  });
 
   try {
    // Execute the migration
@@ -393,14 +377,12 @@ export class ConfigMigrationService implements OnModuleInit {
 
    // Update status to completed with executedAt timestamp
    const completedTime: Date = new Date();
-   await this.runWithEntityManager(transactionalEntityManager, () =>
-    this.MIGRATION_SERVICE.update(
-     { id: migrationRecord.id },
-     {
-      executedAt: completedTime,
-      status: EConfigMigrationStatus.COMPLETED,
-     },
-    ),
+   await this.MIGRATION_SERVICE.update(
+    { id: migrationRecord.id },
+    {
+     executedAt: completedTime,
+     status: EConfigMigrationStatus.COMPLETED,
+    },
    );
 
    const duration: number = completedTime.getTime() - startTime.getTime();
@@ -412,14 +394,12 @@ export class ConfigMigrationService implements OnModuleInit {
    const failedTime: Date = new Date();
 
    try {
-    await this.runWithEntityManager(transactionalEntityManager, () =>
-     this.MIGRATION_SERVICE.update(
-      { id: migrationRecord.id },
-      {
-       failedAt: failedTime,
-       status: EConfigMigrationStatus.FAILED,
-      },
-     ),
+    await this.MIGRATION_SERVICE.update(
+     { id: migrationRecord.id },
+     {
+      failedAt: failedTime,
+      status: EConfigMigrationStatus.FAILED,
+     },
     );
    } catch (updateError) {
     this.LOGGER.error(`Failed to update migration status for ${migration.name}:`, updateError);
@@ -427,17 +407,6 @@ export class ConfigMigrationService implements OnModuleInit {
 
    throw error;
   }
- }
-
- private async runWithEntityManager<R>(
-  entityManager: EntityManager | undefined,
-  callback: () => Promise<R>,
- ): Promise<R> {
-  if (!entityManager) {
-   return await callback();
-  }
-
-  return await ApiFunctionTransactionScope.runWithEntityManager(entityManager, callback);
  }
 
  /**

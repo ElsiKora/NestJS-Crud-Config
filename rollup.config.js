@@ -6,7 +6,6 @@ import dts from "unplugin-dts/rollup";
 const external = [
  "@nestjs/common",
  "@nestjs/cache-manager",
- "@nestjs/event-emitter",
  "@aws-sdk/client-ssm",
  "@nestjs/common",
  "@nestjs/typeorm",

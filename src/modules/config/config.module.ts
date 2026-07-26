@@ -10,8 +10,6 @@ import type {
 import { ApiServiceBase, IApiBaseEntity } from "@elsikora/nestjs-crud-automator";
 import { createConfigDataEntity, IConfigData } from "@modules/config/data";
 import { createDynamicDataController } from "@modules/config/data/controller";
-import { ConfigDataBeforeInsertListener } from "@modules/config/data/listener";
-import { ConfigDataBeforeInsertSubscriber } from "@modules/config/data/subscriber";
 import { createConfigMigrationEntity, IConfigMigration } from "@modules/config/migration";
 import { ConfigMigrationService } from "@modules/config/migration";
 import { ConfigMigrationRunnerService } from "@modules/config/migration";
@@ -205,8 +203,6 @@ export class CrudConfigModule {
     CrudConfigService,
     ConfigMigrationService,
     ConfigMigrationRunnerService,
-    ConfigDataBeforeInsertListener,
-    ConfigDataBeforeInsertSubscriber,
     CryptoUtility,
    ],
   };
@@ -363,8 +359,6 @@ export class CrudConfigModule {
    CrudConfigService,
    ConfigMigrationService,
    ConfigMigrationRunnerService,
-   ConfigDataBeforeInsertListener,
-   ConfigDataBeforeInsertSubscriber,
    CryptoUtility,
   ];
 
