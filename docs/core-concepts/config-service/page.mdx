@@ -68,9 +68,9 @@ Caching is controlled by:
 
 When `encryptionOptions.isEnabled` is enabled, values are encrypted on `set()` and decrypted automatically on `get()`/`getList()` when `isEncrypted` is true.
 
-## Transactions (migrations / manual units of work)
+## Transaction ownership
 
-All methods accept an optional `eventManager` (TypeORM `EntityManager`). This allows running multiple operations in the same transaction, for example inside a migration:
+`set()` called without `eventManager` owns a named `crud-config-set` Automator transaction. All methods also accept the exact `EntityManager` already bound to an active Automator owner. In a transaction-enabled migration, pass the callback manager to every config operation:
 
 ```typescript copy
 await configService.set({
@@ -81,14 +81,15 @@ await configService.set({
 });
 ```
 
-## Event-driven architecture (hooks)
+`eventManager` is join-only in Automator 3. It does not establish context for an arbitrary manager from a raw TypeORM transaction. Omitting it inside a transaction-enabled migration would make `set()` attempt a nested owner, which Automator rejects.
 
-The module includes an event/listener/subscriber pipeline around ConfigData inserts:
+When migration `useTransaction` is `false`, callbacks receive `undefined`. Each standalone `set()` still owns its own atomic transaction, but several migration writes do not share one all-or-nothing unit.
 
-- TypeORM subscriber: emits `config-data.beforeInsert`
-- Event listener(s): handle `config-data.beforeInsert`
+## Duplicate protection
 
-This can be used for validation, enrichment, auditing, etc.
+The database unique constraint owns ConfigData duplicate protection across `name`, `environment`, and `section`. Automator maps conflicting generated creates and updates to `409 CONFIGDATA_DUPLICATE_KEY`.
+
+CrudConfig 3 does not export or register the old ConfigData before-insert event/listener/subscriber pipeline and does not require consumer `EventEmitterModule` wiring. Application-specific validation and auditing belong in the application's service or Automator lifecycle layer.
 
 ## Working with multiple environments
 

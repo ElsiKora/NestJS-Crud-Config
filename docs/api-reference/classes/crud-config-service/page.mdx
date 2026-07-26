@@ -15,6 +15,12 @@ export class CrudConfigService {
 }
 ```
 
+## Transaction contract
+
+`set()` without `eventManager` owns the named `crud-config-set` Automator transaction. A provided `eventManager` must be the exact manager already bound to an active Automator owner; it joins that owner and does not establish context for an arbitrary TypeORM manager.
+
+Transaction-enabled migrations pass their `crud-config-migrations` owner manager to the callback. Forward it through `eventManager` on every config operation.
+
 ## Related
 
 - [Config Service](/docs/nestjs-crud-config/core-concepts/config-service)

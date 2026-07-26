@@ -11,7 +11,8 @@ export interface IConfigDeleteOptions {
  environment?: string;
 
  /**
-  * Entity manager for database operations
+  * When provided, the exact entity manager already bound to an active Automator owner.
+  * Omit it for a standalone operation.
   */
  eventManager?: EntityManager;
 

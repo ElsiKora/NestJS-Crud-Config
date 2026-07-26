@@ -62,11 +62,15 @@ export const initialAppConfigMigration: IConfigMigrationDefinition = {
 };
 ```
 
+The callback manager is defined when migration execution owns a transaction and is `undefined` when `useTransaction` is `false`. Keep the parameter optional in the migration contract, and pass it through as `eventManager`. Do not omit a defined manager: `set()` would otherwise try to open its standalone `crud-config-set` owner inside `crud-config-migrations`, and Automator rejects nested owners.
+
 ## Best practices
 
 - Use sortable names: `001_...`, `002_...`
 - Prefer idempotent migrations (safe to run multiple times)
 - Always implement `down()` when possible
+- Pass the callback `entityManager` to every config operation
+- Use `useTransaction: false` only when per-operation commits are intentional
 
 See also:
 

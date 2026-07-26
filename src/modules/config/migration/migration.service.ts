@@ -129,7 +129,7 @@ export class ConfigMigrationService implements OnModuleInit {
  /**
   * Executes pending migrations
   * @param {Array<IConfigMigrationDefinition>} migrations - Array of migration definitions
-  * @param {boolean} [useTransaction] - Whether to run migrations in a transaction
+  * @param {boolean} [useTransaction] - Whether to use the named crud-config-migrations owner; defaults to true
   * @returns {Promise<void>} Promise that resolves when all migrations are executed
   */
  async executeMigrations(
@@ -276,7 +276,7 @@ export class ConfigMigrationService implements OnModuleInit {
  }
 
  /**
-  * Rolls back a migration
+  * Rolls back a migration inside the named crud-config-migrations owner
   * @param {string} migrationName - The name of the migration to roll back
   * @param {Array<IConfigMigrationDefinition>} migrations - Array of migration definitions
   * @returns {Promise<void>} Promise that resolves when rollback is complete

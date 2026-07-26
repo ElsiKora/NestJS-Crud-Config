@@ -281,6 +281,8 @@ export class CrudConfigService {
   * Sets a configuration value with optional encryption.
   * The specified section must already exist.
   * If a configuration with the same name and environment already exists, it will be updated. Otherwise, a new one will be created.
+  * Owns the named crud-config-set Automator transaction when eventManager is omitted.
+  * A provided eventManager must already belong to an active Automator owner.
   * @param {IConfigSetOptions} options Configuration set options
   * @returns {Promise<IConfigData>} Promise resolving to the saved configuration data
   */
