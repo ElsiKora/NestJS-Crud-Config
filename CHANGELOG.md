@@ -1,3 +1,11 @@
+# [3.0.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v2.0.1...v3.0.0) (2026-07-26)
+
+- feat(config)!: adopt automator transaction ownership ([1fd077e](https://github.com/ElsiKora/NestJS-Crud-Config/commit/1fd077ecac8c90e100d6c59d05e2f4cb88b588e4))
+
+### BREAKING CHANGES
+
+- Automator 2 and ConfigData before-insert event exports are no longer supported. Consumers must use @elsikora/nestjs-crud-automator 3.0.2 or newer.
+
 ## [2.0.1](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v2.0.0...v2.0.1) (2026-06-08)
 
 # [2.0.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v1.2.2...v2.0.0) (2026-06-07)
