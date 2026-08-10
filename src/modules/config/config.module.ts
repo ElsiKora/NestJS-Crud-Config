@@ -37,6 +37,9 @@ export class CrudConfigModule {
  public static register(options: IConfigOptions): DynamicModule {
   const prefix: string = options.entityOptions?.tablePrefix ?? "";
 
+  const timestampColumnType: NonNullable<ICrudConfigEntityOptions["timestampColumnType"]> =
+   options.entityOptions?.timestampColumnType ?? "timestamp";
+
   const sectionEntity: TDynamicEntity<IConfigSection> = createConfigSectionEntity({
    maxDescriptionLength:
     options.entityOptions?.configSection?.maxDescriptionLength ??
@@ -46,6 +49,7 @@ export class CrudConfigModule {
    tableName:
     prefix +
     (options.entityOptions?.configSection?.tableName ?? CONFIG_SECTION_CONSTANT.DEFAULT_TABLE_NAME),
+   timestampColumnType,
   });
 
   const dataEntity: TDynamicEntity<IConfigData> = createConfigDataEntity({
@@ -63,6 +67,7 @@ export class CrudConfigModule {
    tableName:
     prefix +
     (options.entityOptions?.configData?.tableName ?? CONFIG_DATA_CONSTANT.DEFAULT_TABLE_NAME),
+   timestampColumnType,
   });
 
   const migrationEntity: TDynamicEntity<IConfigMigration> = createConfigMigrationEntity({
@@ -70,6 +75,7 @@ export class CrudConfigModule {
     options.migrationOptions?.maxNameLength ?? CONFIG_MIGRATION_CONSTANT.MAX_NAME_LENGTH,
    tableName:
     prefix + (options.migrationOptions?.tableName ?? CONFIG_MIGRATION_CONSTANT.DEFAULT_TABLE_NAME),
+   timestampColumnType,
   });
 
   const propertiesProvider: Provider = {
@@ -239,6 +245,9 @@ export class CrudConfigModule {
    properties.staticOptions?.entityOptions;
   const prefix: string = staticEntityOptions?.tablePrefix ?? "";
 
+  const timestampColumnType: NonNullable<ICrudConfigEntityOptions["timestampColumnType"]> =
+   staticEntityOptions?.timestampColumnType ?? "timestamp";
+
   const sectionEntity: TDynamicEntity<IConfigSection> = createConfigSectionEntity({
    maxDescriptionLength:
     staticEntityOptions?.configSection?.maxDescriptionLength ??
@@ -248,6 +257,7 @@ export class CrudConfigModule {
    tableName:
     prefix +
     (staticEntityOptions?.configSection?.tableName ?? CONFIG_SECTION_CONSTANT.DEFAULT_TABLE_NAME),
+   timestampColumnType,
   });
 
   const dataEntity: TDynamicEntity<IConfigData> = createConfigDataEntity({
@@ -265,6 +275,7 @@ export class CrudConfigModule {
    tableName:
     prefix +
     (staticEntityOptions?.configData?.tableName ?? CONFIG_DATA_CONSTANT.DEFAULT_TABLE_NAME),
+   timestampColumnType,
   });
 
   const staticControllersOptions: IConfigControllersOptions | undefined =
@@ -294,6 +305,7 @@ export class CrudConfigModule {
     staticMigrationOptions?.maxNameLength ?? CONFIG_MIGRATION_CONSTANT.MAX_NAME_LENGTH,
    tableName:
     prefix + (staticMigrationOptions?.tableName ?? CONFIG_MIGRATION_CONSTANT.DEFAULT_TABLE_NAME),
+   timestampColumnType,
   });
 
   const providers: Array<Provider> = [

@@ -169,6 +169,7 @@ import { CrudConfigModule, TOKEN_CONSTANT } from "@elsikora/nestjs-crud-config";
    // Entity customization
    entityOptions: {
     tablePrefix: "app_",
+    timestampColumnType: "timestamptz", // PostgreSQL; defaults to "timestamp"
     configSection: {
      tableName: "config_sections",
      maxNameLength: 128,
@@ -316,6 +317,7 @@ import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
     },
     entityOptions: {
      tablePrefix: "app_",
+     timestampColumnType: "timestamptz", // Must be static for dynamic entities
      configSection: {
       tableName: "config_sections",
       maxNameLength: 128,
@@ -338,7 +340,7 @@ export class AppModule {}
 **Important:** The `staticOptions` property contains configuration that must be known at module compilation time:
 
 - `controllersOptions` - REST API controller configuration
-- `entityOptions` - Database entity customization (table names, field lengths)
+- `entityOptions` - Database entity customization (table names, field lengths, timestamp type)
 - `migrationEntityOptions` - Migration tracking table configuration
 
 ## 🚀 Migration System
@@ -990,6 +992,7 @@ The module provides extensive customization options:
 CrudConfigModule.register({
  entityOptions: {
   tablePrefix: "myapp_",
+  timestampColumnType: "timestamptz",
   configSection: {
    tableName: "configuration_sections",
    maxNameLength: 256,
@@ -1005,6 +1008,8 @@ CrudConfigModule.register({
  },
 });
 ```
+
+`timestampColumnType` applies to all nine temporal columns in the section, data, and migration entities. It defaults to `"timestamp"`; choose a TypeORM `ColumnType` supported by your database driver, such as `"timestamptz"` for PostgreSQL or `"datetime"` for SQL.js/SQLite. Changing it for an existing database still requires the corresponding schema migration.
 
 ### What happens if the database is unavailable?
 
