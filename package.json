@@ -70,7 +70,7 @@
   "@nestjs/common": "^11.1.24",
   "@nestjs/core": "^11.1.24",
   "@nestjs/passport": "^11.0.5",
-  "@nestjs/platform-fastify": "^11.1.24",
+  "@nestjs/platform-fastify": "11.1.24",
   "@nestjs/schematics": "^11.1.0",
   "@nestjs/swagger": "11.4.2",
   "@nestjs/testing": "^11.1.24",
