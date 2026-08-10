@@ -1,5 +1,6 @@
 /* eslint-disable @elsikora/typescript/naming-convention */
 import type { TDynamicEntity } from "@shared/type";
+import type { ColumnType } from "typeorm";
 
 import type { IConfigMigration } from "../interface";
 
@@ -19,26 +20,30 @@ import { CreateDateColumn, UpdateDateColumn } from "typeorm";
  * @param {object} options - Configuration options for the entity
  * @param {number} options.maxNameLength - Maximum length for migration name field
  * @param {string} options.tableName - Name of the database table
+ * @param {ColumnType} [options.timestampColumnType] - TypeORM type for timestamp fields; defaults to `timestamp`
  * @returns {TDynamicEntity} Dynamically created ConfigMigration entity class
  */
 export function createConfigMigrationEntity(options: {
  maxNameLength: number;
  tableName: string;
+ timestampColumnType?: ColumnType;
 }): TDynamicEntity<IConfigMigration> {
+ const timestampColumnType: ColumnType = options.timestampColumnType ?? "timestamp";
+
  return createDynamicEntityClass({
   columns: {
    createdAt: {
     default: () => "CURRENT_TIMESTAMP",
     nullable: false,
-    type: "timestamp",
+    type: timestampColumnType,
    },
    executedAt: {
     nullable: true,
-    type: "timestamp",
+    type: timestampColumnType,
    },
    failedAt: {
     nullable: true,
-    type: "timestamp",
+    type: timestampColumnType,
    },
    name: {
     length: options.maxNameLength,
@@ -47,7 +52,7 @@ export function createConfigMigrationEntity(options: {
    },
    startedAt: {
     nullable: true,
-    type: "timestamp",
+    type: timestampColumnType,
    },
    status: {
     default: "PENDING",
@@ -58,12 +63,12 @@ export function createConfigMigrationEntity(options: {
    updatedAt: {
     default: () => "CURRENT_TIMESTAMP",
     nullable: false,
-    type: "timestamp",
+    type: timestampColumnType,
    },
   },
   decorators: {
    createdAt: [
-    CreateDateColumn(),
+    CreateDateColumn({ type: timestampColumnType }),
     ApiPropertyDescribe({
      format: EApiPropertyDateType.DATE_TIME,
      identifier: EApiPropertyDateIdentifier.CREATED_AT,
@@ -122,7 +127,7 @@ export function createConfigMigrationEntity(options: {
     }),
    ],
    updatedAt: [
-    UpdateDateColumn(),
+    UpdateDateColumn({ type: timestampColumnType }),
     ApiPropertyDescribe({
      format: EApiPropertyDateType.DATE_TIME,
      identifier: EApiPropertyDateIdentifier.UPDATED_AT,

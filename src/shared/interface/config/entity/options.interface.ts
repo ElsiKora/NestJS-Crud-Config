@@ -1,3 +1,5 @@
+import type { ColumnType } from "typeorm";
+
 import type { IConfigEntityDataOptions, IConfigEntitySectionOptions } from "./";
 
 /**
@@ -19,4 +21,10 @@ export interface ICrudConfigEntityOptions {
   * Table name prefix for all entities
   */
  tablePrefix?: string;
+
+ /**
+  * TypeORM column type used by all ConfigSection, ConfigData, and ConfigMigration timestamp fields.
+  * Defaults to `timestamp`.
+  */
+ timestampColumnType?: ColumnType;
 }
