@@ -7,6 +7,53 @@ import { TOKEN_CONSTANT } from "../../../../src/shared/constant";
 import type { IConfigOptions } from "../../../../src/shared/interface/config";
 import { Test } from "@nestjs/testing";
 import { getDataSourceToken } from "@nestjs/typeorm";
+import { getMetadataArgsStorage, type ColumnType } from "typeorm";
+
+function expectTemporalColumnTypes(
+ entity: Function,
+ propertyNames: string[],
+ expectedType: ColumnType,
+): void {
+ for (const propertyName of propertyNames) {
+  const columns = getMetadataArgsStorage().columns.filter(
+   (metadata) => metadata.target === entity && metadata.propertyName === propertyName,
+  );
+
+  expect(columns.length).toBeGreaterThan(0);
+  expect(columns.every((column) => column.options.type === expectedType)).toBe(true);
+ }
+}
+
+function getEntityProvider(dynamicModule: DynamicModule, token: symbol): Function {
+ const provider = dynamicModule.providers?.find(
+  (candidate: any) => candidate.provide === token,
+ ) as any;
+
+ expect(provider?.useValue).toBeDefined();
+
+ return provider.useValue as Function;
+}
+
+function expectAllEntityTimestampTypes(
+ dynamicModule: DynamicModule,
+ expectedType: ColumnType,
+): void {
+ expectTemporalColumnTypes(
+  getEntityProvider(dynamicModule, TOKEN_CONSTANT.CONFIG_SECTION_ENTITY),
+  ["createdAt", "updatedAt"],
+  expectedType,
+ );
+ expectTemporalColumnTypes(
+  getEntityProvider(dynamicModule, TOKEN_CONSTANT.CONFIG_DATA_ENTITY),
+  ["createdAt", "updatedAt"],
+  expectedType,
+ );
+ expectTemporalColumnTypes(
+  getEntityProvider(dynamicModule, TOKEN_CONSTANT.CONFIG_MIGRATION_ENTITY),
+  ["createdAt", "executedAt", "failedAt", "startedAt", "updatedAt"],
+  expectedType,
+ );
+}
 
 describe("CrudConfigModule", () => {
  beforeEach(() => {
@@ -81,6 +128,14 @@ describe("CrudConfigModule", () => {
 
    expect(configOptionsProvider).toBeDefined();
    expect(configOptionsProvider?.useValue).toEqual(options);
+  });
+
+  it("should propagate the common timestamp column type to all entities", () => {
+   const dynamicModule = CrudConfigModule.register({
+    entityOptions: { timestampColumnType: "timestamptz" },
+   });
+
+   expectAllEntityTimestampTypes(dynamicModule, "timestamptz");
   });
 
   it("should register module with cache enabled", () => {
@@ -308,6 +363,17 @@ describe("CrudConfigModule", () => {
 
    expect(migrationEntityProvider).toBeDefined();
    expect(migrationEntityProvider?.useValue).toBeDefined();
+  });
+
+  it("should propagate the static timestamp column type to all async entities", () => {
+   const dynamicModule = CrudConfigModule.registerAsync({
+    staticOptions: {
+     entityOptions: { timestampColumnType: "datetime" },
+    },
+    useFactory: () => ({ environment: "test" }),
+   });
+
+   expectAllEntityTimestampTypes(dynamicModule, "datetime");
   });
  });
 

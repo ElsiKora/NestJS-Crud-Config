@@ -16,9 +16,19 @@ These entities are exported via tokens so you can plug them into `TypeOrmModule.
 
 ## Entity customization
 
-You can customize table names and column lengths via `entityOptions`.
+You can customize table names, column lengths, and the common temporal column type via `entityOptions`:
 
-In async registration, provide entity customization via `staticOptions.entityOptions` (and `staticOptions.migrationEntityOptions` for migration tracking table) so controllers and providers use the same entities.
+```typescript copy
+CrudConfigModule.register({
+ entityOptions: {
+  timestampColumnType: "timestamptz",
+ },
+});
+```
+
+`timestampColumnType` is passed to all nine temporal columns in `ConfigSection`, `ConfigData`, and `ConfigMigration`, including their TypeORM create/update date decorators. It defaults to `"timestamp"`. Select a TypeORM `ColumnType` supported by the configured driver, for example `"timestamptz"` with PostgreSQL or `"datetime"` with SQL.js/SQLite. Changing it for an existing database still requires the corresponding schema migration.
+
+In async registration, provide entity customization, including `timestampColumnType`, via `staticOptions.entityOptions` (and `staticOptions.migrationEntityOptions` for migration tracking table settings) so controllers and providers use the same entities.
 
 ## Default schema
 

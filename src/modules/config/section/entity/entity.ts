@@ -1,5 +1,6 @@
 /* eslint-disable @elsikora/typescript/naming-convention */
 import type { TDynamicEntity } from "@shared/type";
+import type { ColumnType } from "typeorm";
 
 import type { IConfigSection } from "../interface";
 
@@ -20,19 +21,23 @@ import { CreateDateColumn, UpdateDateColumn } from "typeorm";
  * @param {number} options.maxDescriptionLength - Maximum length for description field
  * @param {number} options.maxNameLength - Maximum length for name field
  * @param {string} options.tableName - Name of the database table
+ * @param {ColumnType} [options.timestampColumnType] - TypeORM type for timestamp fields; defaults to `timestamp`
  * @returns {TDynamicEntity} Dynamically created ConfigSection entity class
  */
 export function createConfigSectionEntity(options: {
  maxDescriptionLength: number;
  maxNameLength: number;
  tableName: string;
+ timestampColumnType?: ColumnType;
 }): TDynamicEntity<IConfigSection> {
+ const timestampColumnType: ColumnType = options.timestampColumnType ?? "timestamp";
+
  return createDynamicEntityClass({
   columns: {
    createdAt: {
     default: () => "CURRENT_TIMESTAMP",
     nullable: false,
-    type: "timestamp",
+    type: timestampColumnType,
    },
    description: {
     length: options.maxDescriptionLength,
@@ -47,12 +52,12 @@ export function createConfigSectionEntity(options: {
    updatedAt: {
     default: () => "CURRENT_TIMESTAMP",
     nullable: false,
-    type: "timestamp",
+    type: timestampColumnType,
    },
   },
   decorators: {
    createdAt: [
-    CreateDateColumn(),
+    CreateDateColumn({ type: timestampColumnType }),
     ApiPropertyDescribe({
      format: EApiPropertyDateType.DATE_TIME,
      identifier: EApiPropertyDateIdentifier.CREATED_AT,
@@ -88,7 +93,7 @@ export function createConfigSectionEntity(options: {
     }),
    ],
    updatedAt: [
-    UpdateDateColumn(),
+    UpdateDateColumn({ type: timestampColumnType }),
     ApiPropertyDescribe({
      format: EApiPropertyDateType.DATE_TIME,
      identifier: EApiPropertyDateIdentifier.UPDATED_AT,

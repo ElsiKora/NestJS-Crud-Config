@@ -1,6 +1,7 @@
 /* eslint-disable @elsikora/typescript/naming-convention */
 import type { IConfigSection } from "@modules/config/section";
 import type { TDynamicEntity } from "@shared/type";
+import type { ColumnType } from "typeorm";
 
 import type { IConfigData } from "../interface";
 
@@ -24,6 +25,7 @@ import { CreateDateColumn, UpdateDateColumn } from "typeorm";
  * @param {number} options.maxNameLength - Maximum length for name field
  * @param {number} options.maxValueLength - Maximum length for value field
  * @param {string} options.tableName - Name of the database table
+ * @param {ColumnType} [options.timestampColumnType] - TypeORM type for timestamp fields; defaults to `timestamp`
  * @returns {TDynamicEntity} Dynamically created ConfigData entity class
  */
 export function createConfigDataEntity(options: {
@@ -33,13 +35,16 @@ export function createConfigDataEntity(options: {
  maxNameLength: number;
  maxValueLength: number;
  tableName: string;
+ timestampColumnType?: ColumnType;
 }): TDynamicEntity<IConfigData> {
+ const timestampColumnType: ColumnType = options.timestampColumnType ?? "timestamp";
+
  return createDynamicEntityClass({
   columns: {
    createdAt: {
     default: () => "CURRENT_TIMESTAMP",
     nullable: false,
-    type: "timestamp",
+    type: timestampColumnType,
    },
    description: {
     length: options.maxDescriptionLength,
@@ -64,7 +69,7 @@ export function createConfigDataEntity(options: {
    updatedAt: {
     default: () => "CURRENT_TIMESTAMP",
     nullable: false,
-    type: "timestamp",
+    type: timestampColumnType,
    },
    value: {
     length: options.maxValueLength,
@@ -74,7 +79,7 @@ export function createConfigDataEntity(options: {
   },
   decorators: {
    createdAt: [
-    CreateDateColumn(),
+    CreateDateColumn({ type: timestampColumnType }),
     ApiPropertyDescribe({
      format: EApiPropertyDateType.DATE_TIME,
      identifier: EApiPropertyDateIdentifier.CREATED_AT,
@@ -133,7 +138,7 @@ export function createConfigDataEntity(options: {
     }),
    ],
    updatedAt: [
-    UpdateDateColumn(),
+    UpdateDateColumn({ type: timestampColumnType }),
     ApiPropertyDescribe({
      format: EApiPropertyDateType.DATE_TIME,
      identifier: EApiPropertyDateIdentifier.UPDATED_AT,
