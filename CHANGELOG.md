@@ -1,3 +1,13 @@
+# [3.1.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v3.0.0...v3.1.0) (2026-08-10)
+
+### Bug Fixes
+
+- **deps:** pin compatible platform fastify ([02b81ef](https://github.com/ElsiKora/NestJS-Crud-Config/commit/02b81ef3b940511da6f6b1a99b3fc33a1838fa8a))
+
+### Features
+
+- **config:** support temporal column type ([b34e596](https://github.com/ElsiKora/NestJS-Crud-Config/commit/b34e596d3a1004ee17cb26501f9835f5a3a30b79))
+
 # [3.0.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v2.0.1...v3.0.0) (2026-07-26)
 
 - feat(config)!: adopt automator transaction ownership ([1fd077e](https://github.com/ElsiKora/NestJS-Crud-Config/commit/1fd077ecac8c90e100d6c59d05e2f4cb88b588e4))
