@@ -1,3 +1,15 @@
+# [4.0.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v3.1.0...v4.0.0) (2026-08-20)
+
+- build(deps)!: require crud automator 4 ([d776519](https://github.com/ElsiKora/NestJS-Crud-Config/commit/d776519d6cc30ea78efb4a5f65e5609d1070866f))
+
+### Bug Fixes
+
+- **release:** promote crud config 4 stable ([b4add09](https://github.com/ElsiKora/NestJS-Crud-Config/commit/b4add0955ec69b90a31b155a72349c2ea0655f04))
+
+### BREAKING CHANGES
+
+- CrudConfig now requires @elsikora/nestjs-crud-automator >=4.0.0-0 <5.0.0; Automator 3 is no longer supported.
+
 # [3.1.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v3.0.0...v3.1.0) (2026-08-10)
 
 ### Bug Fixes
