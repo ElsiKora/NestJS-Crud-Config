@@ -1,0 +1,67 @@
+# Migrating to 4.0
+
+CrudConfig 4 moves its required Automator peer to Automator 4. This is a package compatibility break; CrudConfig's runtime, API, persistence, and transaction behavior are unchanged.
+
+## Install CrudConfig 4 and Automator 4
+
+Use 4.x-only ranges so the package manager cannot fall back to either 3.x package:
+
+```bash copy
+npm install @elsikora/nestjs-crud-config@^4.0.0-0 @elsikora/nestjs-crud-automator@^4.0.0-0
+npm install @nestjs/swagger@11.4.2
+```
+
+CrudConfig requires `@elsikora/nestjs-crud-automator >=4.0.0-0 <5.0.0`. Automator 3 is not supported.
+
+Confirm that the application resolves one copy of each package:
+
+```bash copy
+npm ls @elsikora/nestjs-crud-config
+npm ls @elsikora/nestjs-crud-automator
+```
+
+## Keep generated controllers unchanged
+
+CrudConfig creates its ConfigSection and ConfigData services through `createDynamicService()` and `@ApiService({ entity })`. Those services inherit Automator's protected same-entity CRUD methods, so the generated routes satisfy the Automator 4 capability boundary directly.
+
+Do not add a consumer service wrapper, compatibility module, or alternate route implementation. Existing controller configuration remains valid:
+
+```typescript copy
+CrudConfigModule.register({
+ controllersOptions: {
+  data: { isEnabled: true },
+  section: { isEnabled: true },
+ },
+});
+```
+
+Generated route overrides still use `generation.isEnabled`, and ConfigData `CREATE` and `UPDATE` still accept nested section identifiers:
+
+```json copy
+{
+ "environment": "production",
+ "name": "API_KEY",
+ "section": { "id": "section-uuid" },
+ "value": "secret"
+}
+```
+
+If the application owns separate Automator controllers or custom service overrides outside CrudConfig, migrate those against Automator 4's generated-route capability contract independently.
+
+## Preserve the existing runtime contract
+
+The 4.0 compatibility release does not change:
+
+- the database schema or migrations;
+- `CrudConfigService` inputs or return values;
+- the `crud-config-set` and `crud-config-migrations` transaction owners;
+- `eventManager` join-only behavior;
+- database-owned ConfigData uniqueness and `409 CONFIGDATA_DUPLICATE_KEY` mapping;
+- the EventEmitter-free runtime introduced in CrudConfig 3;
+- the tested Swagger `11.4.2` baseline.
+
+Applications upgrading from CrudConfig 2 must first account for the separate [3.0 migration contract](/docs/nestjs-crud-config/guides/migrating-to-3-0).
+
+## Verify the upgrade
+
+Run the application's build, type-check, unit, and integration commands. Verify generated ConfigSection CRUD, paginated section listing, and ConfigData create/update with `{ "section": { "id": "..." } }` against a real database connection.

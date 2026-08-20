@@ -15,7 +15,7 @@ When `migrationOptions.isEnabled` and `migrationOptions.shouldRunOnStartup` are 
 
 `useTransaction` defaults to `true`. Transaction-enabled execution owns one Automator transaction named `crud-config-migrations`; migration history writes and each callback share its exact `EntityManager`. Rollback execution always uses the same named owner.
 
-Pass the callback manager as `eventManager` to every `CrudConfigService` operation. Automator 3 treats `runWithEntityManager` as join-only, so omitting the manager from `set()` inside the migration would attempt a nested `crud-config-set` owner and fail.
+Pass the callback manager as `eventManager` to every `CrudConfigService` operation. Automator 4 treats `runWithEntityManager` as join-only, so omitting the manager from `set()` inside the migration would attempt a nested `crud-config-set` owner and fail. CrudConfig 4 does not change this transaction contract.
 
 With `useTransaction: false`, execution does not open the migration-wide owner and callbacks receive `undefined`. A `set()` call without a manager still owns its own atomic `crud-config-set` transaction. Multiple config writes therefore do not commit or roll back as one unit in disabled mode.
 

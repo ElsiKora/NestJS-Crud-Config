@@ -2,17 +2,17 @@ import { Tabs } from "nextra/components";
 
 # Getting Started
 
-This guide shows the minimal setup for the upcoming **NestJS CRUD Config 3.0** contract.
+This guide shows the minimal setup for the **NestJS CRUD Config 4** contract.
 
 ## Installation
 
-Use the 3.x-only range below. It intentionally fails until a 3.0 prerelease exists instead of resolving incompatible CrudConfig 2.x, and it continues to select compatible stable 3.x releases after publication.
+Use the 4.x-only range below so the package manager cannot resolve an incompatible CrudConfig 3 release.
 
 <Tabs items={["npm", "yarn", "pnpm", "bun"]} storageKey="nestjs-crud-config-install-tabs">
- <Tabs.Tab>```bash copy npm install @elsikora/nestjs-crud-config@^3.0.0-0 ```</Tabs.Tab>
- <Tabs.Tab>```bash copy yarn add @elsikora/nestjs-crud-config@^3.0.0-0 ```</Tabs.Tab>
- <Tabs.Tab>```bash copy pnpm add @elsikora/nestjs-crud-config@^3.0.0-0 ```</Tabs.Tab>
- <Tabs.Tab>```bash copy bun add @elsikora/nestjs-crud-config@^3.0.0-0 ```</Tabs.Tab>
+ <Tabs.Tab>```bash copy npm install @elsikora/nestjs-crud-config@^4.0.0-0 ```</Tabs.Tab>
+ <Tabs.Tab>```bash copy yarn add @elsikora/nestjs-crud-config@^4.0.0-0 ```</Tabs.Tab>
+ <Tabs.Tab>```bash copy pnpm add @elsikora/nestjs-crud-config@^4.0.0-0 ```</Tabs.Tab>
+ <Tabs.Tab>```bash copy bun add @elsikora/nestjs-crud-config@^4.0.0-0 ```</Tabs.Tab>
 </Tabs>
 
 ## Peer dependencies
@@ -20,13 +20,13 @@ Use the 3.x-only range below. It intentionally fails until a 3.0 prerelease exis
 Install the required peer dependencies (if not already installed in your app):
 
 ```bash copy
-npm install @elsikora/nestjs-crud-automator@^3.0.2 @nestjs/common@^11.1.24 @nestjs/core@^11.1.24 @nestjs/typeorm@^11.0.0 typeorm@^0.3.20
-npm install @nestjs/passport@^11.0.5 @nestjs/platform-fastify@^11.1.24 @nestjs/swagger@11.4.2 @nestjs/throttler@^6.5.0 class-transformer@^0.5.1 class-validator@^0.15.1 fastify@^5.8.5 lodash@^4.18.1
+npm install @elsikora/nestjs-crud-automator@^4.0.0-0 @nestjs/common@^11.1.24 @nestjs/core@^11.1.24 @nestjs/typeorm@^11.0.0 typeorm@^0.3.20
+npm install @nestjs/passport@^11.0.5 @nestjs/platform-fastify@11.1.24 @nestjs/swagger@11.4.2 @nestjs/throttler@^6.5.0 class-transformer@^0.5.1 class-validator@^0.15.1 fastify@^5.8.5 lodash@^4.18.1
 ```
 
-## Automator 3 compatibility
+## Automator 4 compatibility
 
-The upcoming CrudConfig 3 release requires `@elsikora/nestjs-crud-automator >=3.0.2-0 <4.0.0`; Automator 2 is not supported. Route overrides use Automator generation config:
+CrudConfig 4 requires `@elsikora/nestjs-crud-automator >=4.0.0-0 <5.0.0`; Automator 3 is not supported. Route overrides continue to use Automator generation config:
 
 ```typescript copy
 DELETE: {
@@ -36,7 +36,7 @@ DELETE: {
 },
 ```
 
-The tested Swagger baseline is exact `11.4.2`. Transaction-enabled migrations use a named Automator owner, and the package no longer requires consumer EventEmitter wiring. Existing applications should follow [Migrating to 3.0](/docs/nestjs-crud-config/guides/migrating-to-3-0).
+CrudConfig's generated services use inherited `@ApiService` CRUD methods for the same dynamic entity, which satisfies the Automator 4 generated-route capability boundary without a consumer wrapper. The tested Swagger baseline remains exact `11.4.2`; transaction ownership, nested ConfigData relation input, and the EventEmitter-free runtime are unchanged. Existing applications should follow [Migrating to 4.0](/docs/nestjs-crud-config/guides/migrating-to-4-0).
 
 ## Basic setup (sync registration)
 
@@ -147,4 +147,4 @@ export class AppModule {}
 - [Module Registration](/docs/nestjs-crud-config/core-concepts/module-registration)
 - [TypeORM Integration](/docs/nestjs-crud-config/guides/typeorm-integration)
 - [Config Service](/docs/nestjs-crud-config/core-concepts/config-service)
-- [Migrating to 3.0](/docs/nestjs-crud-config/guides/migrating-to-3-0)
+- [Migrating to 4.0](/docs/nestjs-crud-config/guides/migrating-to-4-0)

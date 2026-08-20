@@ -75,7 +75,9 @@ CrudConfigModule.register({
 });
 ```
 
-Automator 3 route options use `generation.isEnabled` for route generation. Relation loading uses TypeORM `relationLoadStrategy` values (`"query"` or `"join"`); the built-in ConfigData section relation uses `"query"`.
+Automator 4 route options use `generation.isEnabled` for route generation. Relation loading uses TypeORM `relationLoadStrategy` values (`"query"` or `"join"`); the built-in ConfigData section relation uses `"query"`.
+
+CrudConfig creates generated services through `createDynamicService()` and `@ApiService({ entity })`. Their inherited same-entity CRUD methods satisfy the Automator 4 generated-route capability boundary, so applications do not add a service wrapper or compatibility layer.
 
 ## Headless mode
 

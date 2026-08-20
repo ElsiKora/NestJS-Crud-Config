@@ -65,7 +65,7 @@
   "@elsikora/eslint-config": "^3.10.1",
   "@elsikora/eslint-plugin-nestjs-typed": "^3.1.0",
   "@elsikora/git-branch-lint": "^1.2.2",
-  "@elsikora/nestjs-crud-automator": ">=3.0.2-0 <4.0.0",
+  "@elsikora/nestjs-crud-automator": ">=4.0.0-0 <5.0.0",
   "@nestjs/cli": "^11.0.21",
   "@nestjs/common": "^11.1.24",
   "@nestjs/core": "^11.1.24",
@@ -117,7 +117,7 @@
   "vitest": "^4.1.8"
  },
  "peerDependencies": {
-  "@elsikora/nestjs-crud-automator": ">=3.0.2-0 <4.0.0",
+  "@elsikora/nestjs-crud-automator": ">=4.0.0-0 <5.0.0",
   "@nestjs/common": ">=11.1.24",
   "@nestjs/core": ">=11.1.24",
   "@nestjs/passport": ">=11.0.5",

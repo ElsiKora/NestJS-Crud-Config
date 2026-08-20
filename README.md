@@ -16,7 +16,7 @@
 - [Description](#-description)
 - [Features](#-features)
 - [Installation](#-installation)
-- [Migrating to 3.0](#migrating-to-30)
+- [Migrating to 4.0](#migrating-to-40)
 - [Usage](#-usage)
 - [Migration System](#-migration-system)
 - [API Documentation](#-api-documentation)
@@ -55,17 +55,17 @@ Whether you're managing API keys across different environments, storing feature 
 
 ## 🛠 Installation
 
-These docs describe the upcoming CrudConfig 3.0 contract. Use the 3.x-only range below. It intentionally fails until a 3.0 prerelease exists instead of resolving incompatible CrudConfig 2.x:
+These docs describe the CrudConfig 4 contract. Use the 4.x-only range so the package manager cannot resolve an incompatible 3.x release:
 
 ```bash
 # npm
-npm install @elsikora/nestjs-crud-config@^3.0.0-0
+npm install @elsikora/nestjs-crud-config@^4.0.0-0
 
 # yarn
-yarn add @elsikora/nestjs-crud-config@^3.0.0-0
+yarn add @elsikora/nestjs-crud-config@^4.0.0-0
 
 # pnpm
-pnpm add @elsikora/nestjs-crud-config@^3.0.0-0
+pnpm add @elsikora/nestjs-crud-config@^4.0.0-0
 ```
 
 ### Prerequisites
@@ -73,13 +73,13 @@ pnpm add @elsikora/nestjs-crud-config@^3.0.0-0
 Install the required peer dependencies:
 
 ```bash
-npm install @elsikora/nestjs-crud-automator@^3.0.2 @nestjs/common@^11.1.24 @nestjs/core@^11.1.24 @nestjs/typeorm@^11.0.0 typeorm@^0.3.20
-npm install @nestjs/passport@^11.0.5 @nestjs/platform-fastify@^11.1.24 @nestjs/swagger@11.4.2 @nestjs/throttler@^6.5.0 class-transformer@^0.5.1 class-validator@^0.15.1 fastify@^5.8.5 lodash@^4.18.1
+npm install @elsikora/nestjs-crud-automator@^4.0.0-0 @nestjs/common@^11.1.24 @nestjs/core@^11.1.24 @nestjs/typeorm@^11.0.0 typeorm@^0.3.20
+npm install @nestjs/passport@^11.0.5 @nestjs/platform-fastify@11.1.24 @nestjs/swagger@11.4.2 @nestjs/throttler@^6.5.0 class-transformer@^0.5.1 class-validator@^0.15.1 fastify@^5.8.5 lodash@^4.18.1
 ```
 
-### Automator 3 compatibility
+### Automator 4 compatibility
 
-The upcoming CrudConfig 3 release requires `@elsikora/nestjs-crud-automator >=3.0.2-0 <4.0.0`. Automator 2 is not supported.
+CrudConfig 4 requires `@elsikora/nestjs-crud-automator >=4.0.0-0 <5.0.0`. Automator 3 is not supported.
 
 Generated route overrides continue to use Automator generation config:
 
@@ -93,20 +93,21 @@ DELETE: {
 
 ConfigData `CREATE` and `UPDATE` use Automator nested request relation loading. The built-in section relation expects request bodies such as `{ "section": { "id": "section-uuid" } }`.
 
-The tested Swagger baseline is exact `11.4.2`. See [Migrating to 3.0](#migrating-to-30) for transaction and EventEmitter changes.
+CrudConfig creates each generated service through `createDynamicService()` and `@ApiService({ entity })`, so its inherited same-entity CRUD methods satisfy the Automator 4 generated-route capability boundary. Applications do not need a wrapper or compatibility layer.
 
-### Migrating to 3.0
+The tested Swagger baseline remains exact `11.4.2`. See [Migrating to 4.0](#migrating-to-40) for the compatibility change.
 
-The upcoming 3.0 release is breaking:
+### Migrating to 4.0
 
-- Automator 2 compatibility is removed.
-- Transaction-enabled migration execution and rollback use the named `crud-config-migrations` Automator owner.
-- Standalone `CrudConfigService.set()` uses the named `crud-config-set` owner.
-- Migration config operations must receive the callback `EntityManager` through `eventManager` so they join instead of opening a nested owner.
-- The ConfigData before-insert EventEmitter pipeline and `@nestjs/event-emitter` dependency are removed.
-- The database unique constraint remains authoritative, and Automator maps duplicate writes to `409 CONFIGDATA_DUPLICATE_KEY`.
+CrudConfig 4 removes Automator 3 compatibility. The CrudConfig runtime contract is otherwise unchanged:
 
-See the complete [3.0 migration guide](docs/guides/migrating-to-3-0/page.mdx).
+- generated routes keep the same paths, payloads, and `generation.isEnabled` options;
+- ConfigData relation input remains `{ "section": { "id": "section-uuid" } }`;
+- transaction ownership and `eventManager` join behavior remain unchanged;
+- the database schema, duplicate mapping, and EventEmitter-free runtime remain unchanged;
+- no consumer wrapper or legacy compatibility wiring is introduced.
+
+See the complete [4.0 migration guide](docs/guides/migrating-to-4-0/page.mdx). The [3.0 migration guide](docs/guides/migrating-to-3-0/page.mdx) remains available for applications upgrading from CrudConfig 2.
 
 ### Database Support
 
@@ -771,7 +772,7 @@ CrudConfigModule.register({
 });
 ```
 
-Automator 3 route options use `generation.isEnabled` for route generation. Relation loading uses TypeORM `relationLoadStrategy` values (`"query"` or `"join"`); the built-in ConfigData section relation uses `"query"`.
+Automator 4 route options use `generation.isEnabled` for route generation. Relation loading uses TypeORM `relationLoadStrategy` values (`"query"` or `"join"`); the built-in ConfigData section relation uses `"query"`.
 
 ## 🗄️ Database Schema
 
