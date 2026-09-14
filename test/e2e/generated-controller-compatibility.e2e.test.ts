@@ -1,5 +1,7 @@
 import type { ApiServiceBase, TApiControllerTargetMethod } from "@elsikora/nestjs-crud-automator";
 
+import { ApiFunctionTransactionScope } from "@elsikora/nestjs-crud-automator";
+import { createCache } from "cache-manager";
 import { DataSource } from "typeorm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -9,6 +11,7 @@ import {
  createConfigDataEntity,
  createConfigSectionEntity,
  createDynamicService,
+ CrudConfigService,
  type IConfigData,
  type IConfigSection,
 } from "../../dist/esm/index";
@@ -19,6 +22,7 @@ const IP_ADDRESS = "127.0.0.1";
 describe("Automator 4 generated controller compatibility", () => {
  let ConfigDataEntity: ReturnType<typeof createConfigDataEntity>;
  let dataController: InstanceType<TApiControllerTargetMethod<IConfigData>>;
+ let dataService: ApiServiceBase<IConfigData>;
  let dataSource: DataSource;
  let sectionController: InstanceType<TApiControllerTargetMethod<IConfigSection>>;
  let sectionService: ApiServiceBase<IConfigSection>;
@@ -54,7 +58,7 @@ describe("Automator 4 generated controller compatibility", () => {
    "ConfigSectionService",
   );
   const DynamicConfigDataService = createDynamicService(ConfigDataEntity, "ConfigDataService");
-  const dataService = new DynamicConfigDataService(
+  dataService = new DynamicConfigDataService(
    dataSource.getRepository(ConfigDataEntity),
   ) as ApiServiceBase<IConfigData>;
 
@@ -138,5 +142,77 @@ describe("Automator 4 generated controller compatibility", () => {
   expect(updated.value).toBe("two");
   expect(fetched.value).toBe("two");
   expect(persisted.section.id).toBe(section.id);
+ });
+
+ it("keeps configuration reads scoped and fresh through the decorated services", async () => {
+  const cache = createCache();
+  const configService = new CrudConfigService(
+   sectionService,
+   dataService,
+   cache,
+   { cacheOptions: { isEnabled: true }, environment: "test" },
+   dataSource,
+  );
+  const application = await sectionService.create({ name: "application" });
+  const integrations = await sectionService.create({ name: "integrations" });
+  const target = await dataService.create({
+   environment: "test",
+   isEncrypted: false,
+   name: "API_KEY",
+   section: { id: application.id },
+   value: "application-test",
+  });
+
+  for (const [section, environment, value] of [
+   [integrations, "test", "integrations-test"],
+   [application, "production", "application-production"],
+  ] as const) {
+   await dataService.create({
+    environment,
+    isEncrypted: false,
+    name: "API_KEY",
+    section: { id: section.id },
+    value,
+   });
+  }
+
+  const lookup = { name: "API_KEY", section: application.name, useCache: false };
+  const original = await configService.get(lookup);
+  expect(original.id).toBe(target.id);
+  expect(original.value).toBe("application-test");
+  expect((await configService.get({ ...lookup, section: integrations.name })).value).toBe(
+   "integrations-test",
+  );
+  expect((await configService.get({ ...lookup, environment: "production" })).value).toBe(
+   "application-production",
+  );
+  const hydrated = await configService.get({ ...lookup, shouldLoadSectionInfo: true });
+  expect(hydrated.section.id).toBe(application.id);
+  expect(hydrated.section.name).toBe(application.name);
+
+  await configService.get({ ...lookup, useCache: true });
+  await dataService.update({ id: target.id }, { value: "refreshed" });
+  expect((await configService.get(lookup)).value).toBe("refreshed");
+  expect((await configService.get({ ...lookup, useCache: true })).value).toBe("application-test");
+
+  const rollback = new Error("Roll back the configuration change");
+
+  try {
+   await expect(
+    ApiFunctionTransactionScope.runWithDataSource(
+     dataSource,
+     { name: "configuration-read-visibility" },
+     async (eventManager) => {
+      await eventManager.update(ConfigDataEntity, { id: target.id }, { value: "uncommitted" });
+      expect((await configService.get({ ...lookup, eventManager })).value).toBe("uncommitted");
+      throw rollback;
+     },
+    ),
+   ).rejects.toBe(rollback);
+  } finally {
+   await cache.disconnect();
+  }
+
+  expect((await configService.get(lookup)).value).toBe("refreshed");
  });
 });

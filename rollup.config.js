@@ -11,6 +11,7 @@ const external = [
  "@nestjs/typeorm",
  "typeorm",
  "@elsikora/nestjs-crud-automator",
+ "lru-cache",
  "dotenv/config",
 ];
 

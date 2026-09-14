@@ -1,8 +1,25 @@
+import swc from "unplugin-swc";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
- plugins: [tsconfigPaths()],
+ plugins: [
+  swc.vite({
+   jsc: {
+    parser: {
+     decorators: true,
+     dynamicImport: true,
+     syntax: "typescript",
+    },
+    transform: {
+     decoratorMetadata: true,
+     legacyDecorator: true,
+    },
+   },
+   module: { type: "es6" },
+  }),
+  tsconfigPaths(),
+ ],
  publicDir: false,
  resolve: {
   alias: {
