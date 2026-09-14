@@ -814,11 +814,13 @@ CREATE TABLE config_data (
 The module provides built-in AES-256-GCM encryption for sensitive configuration values:
 
 ```typescript
-// Enable encryption globally
+// Enable encryption with bounded derived-key reuse for repeated uncached reads
 CrudConfigModule.register({
+ cacheOptions: { isEnabled: false },
  encryptionOptions: {
   isEnabled: true,
   encryptionKey: process.env.CONFIG_ENCRYPTION_KEY, // 32+ character key
+  derivedKeyCacheMaxEntries: 64,
  },
 });
 
@@ -833,11 +835,16 @@ await configService.set({
 const config = await configService.get({
  section: "database",
  name: "DB_PASSWORD",
+ useCache: false,
 });
 
 console.log(config.value); // Automatically decrypted value
 console.log(config.isEncrypted); // true
 ```
+
+`encryptionOptions.derivedKeyCacheMaxEntries` bounds the number of derived keys retained by each module instance using `lru-cache`. Omit it or set it to `0` to disable reuse; a positive safe integer enables it. The same option is available through `registerAsync()`.
+
+This cache retains derived encryption keys in process memory, not configuration values. With `useCache: false`, each read still fetches the current database value, and every decrypt call authenticates the supplied ciphertext with AES-GCM. Only successful decryption populates or promotes a cache entry. Eviction, module destruction, or successful decryption with a different encryption key clears the affected key buffers. Encrypted storage format and the synchronous encryption API are unchanged.
 
 ### Transaction and Duplicate Protection
 
