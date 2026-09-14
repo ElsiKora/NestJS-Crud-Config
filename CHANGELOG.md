@@ -1,3 +1,10 @@
+## [4.0.1](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v4.0.0...v4.0.1) (2026-09-14)
+
+### Performance Improvements
+
+- **config:** avoid joins for section key lookups ([203da7e](https://github.com/ElsiKora/NestJS-Crud-Config/commit/203da7ea0f7aa015dba6cf54ad370e1315da17a0))
+- **crypto:** cache authenticated derived keys ([a8dc254](https://github.com/ElsiKora/NestJS-Crud-Config/commit/a8dc254c793e3e8cdd99c4784353ba41931c8679))
+
 # [4.0.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v3.1.0...v4.0.0) (2026-08-20)
 
 - build(deps)!: require crud automator 4 ([d776519](https://github.com/ElsiKora/NestJS-Crud-Config/commit/d776519d6cc30ea78efb4a5f65e5609d1070866f))
