@@ -4,6 +4,12 @@
  */
 export interface IConfigEncryptionOptions {
  /**
+  * Maximum number of derived encryption keys retained in memory for successful
+  * decryptions. A value of `0` or `undefined` disables this optimization.
+  */
+ derivedKeyCacheMaxEntries?: number;
+
+ /**
   * The encryption key to use for AES encrypting/decrypting config values
   */
  encryptionKey?: string;
