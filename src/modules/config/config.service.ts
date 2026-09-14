@@ -22,7 +22,7 @@ import {
 } from "@nestjs/common";
 import { TOKEN_CONSTANT } from "@shared/constant";
 import { CryptoUtility, LoggerUtility } from "@shared/utility";
-import { DataSource, EntityManager } from "typeorm";
+import { DataSource, EntityManager, Equal } from "typeorm";
 
 import {
  IConfigDeleteOptions,
@@ -77,7 +77,7 @@ export class CrudConfigService {
      where: {
       environment: finalEnvironment,
       name,
-      section: { id: section.id },
+      section: Equal(section.id),
      },
     }),
    );
@@ -151,7 +151,7 @@ export class CrudConfigService {
     this.dataService.get({
      // eslint-disable-next-line @elsikora/typescript/naming-convention
      relations: { section: shouldLoadSectionInfo },
-     where: { environment: finalEnvironment, name, section: { id: sectionData.id } },
+     where: { environment: finalEnvironment, name, section: Equal(sectionData.id) },
     }),
    );
 
@@ -252,7 +252,7 @@ export class CrudConfigService {
     eventManager,
     () =>
      this.dataService.getList({
-      where: { environment: finalEnvironment, section: { id: section.id } },
+      where: { environment: finalEnvironment, section: Equal(section.id) },
      }),
    );
 
@@ -437,7 +437,7 @@ export class CrudConfigService {
 
    const existingData: IConfigData = await this.runWithEventManager(entityManager, () =>
     this.dataService.get({
-     where: { environment: finalEnvironment, name, section: { id: section.id } },
+     where: { environment: finalEnvironment, name, section: Equal(section.id) },
     }),
    );
 
