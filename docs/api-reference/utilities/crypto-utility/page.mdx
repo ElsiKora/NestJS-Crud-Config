@@ -11,8 +11,15 @@ export class CryptoUtility {
  decrypt(encryptedValue: string, encryptionKey: string): string;
  encrypt(value: string, encryptionKey: string): string;
  isEncryptedValue(value: string): boolean;
+ onModuleDestroy(): void;
 }
 ```
+
+Successful `decrypt()` calls can retain scrypt-derived keys when `encryptionOptions.derivedKeyCacheMaxEntries` is a positive integer. The bound is disabled by default. Keys are scoped to one current encryption key and indexed by salt. A later read with the same encryption key and salt reuses the derivation but decrypts and authenticates the supplied ciphertext again. Plaintext and configuration values are not cached by this utility.
+
+The least recently authenticated salt is evicted when the configured limit is reached. Failed decryption does not add a key, refresh its position, or replace the current encryption key. Successfully decrypting with a different encryption key clears the old derived keys. Eviction and `onModuleDestroy()` overwrite retained key buffers with zeroes; Nest calls the hook when the owning module closes. Call it yourself when disposing a manually constructed `CryptoUtility`. The cache is process-local and is not a substitute for configuration or secret rotation.
+
+`encrypt()` continues to generate a fresh salt and IV and does not populate the derived-key cache. The encrypted-value format, AES-256-GCM authentication, and scrypt parameters remain compatible with existing stored values.
 
 ## Related
 

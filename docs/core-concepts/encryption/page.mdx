@@ -8,6 +8,10 @@ Encryption can be enabled via `encryptionOptions`. When enabled, values can be s
 - On `set()`, the value is encrypted and stored with `isEncrypted = true`
 - On `get()` / `getList()`, encrypted values are decrypted automatically (requires `encryptionKey`)
 
+Repeated decryption can avoid repeating scrypt for the same encryption key and salt when `encryptionOptions.derivedKeyCacheMaxEntries` is configured as a positive integer. The optimization is disabled by default. `CryptoUtility` retains up to that many derived keys for one current encryption key and authenticates every supplied ciphertext with AES-GCM. It retains no plaintext or configuration values, so this optimization also applies when configuration caching is disabled or `useCache` is false: each read still retrieves the current database value.
+
+Only successful authentication updates the derived-key cache. The least recently authenticated key is evicted at the configured capacity; a successful read with a different encryption key replaces the cache. Retained key buffers are zeroed on eviction, replacement, and Nest module destruction. The cache is process-local and does not change rotation or revocation semantics. Existing encrypted values require no migration, and the encryption format and scrypt parameters are unchanged.
+
 ## Example
 
 ```typescript copy
@@ -15,6 +19,7 @@ CrudConfigModule.register({
  encryptionOptions: {
   isEnabled: true,
   encryptionKey: process.env.CONFIG_ENCRYPTION_KEY,
+  derivedKeyCacheMaxEntries: 128,
  },
 });
 ```
