@@ -1,3 +1,9 @@
+## [4.0.2](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v4.0.1...v4.0.2) (2026-09-22)
+
+### Bug Fixes
+
+- **peer:** admit automator 4.4 prerelease compatibility ([c766cc3](https://github.com/ElsiKora/NestJS-Crud-Config/commit/c766cc39f40a1a7ae9c0ac90a98b8257fc8d24e7))
+
 ## [4.0.1](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v4.0.0...v4.0.1) (2026-09-14)
 
 ### Performance Improvements
