@@ -1,3 +1,9 @@
+## [4.0.3](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v4.0.2...v4.0.3) (2026-09-23)
+
+### Bug Fixes
+
+- **peer:** accept automator observation candidate ([f0c7566](https://github.com/ElsiKora/NestJS-Crud-Config/commit/f0c7566dc9093d057b12b881140a9d50729b8dcc))
+
 ## [4.0.2](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v4.0.1...v4.0.2) (2026-09-22)
 
 ### Bug Fixes
