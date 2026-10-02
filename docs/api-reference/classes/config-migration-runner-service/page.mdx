@@ -9,12 +9,13 @@ _Defined in: `src/modules/config/migration/migration-runner.service.ts`_
 ```ts
 export class ConfigMigrationRunnerService {
  onApplicationBootstrap(): Promise<void>;
- runMigrations(): Promise<void>;
+ runMigrations(ownerManager?: EntityManager): Promise<void>;
 }
 ```
 
 ## Notes
 
+- Manual `runMigrations(ownerManager)` forwards the manager to public migration execution; it must belong to the same configured DataSource and currently active Automator owner. False transaction mode with a manager rejects. Omitted manager and automatic startup retain standalone behavior.
 - Runs migrations on startup when `migrationOptions.isEnabled` and `migrationOptions.shouldRunOnStartup` are enabled.
 
 ## Related

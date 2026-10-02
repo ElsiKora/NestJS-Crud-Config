@@ -13,11 +13,16 @@ export class ConfigMigrationService {
  executeMigrations(
   migrations: IConfigMigrationDefinition[],
   useTransaction?: boolean,
+  ownerManager?: EntityManager,
  ): Promise<void>;
  getExecutedMigrationList(): Promise<string[]>;
  getExecutedMigrations(): Promise<IConfigMigration[]>;
  isMigrationExecuted(migrationName: string): Promise<boolean>;
- rollbackMigration(migrationName: string, migrations: IConfigMigrationDefinition[]): Promise<void>;
+ rollbackMigration(
+  migrationName: string,
+  migrations: IConfigMigrationDefinition[],
+  ownerManager?: EntityManager,
+ ): Promise<void>;
 }
 ```
 
@@ -26,6 +31,8 @@ export class ConfigMigrationService {
 `executeMigrations(migrations, true)` and `rollbackMigration()` own the named `crud-config-migrations` Automator transaction. Migration history writes and callbacks join its exact manager.
 
 `executeMigrations(migrations, false)` opens no migration-wide owner and passes `undefined` to `up()`. A standalone `CrudConfigService.set()` still owns its own `crud-config-set` transaction.
+
+A supplied `ownerManager` joins the current active Automator owner for the same DataSource. Manager/QueryRunner identity, active and unreleased state, and the existing registry are validated before no-op/history access. The participant includes stuck cleanup, pending selection, history and callbacks in that owner and never commits, rolls back or releases it. Errors must escape the caller's owner for rollback; FAILED status is not independently persisted. `executeMigrations(migrations, false, ownerManager)` rejects.
 
 ## Related
 

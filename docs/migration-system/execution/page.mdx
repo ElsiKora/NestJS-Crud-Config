@@ -13,11 +13,32 @@ When `migrationOptions.isEnabled` and `migrationOptions.shouldRunOnStartup` are 
 
 ## Transaction ownership
 
-`useTransaction` defaults to `true`. Transaction-enabled execution owns one Automator transaction named `crud-config-migrations`; migration history writes and each callback share its exact `EntityManager`. Rollback execution always uses the same named owner.
+Without a supplied `ownerManager`, `useTransaction` defaults to `true`. Transaction-enabled execution owns one Automator transaction named `crud-config-migrations`; migration history writes and each callback share its exact `EntityManager`. Standalone rollback execution uses the same named owner.
 
 Pass the callback manager as `eventManager` to every `CrudConfigService` operation. Automator 4 treats `runWithEntityManager` as join-only, so omitting the manager from `set()` inside the migration would attempt a nested `crud-config-set` owner and fail. CrudConfig 4 does not change this transaction contract.
 
 With `useTransaction: false`, execution does not open the migration-wide owner and callbacks receive `undefined`. A `set()` call without a manager still owns its own atomic `crud-config-set` transaction. Multiple config writes therefore do not commit or roll back as one unit in disabled mode.
+
+## Participating in an existing owner
+
+Pass an existing Automator owner manager to `runMigrations(ownerManager)`, or to `executeMigrations(definitions, true, ownerManager)`. `rollbackMigration(name, definitions, ownerManager)` supports the same participation. The manager must be the exact manager of an active unreleased QueryRunner from the configured DataSource and belong to the currently active Automator owner registry. Raw, foreign, closed and stale managers are rejected before history access, including empty or already-completed migration lists. `useTransaction: false` with a manager is rejected.
+
+The participant joins the existing owner through public `runWithEntityManager`. Validation, stuck cleanup, pending selection, history/status writes and callbacks all stay inside that owner. The caller owns commit and rollback; this service does not create or finish a second transaction. A late caller failure rolls back configuration and history together. Let migration errors escape the owner callback so the owner rolls back; catching an error and committing is the caller's responsibility. FAILED status changes in participant mode are part of the same transaction.
+
+```typescript copy
+import { ApiFunctionTransactionScope } from "@elsikora/nestjs-crud-automator";
+
+await ApiFunctionTransactionScope.runWithDataSource(
+ dataSource,
+ { name: "application-installation" },
+ async (ownerManager) => {
+  await migrationRunner.runMigrations(ownerManager);
+  // Other database phases must also participate in this exact owner.
+ },
+);
+```
+
+Each migration callback must still pass its manager as `eventManager` to configuration operations. Startup execution has no supplied manager and retains standalone ownership. This API provides transaction participation; it does not make unrelated application phases or external identity operations atomic automatically.
 
 ## Migration status enum
 
