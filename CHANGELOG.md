@@ -1,3 +1,9 @@
+# [4.1.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v4.0.3...v4.1.0) (2026-10-02)
+
+### Features
+
+- **migration:** support caller-owned migration transactions ([924524e](https://github.com/ElsiKora/NestJS-Crud-Config/commit/924524e37a59e28b8eb8dbdcf0d329014caf2d69))
+
 ## [4.0.3](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v4.0.2...v4.0.3) (2026-09-23)
 
 ### Bug Fixes
