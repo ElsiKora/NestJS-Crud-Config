@@ -15,7 +15,7 @@ export interface IConfigMigrationDefinition {
  /**
   * Optional rollback function
   * @param {CrudConfigService} configService - The config service for managing configurations
-  * @param {EntityManager} [entityManager] - Exact Automator owner manager for rollback
+  * @param {EntityManager} [entityManager] - Exact standalone or supplied Automator owner manager for rollback
   * @returns {Promise<void>} Promise that resolves when rollback is complete
   */
  down?: (configService: CrudConfigService, entityManager?: EntityManager) => Promise<void>;
@@ -28,7 +28,7 @@ export interface IConfigMigrationDefinition {
  /**
   * The migration function that will be executed
   * @param {CrudConfigService} configService - The config service for managing configurations
-  * @param {EntityManager} [entityManager] - Exact Automator owner manager, or undefined when transaction execution is disabled
+  * @param {EntityManager} [entityManager] - Exact standalone or supplied Automator owner manager, or undefined when transaction execution is disabled
   * @returns {Promise<void>} Promise that resolves when migration is complete
   */
  up: (configService: CrudConfigService, entityManager?: EntityManager) => Promise<void>;

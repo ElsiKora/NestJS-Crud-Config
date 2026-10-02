@@ -7,7 +7,7 @@ import { ApiFunctionTransactionScope } from "@elsikora/nestjs-crud-automator";
 import { CrudConfigService } from "@modules/config/config.service";
 import { Inject, Injectable, Logger, type OnModuleInit } from "@nestjs/common";
 import { CONFIG_MIGRATION_CONSTANT, TOKEN_CONSTANT } from "@shared/constant";
-import { DataSource, type EntityManager } from "typeorm";
+import { DataSource, type EntityManager, type QueryRunner } from "typeorm";
 
 import { EConfigMigrationStatus } from "./enum";
 
@@ -130,11 +130,112 @@ export class ConfigMigrationService implements OnModuleInit {
   * Executes pending migrations
   * @param {Array<IConfigMigrationDefinition>} migrations - Array of migration definitions
   * @param {boolean} [useTransaction] - Whether to use the named crud-config-migrations owner; defaults to true
+  * @param {EntityManager} [ownerManager] - Existing active Automator owner manager; requires useTransaction
   * @returns {Promise<void>} Promise that resolves when all migrations are executed
   */
  async executeMigrations(
   migrations: Array<IConfigMigrationDefinition>,
   useTransaction: boolean = true,
+  ownerManager?: EntityManager,
+ ): Promise<void> {
+  if (ownerManager !== undefined) {
+   if (!useTransaction) {
+    throw new Error("Owner manager requires transaction-enabled migrations");
+   }
+
+   await this.runWithOwnerManager(ownerManager, async (): Promise<void> => {
+    await this.executePendingMigrations(migrations, true, ownerManager);
+   });
+
+   return;
+  }
+
+  await this.executePendingMigrations(migrations, useTransaction);
+ }
+
+ /**
+  * Gets list of executed migration names
+  * @returns {Promise<string[]>} Promise that resolves to list of executed migration names
+  */
+ async getExecutedMigrationList(): Promise<Array<string>> {
+  const executedMigrations: Array<IConfigMigration> = await this.getExecutedMigrations();
+
+  return executedMigrations.map((migration: IConfigMigration) => migration.name);
+ }
+
+ /**
+  * Gets list of executed migrations
+  * @returns {Promise<IConfigMigration[]>} Promise that resolves to list of executed migrations
+  */
+ async getExecutedMigrations(): Promise<Array<IConfigMigration>> {
+  try {
+   const result: { count: number; items: Array<IConfigMigration> } =
+    await this.MIGRATION_SERVICE.getList({
+     order: { name: "ASC" },
+    });
+
+   return result.items;
+  } catch (error) {
+   const errorMessage: string = `Failed to get executed migrations: ${error instanceof Error ? error.message : String(error)}`;
+
+   this.LOGGER.error(errorMessage);
+
+   throw error;
+  }
+ }
+
+ /**
+  * Checks if a migration has been executed
+  * @param {string} migrationName - The name of the migration to check
+  * @returns {Promise<boolean>} Promise that resolves to true if migration is executed
+  */
+ async isMigrationExecuted(migrationName: string): Promise<boolean> {
+  try {
+   const result: { count: number; items: Array<IConfigMigration> } =
+    await this.MIGRATION_SERVICE.getList({
+     where: { name: migrationName },
+    });
+
+   return result.items.length > 0 && result.items[0]?.status === EConfigMigrationStatus.COMPLETED;
+  } catch (error) {
+   this.LOGGER.error(`Failed to check if migration '${migrationName}' is executed:`, error);
+
+   throw error;
+  }
+ }
+
+ onModuleInit(): void {
+  // Remove the dynamic entity creation - we already have the service injected
+  this.LOGGER.log("Migration service initialized");
+ }
+
+ /**
+  * Rolls back a migration inside the named owner or a supplied active Automator owner
+  * @param {string} migrationName - The name of the migration to roll back
+  * @param {Array<IConfigMigrationDefinition>} migrations - Array of migration definitions
+  * @param {EntityManager} [ownerManager] - Existing active Automator owner manager
+  * @returns {Promise<void>} Promise that resolves when rollback is complete
+  */
+ async rollbackMigration(
+  migrationName: string,
+  migrations: Array<IConfigMigrationDefinition>,
+  ownerManager?: EntityManager,
+ ): Promise<void> {
+  if (ownerManager !== undefined) {
+   await this.runWithOwnerManager(ownerManager, async (): Promise<void> => {
+    await this.executeRollback(migrationName, migrations, ownerManager);
+   });
+
+   return;
+  }
+
+  await this.executeRollback(migrationName, migrations);
+ }
+
+ private async executePendingMigrations(
+  migrations: Array<IConfigMigrationDefinition>,
+  useTransaction: boolean,
+  ownerManager?: EntityManager,
  ): Promise<void> {
   if (!migrations || migrations.length === 0) {
    this.LOGGER.verbose("No migrations to execute");
@@ -198,7 +299,11 @@ export class ConfigMigrationService implements OnModuleInit {
    `Found ${pendingMigrations.length} pending migration(s): ${pendingMigrations.map((m: IConfigMigrationDefinition) => m.name).join(", ")}`,
   );
 
-  if (useTransaction) {
+  if (ownerManager !== undefined) {
+   for (const migration of pendingMigrations) {
+    await this.executeSingleMigration(migration, ownerManager);
+   }
+  } else if (useTransaction) {
    await ApiFunctionTransactionScope.runWithDataSource(
     this.dataSource,
     { name: "crud-config-migrations" },
@@ -219,71 +324,10 @@ export class ConfigMigrationService implements OnModuleInit {
   );
  }
 
- /**
-  * Gets list of executed migration names
-  * @returns {Promise<string[]>} Promise that resolves to list of executed migration names
-  */
- async getExecutedMigrationList(): Promise<Array<string>> {
-  const executedMigrations: Array<IConfigMigration> = await this.getExecutedMigrations();
-
-  return executedMigrations.map((migration: IConfigMigration) => migration.name);
- }
-
- /**
-  * Gets list of executed migrations
-  * @returns {Promise<IConfigMigration[]>} Promise that resolves to list of executed migrations
-  */
- async getExecutedMigrations(): Promise<Array<IConfigMigration>> {
-  try {
-   const result: { count: number; items: Array<IConfigMigration> } =
-    await this.MIGRATION_SERVICE.getList({
-     order: { name: "ASC" },
-    });
-
-   return result.items;
-  } catch (error) {
-   const errorMessage: string = `Failed to get executed migrations: ${error instanceof Error ? error.message : String(error)}`;
-
-   this.LOGGER.error(errorMessage);
-
-   throw error;
-  }
- }
-
- /**
-  * Checks if a migration has been executed
-  * @param {string} migrationName - The name of the migration to check
-  * @returns {Promise<boolean>} Promise that resolves to true if migration is executed
-  */
- async isMigrationExecuted(migrationName: string): Promise<boolean> {
-  try {
-   const result: { count: number; items: Array<IConfigMigration> } =
-    await this.MIGRATION_SERVICE.getList({
-     where: { name: migrationName },
-    });
-
-   return result.items.length > 0 && result.items[0]?.status === EConfigMigrationStatus.COMPLETED;
-  } catch (error) {
-   this.LOGGER.error(`Failed to check if migration '${migrationName}' is executed:`, error);
-
-   throw error;
-  }
- }
-
- onModuleInit(): void {
-  // Remove the dynamic entity creation - we already have the service injected
-  this.LOGGER.log("Migration service initialized");
- }
-
- /**
-  * Rolls back a migration inside the named crud-config-migrations owner
-  * @param {string} migrationName - The name of the migration to roll back
-  * @param {Array<IConfigMigrationDefinition>} migrations - Array of migration definitions
-  * @returns {Promise<void>} Promise that resolves when rollback is complete
-  */
- async rollbackMigration(
+ private async executeRollback(
   migrationName: string,
   migrations: Array<IConfigMigrationDefinition>,
+  ownerManager?: EntityManager,
  ): Promise<void> {
   const migration: IConfigMigrationDefinition | undefined = migrations.find(
    (m: IConfigMigrationDefinition) => m.name === migrationName,
@@ -302,28 +346,34 @@ export class ConfigMigrationService implements OnModuleInit {
   try {
    this.LOGGER.verbose(`Starting rollback for migration: ${migration.name}`);
 
-   await ApiFunctionTransactionScope.runWithDataSource(
-    this.dataSource,
-    { name: "crud-config-migrations" },
-    async (transactionalEntityManager: EntityManager): Promise<void> => {
-     try {
-      // Execute the down method
-      await migration.down?.(this.configService, transactionalEntityManager);
+   const executeDown = async (transactionalEntityManager: EntityManager): Promise<void> => {
+    try {
+     // Execute the down method
+     await migration.down?.(this.configService, transactionalEntityManager);
 
-      // Delete the migration record in the rollback transaction context.
-      await this.MIGRATION_SERVICE.delete({ name: migrationName });
+     // Delete the migration record in the rollback transaction context.
+     await this.MIGRATION_SERVICE.delete({ name: migrationName });
 
-      this.LOGGER.verbose(`Successfully rolled back migration: ${migration.name}`);
-     } catch (downError) {
-      const errorMessage: string = `Failed to rollback migration '${migration.name}': ${downError instanceof Error ? downError.message : String(downError)}`;
+     this.LOGGER.verbose(`Successfully rolled back migration: ${migration.name}`);
+    } catch (downError) {
+     const errorMessage: string = `Failed to rollback migration '${migration.name}': ${downError instanceof Error ? downError.message : String(downError)}`;
 
-      this.LOGGER.error(errorMessage);
+     this.LOGGER.error(errorMessage);
 
-      // Don't update the migration record on rollback failure
-      throw downError;
-     }
-    },
-   );
+     // Don't update the migration record on rollback failure
+     throw downError;
+    }
+   };
+
+   if (ownerManager === undefined) {
+    await ApiFunctionTransactionScope.runWithDataSource(
+     this.dataSource,
+     { name: "crud-config-migrations" },
+     executeDown,
+    );
+   } else {
+    await executeDown(ownerManager);
+   }
 
    const completedTime: Date = new Date();
 
@@ -337,14 +387,22 @@ export class ConfigMigrationService implements OnModuleInit {
 
    const failedTime: Date = new Date();
 
-   // Update migration status to FAILED
-   await this.MIGRATION_SERVICE.update(
-    { name: migrationName },
-    {
-     failedAt: failedTime,
-     status: EConfigMigrationStatus.FAILED,
-    },
-   );
+   // A failed participant SQL operation can leave the caller's transaction aborted.
+   try {
+    await this.MIGRATION_SERVICE.update(
+     { name: migrationName },
+     {
+      failedAt: failedTime,
+      status: EConfigMigrationStatus.FAILED,
+     },
+    );
+   } catch (updateError) {
+    if (ownerManager === undefined) {
+     throw updateError;
+    }
+
+    this.LOGGER.error(`Failed to update migration status for ${migration.name}:`, updateError);
+   }
 
    throw error;
   }
@@ -407,6 +465,27 @@ export class ConfigMigrationService implements OnModuleInit {
 
    throw error;
   }
+ }
+
+ private async runWithOwnerManager(
+  ownerManager: EntityManager,
+  callback: () => Promise<void>,
+ ): Promise<void> {
+  const queryRunner: QueryRunner | undefined = ownerManager.queryRunner;
+
+  if (
+   // eslint-disable-next-line @elsikora/sonar/deprecation -- The supported TypeORM 0.3 peer exposes DataSource identity as connection.
+   ownerManager.connection !== this.dataSource ||
+   // eslint-disable-next-line @elsikora/sonar/deprecation -- The supported TypeORM 0.3 QueryRunner exposes DataSource identity as connection.
+   queryRunner?.connection !== this.dataSource ||
+   queryRunner.manager !== ownerManager ||
+   !queryRunner.isTransactionActive ||
+   queryRunner.isReleased
+  ) {
+   throw new Error("Migration participation requires the active owner manager for this DataSource");
+  }
+
+  await ApiFunctionTransactionScope.runWithEntityManager(ownerManager, callback);
  }
 
  /**

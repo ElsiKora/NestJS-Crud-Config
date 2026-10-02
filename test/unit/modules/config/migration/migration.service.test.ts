@@ -622,4 +622,161 @@ describe("ConfigMigrationService", () => {
    );
   });
  });
+ describe("owner participation", () => {
+  beforeEach(() => {
+   Object.assign(mockEntityManager, { connection: mockDataSource, queryRunner: mockQueryRunner });
+   Object.assign(mockQueryRunner, {
+    connection: mockDataSource,
+    isReleased: false,
+    isTransactionActive: true,
+   });
+   vi.mocked(mockMigrationService.getList).mockResolvedValue(createMockApiListResult([]));
+   vi.mocked(mockMigrationService.create).mockResolvedValue(mockMigration);
+   vi.mocked(mockMigrationService.update).mockResolvedValue(mockMigration);
+  });
+
+  it("rejects an unregistered manager before an empty migration no-op", async () => {
+   await expect(service.executeMigrations([], true, mockEntityManager)).rejects.toThrow();
+   expect(mockMigrationService.getList).not.toHaveBeenCalled();
+   expect(mockMigrationService.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects disabled transaction participation before history access", async () => {
+   await expect(service.executeMigrations([], false, mockEntityManager)).rejects.toThrow();
+   expect(mockMigrationService.getList).not.toHaveBeenCalled();
+  });
+
+  it.each(["foreign", "inactive", "released", "different-manager", "raw"])(
+   "rejects a %s manager before a no-op even inside an owner",
+   async (kind) => {
+    await ApiFunctionTransactionScope.runWithDataSource(
+     mockDataSource,
+     { name: "participant-admission" },
+     async (ownerManager) => {
+      const manager = ownerManager;
+      const queryRunner = mockQueryRunner;
+      if (kind === "foreign") Object.assign(manager, { connection: {} });
+      if (kind === "inactive") Object.assign(queryRunner, { isTransactionActive: false });
+      if (kind === "released") Object.assign(queryRunner, { isReleased: true });
+      if (kind === "different-manager") Object.assign(queryRunner, { manager: {} });
+      if (kind === "raw") Object.assign(manager, { queryRunner: undefined });
+      try {
+       await expect(service.executeMigrations([], true, manager)).rejects.toThrow();
+       expect(mockMigrationService.getList).not.toHaveBeenCalled();
+       expect(mockMigrationService.update).not.toHaveBeenCalled();
+      } finally {
+       Object.assign(manager, { connection: mockDataSource, queryRunner });
+       Object.assign(queryRunner, { manager, isTransactionActive: true, isReleased: false });
+      }
+     },
+    );
+   },
+  );
+
+  it("joins one existing owner without committing or releasing it", async () => {
+   const scopeSpy = vi.spyOn(ApiFunctionTransactionScope, "runWithDataSource");
+   try {
+    await ApiFunctionTransactionScope.runWithDataSource(
+     mockDataSource,
+     { name: "whole-install" },
+     async (ownerManager) => {
+      await service.executeMigrations([mockMigrationDefinition], true, ownerManager);
+      expect(mockMigrationDefinition.up).toHaveBeenCalledWith(mockConfigService, ownerManager);
+      expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled();
+      expect(mockQueryRunner.rollbackTransaction).not.toHaveBeenCalled();
+      expect(mockQueryRunner.release).not.toHaveBeenCalled();
+     },
+    );
+    expect(scopeSpy).toHaveBeenCalledTimes(1);
+    expect(mockQueryRunner.commitTransaction).toHaveBeenCalledTimes(1);
+    expect(mockQueryRunner.release).toHaveBeenCalledTimes(1);
+   } finally {
+    scopeSpy.mockRestore();
+   }
+  });
+
+  it("rejects an invalid rollback manager before a FAILED history write", async () => {
+   await expect(
+    service.rollbackMigration(
+     mockMigrationDefinition.name,
+     [mockMigrationDefinition],
+     mockEntityManager,
+    ),
+   ).rejects.toThrow();
+   expect(mockMigrationDefinition.down).not.toHaveBeenCalled();
+   expect(mockMigrationService.delete).not.toHaveBeenCalled();
+   expect(mockMigrationService.update).not.toHaveBeenCalled();
+  });
+
+  it("passes the exact manager to down without opening another owner", async () => {
+   const scopeSpy = vi.spyOn(ApiFunctionTransactionScope, "runWithDataSource");
+   try {
+    await ApiFunctionTransactionScope.runWithDataSource(
+     mockDataSource,
+     { name: "whole-install-down" },
+     async (ownerManager) => {
+      await service.rollbackMigration(
+       mockMigrationDefinition.name,
+       [mockMigrationDefinition],
+       ownerManager,
+      );
+      expect(mockMigrationDefinition.down).toHaveBeenCalledWith(mockConfigService, ownerManager);
+      expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled();
+     },
+    );
+    expect(scopeSpy).toHaveBeenCalledTimes(1);
+    expect(mockMigrationService.delete).toHaveBeenCalledWith({
+     name: mockMigrationDefinition.name,
+    });
+   } finally {
+    scopeSpy.mockRestore();
+   }
+  });
+
+  it("preserves the original participant rollback error when FAILED history update also fails", async () => {
+   const originalFailure = new Error("Migration down failed");
+   const historyFailure = new Error("The transaction cannot update FAILED history");
+   mockMigrationDefinition.down = vi.fn().mockRejectedValue(originalFailure);
+   vi.mocked(mockMigrationService.update).mockRejectedValue(historyFailure);
+   const scopeSpy = vi.spyOn(ApiFunctionTransactionScope, "runWithDataSource");
+
+   try {
+    await expect(
+     ApiFunctionTransactionScope.runWithDataSource(
+      mockDataSource,
+      { name: "whole-install-down-failure" },
+      async (ownerManager) => {
+       try {
+        await service.rollbackMigration(
+         mockMigrationDefinition.name,
+         [mockMigrationDefinition],
+         ownerManager,
+        );
+       } catch (error) {
+        expect(mockMigrationDefinition.down).toHaveBeenCalledWith(mockConfigService, ownerManager);
+        expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled();
+        expect(mockQueryRunner.rollbackTransaction).not.toHaveBeenCalled();
+        expect(mockQueryRunner.release).not.toHaveBeenCalled();
+        throw error;
+       }
+      },
+     ),
+    ).rejects.toBe(originalFailure);
+
+    expect(mockMigrationService.update).toHaveBeenCalledWith(
+     { name: mockMigrationDefinition.name },
+     { failedAt: expect.any(Date), status: EConfigMigrationStatus.FAILED },
+    );
+    expect(mockMigrationService.delete).not.toHaveBeenCalled();
+    expect(scopeSpy).toHaveBeenCalledTimes(1);
+    expect(mockDataSource.createQueryRunner).toHaveBeenCalledTimes(1);
+    expect(mockQueryRunner.startTransaction).toHaveBeenCalledTimes(1);
+    expect(mockQueryRunner.commitTransaction).not.toHaveBeenCalled();
+    expect(mockQueryRunner.rollbackTransaction).toHaveBeenCalledTimes(1);
+    expect(mockQueryRunner.release).toHaveBeenCalledTimes(1);
+   } finally {
+    scopeSpy.mockRestore();
+   }
+  });
+ });
 });

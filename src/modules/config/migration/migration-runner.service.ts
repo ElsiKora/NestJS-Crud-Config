@@ -1,4 +1,5 @@
 import type { IConfigOptions } from "@shared/interface/config";
+import type { EntityManager } from "typeorm";
 
 import type { IConfigMigration, IConfigMigrationOptions } from "./interface";
 
@@ -88,10 +89,11 @@ export class ConfigMigrationRunnerService implements OnApplicationBootstrap {
  }
 
  /**
-  * Manually run migrations (for testing or manual execution)
+  * Manually run migrations, optionally participating in an existing Automator owner
+  * @param {EntityManager} [ownerManager] - Existing active owner manager for the configured DataSource
   * @returns {Promise<void>} Promise that resolves when migrations are complete
   */
- async runMigrations(): Promise<void> {
+ async runMigrations(ownerManager?: EntityManager): Promise<void> {
   const migrationOptions: IConfigMigrationOptions | undefined = this.options.migrationOptions;
 
   if (!migrationOptions?.isEnabled) {
@@ -102,9 +104,17 @@ export class ConfigMigrationRunnerService implements OnApplicationBootstrap {
    throw new Error("No migrations configured");
   }
 
-  await this.migrationService.executeMigrations(
-   migrationOptions.migrations,
-   migrationOptions.useTransaction ?? true,
-  );
+  if (ownerManager === undefined) {
+   await this.migrationService.executeMigrations(
+    migrationOptions.migrations,
+    migrationOptions.useTransaction ?? true,
+   );
+  } else {
+   await this.migrationService.executeMigrations(
+    migrationOptions.migrations,
+    migrationOptions.useTransaction ?? true,
+    ownerManager,
+   );
+  }
  }
 }

@@ -361,4 +361,13 @@ describe("ConfigMigrationRunnerService", () => {
    );
   });
  });
+ it("forwards the caller owner manager to manual migration execution", async () => {
+  const ownerManager = {} as import("typeorm").EntityManager;
+  await service.runMigrations(ownerManager);
+  expect(mockMigrationService.executeMigrations).toHaveBeenCalledWith(
+   [mockMigrationDefinition],
+   true,
+   ownerManager,
+  );
+ });
 });

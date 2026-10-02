@@ -38,7 +38,9 @@ export interface IConfigMigrationOptions {
 
  /**
   * Whether to run migrations inside the named crud-config-migrations owner.
-  * Defaults to true. Standalone set calls still own per-operation transactions when false.
+  * Defaults to true. With a supplied owner manager, execution joins that active owner.
+  * A supplied manager with false is rejected; standalone set calls still own per-operation
+  * transactions when false without a manager.
   */
  useTransaction?: boolean;
 }
