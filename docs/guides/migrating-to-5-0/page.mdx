@@ -70,6 +70,8 @@ Without it, startup fails with `Nest can't resolve dependencies of the ApiAuthor
 
 **CommonJS applications** keep `require("@elsikora/nestjs-crud-config")`. Node.js loads the ES module through `require(esm)`, which works without a flag on every supported Node.js release. TypeScript with `module: commonjs` finds the types either way: without `moduleResolution`, which TypeScript 6 resolves as `bundler`, through `exports`, and with `moduleResolution: node10` through the top-level `types` field (TypeScript 6 then needs `"ignoreDeprecations": "6.0"`).
 
+The published declarations import NestJS only from the package roots (`@nestjs/common`, `@nestjs/core`, …) and from subpaths that the package's `exports` map lists explicitly. The 4.1.0 declarations imported `@nestjs/common/interfaces`, which NestJS 12 does not export, so type checks with `bundler`, `node16` or `nodenext` resolution failed with `TS2307`. The build rejects such an import, and CI typechecks every published declaration with `skipLibCheck: false`.
+
 The package publishes no source maps.
 
 ## Load `.env` in the application
