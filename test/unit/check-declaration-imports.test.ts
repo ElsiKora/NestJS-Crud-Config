@@ -1,7 +1,7 @@
 import type { SpawnSyncReturns } from "node:child_process";
 
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -11,6 +11,10 @@ const SCRIPT_PATH: string = path.resolve("scripts/check-declaration-imports.cjs"
 const SIDE_EFFECT_MESSAGE: string =
  "writes to the console or process streams, or loads a .env file";
 const SOURCE_MAP_MESSAGE: string = "has source maps";
+const PACKAGE_IMPORT_MESSAGE: string =
+ "imports packages outside dependencies and peerDependencies, or paths inside them";
+// The fixture declares these as peers and copies their real NestJS 12 exports maps
+const NEST_PACKAGES: Array<string> = ["@nestjs/common", "@nestjs/core"];
 
 const temporaryDirectories: Array<string> = [];
 
@@ -24,8 +28,25 @@ function runCheck(distributionFiles: Record<string, string>): SpawnSyncReturns<s
  temporaryDirectories.push(projectDirectory);
  writeFileSync(
   path.join(projectDirectory, "package.json"),
-  JSON.stringify({ dependencies: {}, name: "dist-check-fixture" }),
+  JSON.stringify({
+   dependencies: {},
+   name: "dist-check-fixture",
+   peerDependencies: Object.fromEntries(NEST_PACKAGES.map((name: string) => [name, "^12.3.2"])),
+  }),
  );
+
+ for (const name of NEST_PACKAGES) {
+  const manifest: { exports: unknown; name: string; version: string } = JSON.parse(
+   readFileSync(path.resolve("node_modules", name, "package.json"), "utf8"),
+  ) as { exports: unknown; name: string; version: string };
+  const manifestPath: string = path.join(projectDirectory, "node_modules", name, "package.json");
+
+  mkdirSync(path.dirname(manifestPath), { recursive: true });
+  writeFileSync(
+   manifestPath,
+   JSON.stringify({ exports: manifest.exports, name: manifest.name, version: manifest.version }),
+  );
+ }
 
  for (const [filePath, fileContent] of Object.entries(distributionFiles)) {
   const absolutePath: string = path.join(projectDirectory, "dist", filePath);
@@ -136,5 +157,78 @@ describe("check-declaration-imports", () => {
   expect(result.status).toBe(1);
   expect(result.stderr).toContain(SOURCE_MAP_MESSAGE);
   expect(result.stderr).toContain("dist/index.js (sourceMappingURL)");
+ });
+
+ it.each([
+  [
+   "the @nestjs/common root in a declaration",
+   "index.d.ts",
+   'export type { Type } from "@nestjs/common";\n',
+  ],
+  [
+   "the @nestjs/common root in JavaScript",
+   "index.js",
+   'export { Injectable } from "@nestjs/common";\n',
+  ],
+  [
+   "the explicit @nestjs/common/internal key",
+   "index.js",
+   'export { ROUTE_ARGS_METADATA } from "@nestjs/common/internal";\n',
+  ],
+  [
+   "the explicit @nestjs/core/internal key",
+   "index.d.ts",
+   'export type { InstanceWrapper } from "@nestjs/core/internal";\n',
+  ],
+ ])("passes %s", (_name: string, filePath: string, fileContent: string) => {
+  const result: SpawnSyncReturns<string> = runCheck({ [filePath]: fileContent });
+
+  expect(result.stderr).toBe("");
+  expect(result.status).toBe(0);
+ });
+
+ it.each([
+  [
+   "@nestjs/common/interfaces in a declaration",
+   "index.d.ts",
+   'import type { ModuleMetadata, Type } from "@nestjs/common/interfaces";\nexport type T = Type & ModuleMetadata;\n',
+   "@nestjs/common/interfaces",
+  ],
+  [
+   "@nestjs/common/interfaces in JavaScript",
+   "index.js",
+   'export { Type } from "@nestjs/common/interfaces/index.js";\n',
+   "@nestjs/common/interfaces/index.js",
+  ],
+  [
+   "@nestjs/common/constants.js, matched only by a wildcard key",
+   "index.js",
+   'export { MODULE_METADATA } from "@nestjs/common/constants.js";\n',
+   "@nestjs/common/constants.js",
+  ],
+  [
+   "a deep @nestjs/core path in a declaration",
+   "index.d.ts",
+   'export type { InstanceWrapper } from "@nestjs/core/injector/instance-wrapper";\n',
+   "@nestjs/core/injector/instance-wrapper",
+  ],
+  [
+   "a dynamic import of a Nest subpath in a declaration",
+   "index.d.ts",
+   'export type T = import("@nestjs/common/interfaces").Type;\n',
+   "@nestjs/common/interfaces",
+  ],
+  [
+   "a Nest package that is not a peer",
+   "index.d.ts",
+   'export type { ConfigService } from "@nestjs/config";\n',
+   "@nestjs/config",
+  ],
+ ])("fails on %s", (_name: string, filePath: string, fileContent: string, specifier: string) => {
+  const result: SpawnSyncReturns<string> = runCheck({ [filePath]: fileContent });
+
+  expect(result.status).toBe(1);
+  expect(result.stderr).toContain(PACKAGE_IMPORT_MESSAGE);
+  expect(result.stderr).toContain(`dist/${filePath}: "${specifier}"`);
  });
 });
