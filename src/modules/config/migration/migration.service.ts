@@ -5,8 +5,9 @@ import type { IConfigMigration, IConfigMigrationDefinition } from "./interface";
 
 import { ApiFunctionTransactionScope } from "@elsikora/nestjs-crud-automator";
 import { CrudConfigService } from "@modules/config/config.service";
-import { Inject, Injectable, Logger, type OnModuleInit } from "@nestjs/common";
+import { ConsoleLogger, Inject, Injectable, type OnModuleInit } from "@nestjs/common";
 import { CONFIG_MIGRATION_CONSTANT, TOKEN_CONSTANT } from "@shared/constant";
+import { LoggerUtility } from "@shared/utility";
 import { DataSource, type EntityManager, type QueryRunner } from "typeorm";
 
 import { EConfigMigrationStatus } from "./enum";
@@ -18,7 +19,7 @@ import { EConfigMigrationStatus } from "./enum";
  */
 @Injectable()
 export class ConfigMigrationService implements OnModuleInit {
- private readonly LOGGER: Logger = new Logger(ConfigMigrationService.name);
+ private readonly LOGGER: ConsoleLogger = LoggerUtility.getLogger("ConfigMigrationService");
 
  private readonly MIGRATION_SERVICE: ApiServiceBase<IConfigMigration>;
 
