@@ -81,7 +81,7 @@ await configService.set({
 });
 ```
 
-`eventManager` is join-only in Automator 4. It does not establish context for an arbitrary manager from a raw TypeORM transaction. Omitting it inside a transaction-enabled migration would make `set()` attempt a nested owner, which Automator rejects. This ownership contract is unchanged from CrudConfig 3.
+`eventManager` is join-only in Automator 4 and 5. It does not establish context for an arbitrary manager from a raw TypeORM transaction. Omitting it inside a transaction-enabled migration would make `set()` attempt a nested owner, which Automator rejects. This ownership contract is unchanged from CrudConfig 3.
 
 When migration `useTransaction` is `false`, callbacks receive `undefined`. Each standalone `set()` still owns its own atomic transaction, but several migration writes do not share one all-or-nothing unit.
 

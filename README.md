@@ -16,7 +16,7 @@
 - [Description](#-description)
 - [Features](#-features)
 - [Installation](#-installation)
-- [Migrating to 4.0](#migrating-to-40)
+- [Migrating to 5.0](#migrating-to-50)
 - [Usage](#-usage)
 - [Migration System](#-migration-system)
 - [API Documentation](#-api-documentation)
@@ -55,31 +55,35 @@ Whether you're managing API keys across different environments, storing feature 
 
 ## 🛠 Installation
 
-These docs describe the CrudConfig 4 contract. Use the 4.x-only range so the package manager cannot resolve an incompatible 3.x release:
+These docs describe the CrudConfig 5 contract: Automator 5, NestJS 12, TypeORM 1, ES modules only. Use the 5.x range, which also accepts the 5.0.0 prereleases:
 
 ```bash
 # npm
-npm install @elsikora/nestjs-crud-config@^4.0.0-0
+npm install @elsikora/nestjs-crud-config@^5.0.0-0
 
 # yarn
-yarn add @elsikora/nestjs-crud-config@^4.0.0-0
+yarn add @elsikora/nestjs-crud-config@^5.0.0-0
 
 # pnpm
-pnpm add @elsikora/nestjs-crud-config@^4.0.0-0
+pnpm add @elsikora/nestjs-crud-config@^5.0.0-0
 ```
 
 ### Prerequisites
 
-Install the required peer dependencies:
+Node.js `^22.13.0 || >=24.11.0`. Install the required peer dependencies:
 
 ```bash
-npm install @elsikora/nestjs-crud-automator@^4.0.0-0 @nestjs/common@^11.1.24 @nestjs/core@^11.1.24 @nestjs/typeorm@^11.0.0 typeorm@^0.3.20
-npm install @nestjs/passport@^11.0.5 @nestjs/platform-fastify@11.1.24 @nestjs/swagger@11.4.2 @nestjs/throttler@^6.5.0 class-transformer@^0.5.1 class-validator@^0.15.1 fastify@^5.8.5 lodash@^4.18.1
+npm install @elsikora/nestjs-crud-automator@^5.0.0-0 @nestjs/common@^12 @nestjs/core@^12 @nestjs/typeorm@^12 typeorm@^1
+npm install @nestjs/passport@^12 @nestjs/platform-fastify@^12 @nestjs/swagger@^12 @nestjs/throttler class-transformer class-validator fastify lodash
 ```
 
-### Automator 4 compatibility
+The package ships as ES modules only. CommonJS applications keep `require("@elsikora/nestjs-crud-config")`, which Node.js loads through `require(esm)`. Importing the package loads no `.env` file: set `NCC_LOG_LEVEL` in the environment, or load `.env` in the application, for example with `ConfigModule.forRoot()`.
 
-CrudConfig 4 requires `@elsikora/nestjs-crud-automator >=4.0.0-0 <5.0.0`. Automator 3 is not supported.
+### Automator 5 compatibility
+
+CrudConfig 5 requires `@elsikora/nestjs-crud-automator ^5.0.0-dev.5`. Automator 4 and older are not supported.
+
+Generated routes run Automator's `ApiAuthorizationGuard`. When the section or data controllers are enabled, import Automator's global `ApiAuthorizationModule` once in the root module, as the examples below do; without it the application fails at startup with `Nest can't resolve dependencies of the ApiAuthorizationGuard`. Headless mode does not need it.
 
 Generated route overrides continue to use Automator generation config:
 
@@ -93,21 +97,19 @@ DELETE: {
 
 ConfigData `CREATE` and `UPDATE` use Automator nested request relation loading. The built-in section relation expects request bodies such as `{ "section": { "id": "section-uuid" } }`.
 
-CrudConfig creates each generated service through `createDynamicService()` and `@ApiService({ entity })`, so its inherited same-entity CRUD methods satisfy the Automator 4 generated-route capability boundary. Applications do not need a wrapper or compatibility layer.
+CrudConfig creates each generated service through `createDynamicService()` and `@ApiService({ entity })`, so its inherited same-entity CRUD methods satisfy the Automator generated-route capability boundary. Applications do not need a wrapper or compatibility layer.
 
-The tested Swagger baseline remains exact `11.4.2`. See [Migrating to 4.0](#migrating-to-40) for the compatibility change.
+### Migrating to 5.0
 
-### Migrating to 4.0
+CrudConfig 5 moves to the latest majors and ships as ES modules only. The CrudConfig runtime contract is otherwise unchanged:
 
-CrudConfig 4 removes Automator 3 compatibility. The CrudConfig runtime contract is otherwise unchanged:
+- peers move to Automator 5, NestJS 12, Swagger 12, `@nestjs/typeorm` 12 and TypeORM 1; Node.js `^22.13.0 || >=24.11.0`;
+- the build is ESM only: `dist/esm`, `dist/cjs` and the `require` export condition are gone, CommonJS applications load the package through `require(esm)`;
+- the `@nestjs/cache-manager` dependency moves to 12, so `npm ci` no longer fails with `ERESOLVE` on NestJS 12;
+- the package no longer imports `dotenv/config`: it never loads `.env`, and `NCC_LOG_LEVEL` comes from the application's environment;
+- module options, `CrudConfigService`, generated routes, the database schema and transaction ownership do not change.
 
-- generated routes keep the same paths, payloads, and `generation.isEnabled` options;
-- ConfigData relation input remains `{ "section": { "id": "section-uuid" } }`;
-- transaction ownership and `eventManager` join behavior remain unchanged;
-- the database schema, duplicate mapping, and EventEmitter-free runtime remain unchanged;
-- no consumer wrapper or legacy compatibility wiring is introduced.
-
-See the complete [4.0 migration guide](docs/guides/migrating-to-4-0/page.mdx). The [3.0 migration guide](docs/guides/migrating-to-3-0/page.mdx) remains available for applications upgrading from CrudConfig 2.
+See the complete [5.0 migration guide](docs/guides/migrating-to-5-0/page.mdx). The [4.0](docs/guides/migrating-to-4-0/page.mdx) and [3.0](docs/guides/migrating-to-3-0/page.mdx) migration guides remain available for older upgrades.
 
 ### Database Support
 
@@ -115,7 +117,7 @@ This package works with any database supported by TypeORM:
 
 - PostgreSQL
 - MySQL/MariaDB
-- SQLite
+- SQLite (through the `better-sqlite3` driver; TypeORM 1 removes `sqlite`)
 - Microsoft SQL Server
 - Oracle
 - MongoDB
@@ -129,10 +131,13 @@ This package works with any database supported by TypeORM:
 // app.module.ts
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { ApiAuthorizationModule } from "@elsikora/nestjs-crud-automator";
 import { CrudConfigModule, TOKEN_CONSTANT } from "@elsikora/nestjs-crud-config";
 
 @Module({
  imports: [
+  // Automator's generated routes run ApiAuthorizationGuard; import this global module once in the root module
+  ApiAuthorizationModule,
   // First register CrudConfigModule to create dynamic entities
   CrudConfigModule.register({
    environment: "development",
@@ -279,10 +284,12 @@ When using `registerAsync()`, static options like controllers and entity configu
 // app.module.ts
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
+import { ApiAuthorizationModule } from "@elsikora/nestjs-crud-automator";
 import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
 
 @Module({
  imports: [
+  ApiAuthorizationModule,
   ConfigModule.forRoot(),
   CrudConfigModule.registerAsync({
    imports: [ConfigModule],
@@ -772,7 +779,7 @@ CrudConfigModule.register({
 });
 ```
 
-Automator 4 route options use `generation.isEnabled` for route generation. Relation loading uses TypeORM `relationLoadStrategy` values (`"query"` or `"join"`); the built-in ConfigData section relation uses `"query"`.
+Automator route options use `generation.isEnabled` for route generation. Relation loading uses TypeORM `relationLoadStrategy` values (`"query"` or `"join"`); the built-in ConfigData section relation uses `"query"`.
 
 ## 🗄️ Database Schema
 
@@ -932,7 +939,7 @@ The module supports any database that TypeORM supports, including:
 
 - **PostgreSQL** - Recommended for production
 - **MySQL/MariaDB** - Popular choice for web applications
-- **SQLite** - Perfect for development and testing
+- **SQLite** - Perfect for development and testing (TypeORM 1 driver `better-sqlite3`)
 - **Microsoft SQL Server** - Enterprise database support
 - **Oracle** - Enterprise-grade database
 - **MongoDB** - NoSQL document database

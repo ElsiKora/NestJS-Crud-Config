@@ -15,3 +15,8 @@ export class LoggerUtility {
 ## Notes
 
 - Controlled via the `NCC_LOG_LEVEL` environment variable (`debug`, `verbose`, `log`, `warn`, `error`, `none`).
+- Reads `NCC_LOG_LEVEL` from `process.env` only, when a logger handles its first message. A value the application sets or loads after importing the package still applies; `setLogLevels()` overrides it. Without the variable the logger prints nothing.
+
+## Migration Notes
+
+- **5.0:** the package no longer imports `dotenv/config` and never loads a `.env` file. Set `NCC_LOG_LEVEL` in the host environment, or load `.env` in the application (for example `ConfigModule.forRoot()` or `node --env-file=.env`). See [Migrating to 5.0](/docs/nestjs-crud-config/guides/migrating-to-5-0).

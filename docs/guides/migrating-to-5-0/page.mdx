@@ -1,0 +1,114 @@
+# Migrating to 5.0
+
+CrudConfig 5 moves to Automator 5, NestJS 12, Swagger 12 and TypeORM 1, and ships as ES modules only. The module options, `CrudConfigService`, the generated routes, the database schema, the migration system and the transaction contract do not change.
+
+## Requirements
+
+| Requirement | 4.x | 5.0 |
+| --- | --- | --- |
+| Node.js | not declared | `^22.13.0 \|\| >=24.11.0` |
+| `@elsikora/nestjs-crud-automator` | `>=4.0.0-0 <5.0.0` | `^5.0.0-dev.5` |
+| `@nestjs/common`, `@nestjs/core`, `@nestjs/platform-fastify` | `>=11.1.24` | `^12.3.2` |
+| `@nestjs/passport` | `>=11.0.5` | `^12.0.0` |
+| `@nestjs/swagger` | `>=11.0.3` (tested `11.4.2`) | `^12.0.0` |
+| `@nestjs/typeorm` | `>=11.0.0` | `^12.0.1` |
+| `@nestjs/throttler` | `>=6.5.0` | `^6.7.1` |
+| `typeorm` | `>=0.3.20` | `^1.1.2` |
+| `fastify` | `>=5.8.5` | `^5.12.7` |
+| `class-transformer`, `class-validator`, `lodash` | `>=0.5.1`, `>=0.15.1`, `>=4.18.1` | `^0.5.1`, `^0.15.1`, `^4.18.1` |
+| `@nestjs/cache-manager` (dependency) | `^3.1.2` | `^12.0.2` |
+| `dotenv` (dependency) | `^17.4.2` | removed |
+| Module format | ESM and CommonJS (`dist/esm`, `dist/cjs`) | ESM only (`dist`) |
+
+Applications on NestJS 11 or older, TypeORM 0.3, Automator 4 or Node.js 20 stay on CrudConfig 4.
+
+The `@nestjs/typeorm` floor is `12.0.1`: `12.0.0` exports only an `import` condition, so CommonJS applications cannot `require` it.
+
+The Automator peer range `^5.0.0-dev.5` accepts the Automator 5.0.0 prereleases from `5.0.0-dev.5` on and every stable 5.x release.
+
+## Install the peers
+
+1. Upgrade Node.js, NestJS and TypeORM first, following the [NestJS migration guide](https://docs.nestjs.com/migration-guide), the TypeORM 1 release notes and the Automator [Migrating to 5.0](https://elsikora.com/docs/nestjs-crud-automator/guides/migrating-to-5-0) guide.
+2. Install CrudConfig 5 with its peers:
+
+```bash copy
+npm install @elsikora/nestjs-crud-config@^5.0.0-0 @elsikora/nestjs-crud-automator@^5.0.0-0
+npm install @nestjs/common@^12 @nestjs/core@^12 @nestjs/passport@^12 @nestjs/platform-fastify@^12 @nestjs/swagger@^12 @nestjs/typeorm@^12 @nestjs/throttler typeorm@^1
+npm install fastify class-transformer class-validator lodash
+npm ls @elsikora/nestjs-crud-automator @nestjs/common @nestjs/core typeorm
+```
+
+`npm ls` must show one copy of each package. Automator and Nest resolve decorators, providers and metadata by class, so a nested second copy breaks the generated controllers and the injection at startup.
+
+CrudConfig now depends on `@nestjs/cache-manager` 12. Version 3.x declares NestJS 11 or older as its peer, so `npm ci` failed with `ERESOLVE` on NestJS 12. If the application uses `@nestjs/cache-manager` itself, upgrade it to `^12.0.2` as well.
+
+## Import `ApiAuthorizationModule` for generated routes
+
+Automator 5, like Automator 4.7, adds `ApiAuthorizationGuard` to every generated route. An application with the CrudConfig section or data controllers enabled imports Automator's global `ApiAuthorizationModule` once in its root module:
+
+```typescript copy
+import { ApiAuthorizationModule } from "@elsikora/nestjs-crud-automator";
+
+@Module({
+ imports: [
+  ApiAuthorizationModule,
+  CrudConfigModule.register({
+   controllersOptions: { data: { isEnabled: true }, section: { isEnabled: true } },
+  }),
+ ],
+})
+export class AppModule {}
+```
+
+Without it, startup fails with `Nest can't resolve dependencies of the ApiAuthorizationGuard`. Headless mode, with both controllers disabled, does not need it.
+
+## Import only from the package root
+
+5.0 removes `dist/esm`, `dist/cjs` and the `require` and `import` export conditions. The package exposes only `.`, with `types` and `default` conditions and the top-level `main` and `types` fields.
+
+**ES module applications** import the package as before, with `moduleResolution` set to `bundler`, `node16` or `nodenext`. The declarations carry `.js` extensions on every relative import, so `nodenext` consumers get the types.
+
+**CommonJS applications** keep `require("@elsikora/nestjs-crud-config")`. Node.js loads the ES module through `require(esm)`, which works without a flag on every supported Node.js release. TypeScript with `module: commonjs` finds the types either way: without `moduleResolution`, which TypeScript 6 resolves as `bundler`, through `exports`, and with `moduleResolution: node10` through the top-level `types` field (TypeScript 6 then needs `"ignoreDeprecations": "6.0"`).
+
+The package publishes no source maps.
+
+## Load `.env` in the application
+
+CrudConfig 4 imported `dotenv/config`, so loading the package read the `.env` file of the working directory into `process.env`. CrudConfig 5 never loads a `.env` file. `LoggerUtility` reads `NCC_LOG_LEVEL` from `process.env` only, when a logger handles its first message, so a value the application loads after importing the package still applies.
+
+If the application relied on CrudConfig to load `.env`, load it in the application:
+
+```typescript copy
+import { ConfigModule } from "@nestjs/config";
+
+@Module({
+ imports: [ConfigModule.forRoot({ isGlobal: true })],
+})
+export class AppModule {}
+```
+
+or start Node.js with `node --env-file=.env dist/main.js`. Without `NCC_LOG_LEVEL`, CrudConfig logs nothing, as before.
+
+Importing the package has no side effects: it loads no `.env` file and writes nothing to the console. The build fails if the published output uses the global `console`, `process.stdout` or `process.stderr`, loads a `.env` file, imports a TypeORM path other than the package root, or ships source maps.
+
+## TypeORM 1
+
+- Migration participation now checks the owner manager through `manager.dataSource` and `queryRunner.dataSource`. TypeORM 1 deprecates `connection` on `EntityManager` and `QueryRunner`. Pass the manager the migration callback receives, as before.
+- TypeORM 1 removes the `sqlite` driver. Applications that store configuration in SQLite use `type: "better-sqlite3"` with the `better-sqlite3` package. `sqljs` keeps working.
+- Application code that reads `.connection` on a manager, query runner or driver should move to `.dataSource`.
+
+## What does not change
+
+- the module options of `register()` and `registerAsync()`, including `staticOptions`;
+- `CrudConfigService` inputs and return values, encryption and caching;
+- generated route paths, payloads and `generation.isEnabled` overrides;
+- the database schema, the `crud-config-set` and `crud-config-migrations` transaction owners, `eventManager` join-only behavior and `409 CONFIGDATA_DUPLICATE_KEY` mapping.
+
+## Verify the upgrade
+
+```bash copy
+npm ls @elsikora/nestjs-crud-config @elsikora/nestjs-crud-automator @nestjs/cache-manager typeorm
+npm run build
+```
+
+Then run the application's startup, configuration migration and shutdown tests. CI checks the packed tarball in ESM (`bundler`, `nodenext`), CommonJS (`node10`, default resolution) and SWC consumer apps on Postgres, with the latest release in each peer range and, on Node.js 22.13.0, with every peer at the lower bound of the ranges above.
