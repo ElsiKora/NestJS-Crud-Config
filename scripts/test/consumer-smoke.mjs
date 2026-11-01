@@ -4,8 +4,10 @@
  *
  * Packs the built package and installs the tarball with the peer stack (Automator 5, Nest 12, TypeORM 1) into a
  * temporary project, and fails if npm nests a second copy of a peer. It checks that importing the package (ESM import
- * and CommonJS require) prints nothing and leaves process.env alone even with a .env file in the working directory.
- * Then, for every consumer in test/consumer (ESM bundler, ESM nodenext, CommonJS node10 and CommonJS with the default
+ * and CommonJS require) prints nothing and leaves process.env alone even with a .env file in the working directory,
+ * and runs tsc --noEmit with skipLibCheck off over every declaration file of the installed package with nodenext,
+ * bundler and node10 resolution, so a declaration that imports a path the peer does not export fails even when no
+ * app reaches it. Then, for every consumer in test/consumer (ESM bundler, ESM nodenext, CommonJS node10 and CommonJS with the default
  * resolution, both through require(esm)), it typechecks the app in test/consumer/app/src with skipLibCheck off and
  * runs it: a Nest 12 Fastify application with CrudConfigModule.register and registerAsync against Postgres runs its
  * startup migration, writes and reads encrypted and cached values, serves the generated section and data routes,
@@ -80,6 +82,13 @@ const IMPORT_CHECKS = [
   ],
   name: "commonjs require",
  },
+];
+
+// Every declaration of the installed tarball is typechecked under each resolution a consumer may use
+const DECLARATION_CHECKS = [
+ { module: "nodenext", moduleResolution: "nodenext", name: "nodenext" },
+ { module: "esnext", moduleResolution: "bundler", name: "bundler" },
+ { ignoreDeprecations: "6.0", module: "commonjs", moduleResolution: "node10", name: "node10" },
 ];
 // An app that leaves a pool or a server open never exits, so a hang fails the consumer instead of the CI job timeout
 const APP_TIMEOUT_MS = 120_000;
@@ -199,6 +208,40 @@ function checkSilentImport(directory, check) {
 }
 
 /**
+ * Typechecks every declaration file of the installed package with skipLibCheck off.
+ * @param {string} directory - Directory with the installed project.
+ * @param {{ ignoreDeprecations?: string, module: string, moduleResolution: string, name: string }} check - Module settings.
+ * @returns {void}
+ */
+function checkDeclarations(directory, check) {
+ const { name, ...moduleOptions } = check;
+ const configPath = path.join(directory, `tsconfig.declarations-${name}.json`);
+
+ writeFileSync(
+  configPath,
+  JSON.stringify({
+   compilerOptions: {
+    ...moduleOptions,
+    noEmit: true,
+    skipLibCheck: false,
+    strict: true,
+    target: "ES2023",
+    types: ["node"],
+   },
+   // The default exclude drops node_modules, which holds the declarations under test
+   exclude: [],
+   include: [`node_modules/${PACKAGE_NAME}/dist/**/*.d.ts`],
+  }),
+ );
+ run(
+  process.execPath,
+  [path.join(directory, "node_modules/typescript/bin/tsc"), "-p", configPath],
+  { cwd: directory },
+ );
+ process.stdout.write(`PASS declarations typecheck with ${name} resolution\n`);
+}
+
+/**
  * Returns a database URL: DATABASE_URL when set, otherwise a fresh testcontainers Postgres.
  * @returns {Promise<{ stop: () => Promise<void>, url: string }>} The URL and a stop callback.
  */
@@ -252,6 +295,17 @@ try {
 
  for (const check of IMPORT_CHECKS) {
   checkSilentImport(workDirectory, check);
+ }
+
+ process.stdout.write(`\n=== declarations (skipLibCheck off) ===\n`);
+
+ for (const check of DECLARATION_CHECKS) {
+  try {
+   checkDeclarations(workDirectory, check);
+  } catch {
+   failed = true;
+   process.stdout.write(`declarations ${check.name} FAILED\n`);
+  }
  }
 
  database = await startDatabase();
