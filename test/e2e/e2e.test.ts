@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CrudConfigModule } from "../../dist/esm/index";
+import { CrudConfigModule } from "../../dist/index";
 
 describe("CrudConfigModule Basic E2E Tests", () => {
  describe("Module Registration", () => {

@@ -474,10 +474,8 @@ export class ConfigMigrationService implements OnModuleInit {
   const queryRunner: QueryRunner | undefined = ownerManager.queryRunner;
 
   if (
-   // eslint-disable-next-line @elsikora/sonar/deprecation -- The supported TypeORM 0.3 peer exposes DataSource identity as connection.
-   ownerManager.connection !== this.dataSource ||
-   // eslint-disable-next-line @elsikora/sonar/deprecation -- The supported TypeORM 0.3 QueryRunner exposes DataSource identity as connection.
-   queryRunner?.connection !== this.dataSource ||
+   ownerManager.dataSource !== this.dataSource ||
+   queryRunner?.dataSource !== this.dataSource ||
    queryRunner.manager !== ownerManager ||
    !queryRunner.isTransactionActive ||
    queryRunner.isReleased

@@ -624,9 +624,9 @@ describe("ConfigMigrationService", () => {
  });
  describe("owner participation", () => {
   beforeEach(() => {
-   Object.assign(mockEntityManager, { connection: mockDataSource, queryRunner: mockQueryRunner });
+   Object.assign(mockEntityManager, { dataSource: mockDataSource, queryRunner: mockQueryRunner });
    Object.assign(mockQueryRunner, {
-    connection: mockDataSource,
+    dataSource: mockDataSource,
     isReleased: false,
     isTransactionActive: true,
    });
@@ -655,7 +655,7 @@ describe("ConfigMigrationService", () => {
      async (ownerManager) => {
       const manager = ownerManager;
       const queryRunner = mockQueryRunner;
-      if (kind === "foreign") Object.assign(manager, { connection: {} });
+      if (kind === "foreign") Object.assign(manager, { dataSource: {} });
       if (kind === "inactive") Object.assign(queryRunner, { isTransactionActive: false });
       if (kind === "released") Object.assign(queryRunner, { isReleased: true });
       if (kind === "different-manager") Object.assign(queryRunner, { manager: {} });
@@ -665,7 +665,7 @@ describe("ConfigMigrationService", () => {
        expect(mockMigrationService.getList).not.toHaveBeenCalled();
        expect(mockMigrationService.update).not.toHaveBeenCalled();
       } finally {
-       Object.assign(manager, { connection: mockDataSource, queryRunner });
+       Object.assign(manager, { dataSource: mockDataSource, queryRunner });
        Object.assign(queryRunner, { manager, isTransactionActive: true, isReleased: false });
       }
      },

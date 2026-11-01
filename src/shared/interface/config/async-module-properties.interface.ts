@@ -1,4 +1,4 @@
-import type { ModuleMetadata, Type } from "@nestjs/common/interfaces";
+import type { ModuleMetadata, Type } from "@nestjs/common";
 
 import type { IConfigOptions } from "./options.interface";
 import type { IConfigPropertiesFactory } from "./properties-factory.interface";

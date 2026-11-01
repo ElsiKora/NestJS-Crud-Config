@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { DataSource } from "typeorm";
 
-import { createConfigDataEntity, createConfigSectionEntity } from "../../dist/esm/index";
+import { createConfigDataEntity, createConfigSectionEntity } from "../../dist/index";
 
 describe("dynamic entity timestamp column type", () => {
  let dataSource: DataSource | undefined;

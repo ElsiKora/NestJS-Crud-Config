@@ -9,8 +9,7 @@ import {
  IApiControllerBase,
  IApiControllerProperties,
 } from "@elsikora/nestjs-crud-automator";
-import { Inject } from "@nestjs/common";
-import { Type } from "@nestjs/common/interfaces";
+import { Inject, Type } from "@nestjs/common";
 import { TOKEN_CONSTANT } from "@shared/constant";
 import { IConfigControllerOptions } from "@shared/interface/config";
 import { TDynamicEntity } from "@shared/type";

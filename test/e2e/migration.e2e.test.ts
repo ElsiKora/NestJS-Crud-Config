@@ -103,7 +103,7 @@ describe("Migration E2E Tests", () => {
    // Create mocks
    mockDataSource = {
     isInitialized: true,
-    options: { type: "sqlite", database: ":memory:" },
+    options: { type: "better-sqlite3", database: ":memory:" },
     createQueryRunner: vi.fn().mockReturnValue(mockQueryRunner),
     getRepository: vi.fn().mockReturnValue({
      find: vi.fn().mockResolvedValue([]),
@@ -226,7 +226,7 @@ describe("Migration E2E Tests", () => {
       provide: DataSource,
       useValue: {
        isInitialized: true,
-       options: { type: "sqlite", database: ":memory:" },
+       options: { type: "better-sqlite3", database: ":memory:" },
        query: vi.fn().mockResolvedValue([{ test: 1 }]),
       },
      },
@@ -310,7 +310,7 @@ describe("Migration E2E Tests", () => {
 
    expect(dataSource).toBeDefined();
    expect(dataSource.isInitialized).toBe(true);
-   expect(dataSource.options.type).toBe("sqlite");
+   expect(dataSource.options.type).toBe("better-sqlite3");
   });
  });
 

@@ -18,7 +18,7 @@ import {
  type IConfigMigration,
  type IConfigMigrationDefinition,
  type IConfigSection,
-} from "../../dist/esm/index";
+} from "../../dist/index";
 
 const HEADERS: Record<string, string> = {};
 const IP_ADDRESS = "127.0.0.1";
