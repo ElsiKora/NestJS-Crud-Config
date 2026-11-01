@@ -31,9 +31,9 @@ describe("createDynamicService", () => {
 
  it("should handle entity with custom properties", () => {
   const mockEntity = class CustomEntity {
-   id: string;
-   name: string;
-   value: number;
+   id!: string;
+   name!: string;
+   value!: number;
   };
 
   const DynamicService = createDynamicService(mockEntity as any, "CustomEntityService");
@@ -52,11 +52,14 @@ describe("createDynamicService", () => {
   const ConfigDataEntity = class ConfigData {
    id!: string;
   };
-  const uniqueError = new QueryFailedError("INSERT", [], {
-   code: "SQLITE_CONSTRAINT",
-   errno: 19,
-   message: "UNIQUE constraint failed: config_data.name",
-  });
+  const uniqueError = new QueryFailedError(
+   "INSERT",
+   [],
+   Object.assign(new Error("UNIQUE constraint failed: config_data.name"), {
+    code: "SQLITE_CONSTRAINT",
+    errno: 19,
+   }),
+  );
   const repository = {
    save: vi.fn().mockRejectedValue(uniqueError),
   };

@@ -143,8 +143,8 @@ describe("Migration E2E Tests", () => {
   it("should execute migrations successfully", async () => {
    await migrationService.executeMigrations(testMigrations);
 
-   expect(testMigrations[0].up).toHaveBeenCalledWith(mockConfigService, mockEntityManager);
-   expect(testMigrations[1].up).toHaveBeenCalledWith(mockConfigService, mockEntityManager);
+   expect(testMigrations[0]?.up).toHaveBeenCalledWith(mockConfigService, mockEntityManager);
+   expect(testMigrations[1]?.up).toHaveBeenCalledWith(mockConfigService, mockEntityManager);
    expect(mockQueryRunner.commitTransaction).toHaveBeenCalledTimes(1);
    expect(mockQueryRunner.rollbackTransaction).not.toHaveBeenCalled();
   });
@@ -345,8 +345,8 @@ describe("Migration E2E Tests", () => {
    const options = createConfigOptions(testMigrations);
 
    expect(options.migrationOptions?.migrations).toHaveLength(2);
-   expect(options.migrationOptions?.migrations[0].name).toBe("001_initial_setup");
-   expect(options.migrationOptions?.migrations[1].name).toBe("002_add_features");
+   expect(options.migrationOptions?.migrations?.[0]?.name).toBe("001_initial_setup");
+   expect(options.migrationOptions?.migrations?.[1]?.name).toBe("002_add_features");
   });
 
   it("should handle migration configuration validation", () => {

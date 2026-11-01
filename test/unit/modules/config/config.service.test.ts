@@ -1,5 +1,5 @@
 import { ApiFunctionTransactionScope, ApiServiceBase } from "@elsikora/nestjs-crud-automator";
-import { HttpException, InternalServerErrorException, NotFoundException } from "@nestjs/common";
+import { InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { CrudConfigService } from "../../../../src/modules/config/config.service";
 import { IConfigData } from "../../../../src/modules/config/data";

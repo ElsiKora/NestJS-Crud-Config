@@ -23,7 +23,7 @@ describe("createDynamicEntityClass", () => {
  });
 
  it("should handle columns with decorators", () => {
-  const mockDecorator = (target: any, propertyKey: string) => {};
+  const mockDecorator: PropertyDecorator = () => {};
 
   const DynamicEntity = createDynamicEntityClass({
    name: "DecoratedEntity",
@@ -46,7 +46,7 @@ describe("createDynamicEntityClass", () => {
  });
 
  it("should handle class decorators", () => {
-  const classDecorator = (target: any) => {};
+  const classDecorator: ClassDecorator = () => {};
 
   const DynamicEntity = createDynamicEntityClass({
    name: "ClassDecoratedEntity",

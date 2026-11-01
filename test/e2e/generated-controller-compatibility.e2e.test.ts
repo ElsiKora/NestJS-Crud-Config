@@ -1,13 +1,21 @@
-import type { ApiServiceBase, TApiControllerTargetMethod } from "@elsikora/nestjs-crud-automator";
+import type { ApiServiceBase, TApiControllerMethodMap } from "@elsikora/nestjs-crud-automator";
 
 import { ApiFunctionTransactionScope } from "@elsikora/nestjs-crud-automator";
 import { createCache } from "cache-manager";
-import { DataSource, type EntityManager } from "typeorm";
+import { DataSource, type EntityManager, type QueryDeepPartialEntity } from "typeorm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createDynamicDataController } from "../../src/modules/config/data/controller";
 import { createDynamicSectionController } from "../../src/modules/config/section/controller";
-import {
+import type {
+ IConfigData,
+ IConfigMigration,
+ IConfigMigrationDefinition,
+ IConfigSection,
+} from "../../src/index";
+import { BUILT_PACKAGE } from "./built-package";
+
+const {
  createConfigDataEntity,
  createConfigMigrationEntity,
  createConfigSectionEntity,
@@ -15,11 +23,10 @@ import {
  ConfigMigrationService,
  CrudConfigService,
  EConfigMigrationStatus,
- type IConfigData,
- type IConfigMigration,
- type IConfigMigrationDefinition,
- type IConfigSection,
-} from "../../dist/index";
+} = BUILT_PACKAGE;
+
+// Automator 5 types the generated method names as `${string}Create`, but names them after EApiRouteType at runtime
+type TGeneratedController<E> = new (...arguments_: Array<unknown>) => TApiControllerMethodMap<E>;
 
 const HEADERS: Record<string, string> = {};
 const IP_ADDRESS = "127.0.0.1";
@@ -27,14 +34,14 @@ const IP_ADDRESS = "127.0.0.1";
 describe("Automator 4 generated controller compatibility", () => {
  let ConfigDataEntity: ReturnType<typeof createConfigDataEntity>;
  let ConfigMigrationEntity: ReturnType<typeof createConfigMigrationEntity>;
- let dataController: InstanceType<TApiControllerTargetMethod<IConfigData>>;
+ let dataController: TApiControllerMethodMap<IConfigData>;
  let dataService: ApiServiceBase<IConfigData>;
  let dataSource: DataSource;
  let migrationCache: ReturnType<typeof createCache>;
- let migrationConfigService: CrudConfigService;
+ let migrationConfigService: InstanceType<typeof CrudConfigService>;
  let migrationHistoryService: ApiServiceBase<IConfigMigration>;
- let migrationService: ConfigMigrationService;
- let sectionController: InstanceType<TApiControllerTargetMethod<IConfigSection>>;
+ let migrationService: InstanceType<typeof ConfigMigrationService>;
+ let sectionController: TApiControllerMethodMap<IConfigSection>;
  let sectionService: ApiServiceBase<IConfigSection>;
 
  beforeEach(async () => {
@@ -111,10 +118,10 @@ describe("Automator 4 generated controller compatibility", () => {
 
   const DynamicConfigSectionController = createDynamicSectionController(
    ConfigSectionEntity,
-  ) as TApiControllerTargetMethod<IConfigSection>;
+  ) as TGeneratedController<IConfigSection>;
   const DynamicConfigDataController = createDynamicDataController(
    ConfigDataEntity,
-  ) as TApiControllerTargetMethod<IConfigData>;
+  ) as TGeneratedController<IConfigData>;
 
   sectionController = new DynamicConfigSectionController(sectionService);
   dataController = new DynamicConfigDataController(dataService, sectionService);
@@ -135,7 +142,12 @@ describe("Automator 4 generated controller compatibility", () => {
    IP_ADDRESS,
   );
   const fetched = await sectionController.get({ id: created.id }, HEADERS, IP_ADDRESS);
-  const listed = await sectionController.getList({ limit: 10, page: 1 }, HEADERS, IP_ADDRESS);
+  // IApiBaseEntity extends ObjectLiteral, so Automator types every query key as a filter
+  const listed = await sectionController.getList(
+   { limit: 10, page: 1 } as Parameters<TApiControllerMethodMap<IConfigSection>["getList"]>[0],
+   HEADERS,
+   IP_ADDRESS,
+  );
   const updated = await sectionController.update(
    { id: created.id },
    { description: "updated", name: "application" },
@@ -250,7 +262,9 @@ describe("Automator 4 generated controller compatibility", () => {
      dataSource,
      { name: "configuration-read-visibility" },
      async (eventManager) => {
-      await eventManager.update(ConfigDataEntity, { id: target.id }, { value: "uncommitted" });
+      await eventManager.update(ConfigDataEntity, { id: target.id }, {
+       value: "uncommitted",
+      } as QueryDeepPartialEntity<IConfigData>);
       expect((await configService.get({ ...lookup, eventManager })).value).toBe("uncommitted");
       throw rollback;
      },

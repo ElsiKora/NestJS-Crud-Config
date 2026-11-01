@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { CrudConfigModule } from "../../dist/index";
+import { BUILT_PACKAGE } from "./built-package";
+
+const { CrudConfigModule } = BUILT_PACKAGE;
 
 describe("CrudConfigModule Basic E2E Tests", () => {
  describe("Module Registration", () => {

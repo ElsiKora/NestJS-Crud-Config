@@ -27,6 +27,6 @@
   "target": "ESNext",
   "types": ["node"]
  },
- "exclude": ["node_modules", "dist"],
- "include": ["src/**/*.ts", "src/**/*.tsx"]
+ "exclude": ["node_modules", "dist", "test/consumer"],
+ "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts"]
 }

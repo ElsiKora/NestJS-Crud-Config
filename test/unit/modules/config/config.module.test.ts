@@ -1,4 +1,4 @@
-import type { DynamicModule } from "@nestjs/common";
+import type { DynamicModule, FactoryProvider, ValueProvider } from "@nestjs/common";
 
 import { CrudConfigService } from "../../../../src/modules/config/config.service";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -124,7 +124,7 @@ describe("CrudConfigModule", () => {
    const dynamicModule = CrudConfigModule.register(options);
    const configOptionsProvider = dynamicModule.providers?.find(
     (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_OPTIONS,
-   );
+   ) as undefined | ValueProvider<IConfigOptions>;
 
    expect(configOptionsProvider).toBeDefined();
    expect(configOptionsProvider?.useValue).toEqual(options);
@@ -192,7 +192,7 @@ describe("CrudConfigModule", () => {
    const dynamicModule = CrudConfigModule.register(options);
    const configOptionsProvider = dynamicModule.providers?.find(
     (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_OPTIONS,
-   );
+   ) as undefined | ValueProvider<IConfigOptions>;
 
    expect(configOptionsProvider?.useValue.encryptionOptions?.isEnabled).toBe(true);
   });
@@ -246,7 +246,7 @@ describe("CrudConfigModule", () => {
 
    const configPropertiesProvider = dynamicModule.providers?.find(
     (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_OPTIONS,
-   );
+   ) as FactoryProvider<IConfigOptions> | undefined;
    expect(configPropertiesProvider).toBeDefined();
    expect(configPropertiesProvider?.useFactory).toBeDefined();
   });
@@ -281,7 +281,7 @@ describe("CrudConfigModule", () => {
 
    const configPropertiesProvider = dynamicModule.providers?.find(
     (p: any) => p.provide === TOKEN_CONSTANT.CONFIG_OPTIONS,
-   );
+   ) as FactoryProvider<IConfigOptions> | undefined;
 
    expect(configPropertiesProvider?.inject).toContain(TEST_TOKEN);
   });

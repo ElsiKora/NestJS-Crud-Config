@@ -1,5 +1,5 @@
 import { ApiFunctionTransactionScope, ApiServiceBase } from "@elsikora/nestjs-crud-automator";
-import { ConflictException, Logger } from "@nestjs/common";
+import { ConflictException } from "@nestjs/common";
 import type { DataSource, EntityManager, QueryRunner } from "typeorm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -101,14 +101,6 @@ describe("ConfigMigrationService", () => {
   // Mock onModuleInit - it should be a no-op in our tests
   service.onModuleInit();
 
-  // Mock logger
-  const mockLogger: Logger = {
-   log: vi.fn(),
-   error: vi.fn(),
-   warn: vi.fn(),
-   debug: vi.fn(),
-   verbose: vi.fn(),
-  } as any;
   vi.spyOn(service["LOGGER"], "verbose").mockImplementation(() => {});
   vi.spyOn(service["LOGGER"], "warn").mockImplementation(() => {});
   vi.spyOn(service["LOGGER"], "error").mockImplementation(() => {});

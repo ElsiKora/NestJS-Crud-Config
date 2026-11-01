@@ -5,18 +5,18 @@ import { TypeOrmModule, type TypeOrmModuleOptions } from "@nestjs/typeorm";
 import { DataSource, type EntityManager } from "typeorm";
 import { afterEach, describe, expect, it } from "vitest";
 
-import {
- CrudConfigModule,
- CrudConfigService,
- TOKEN_CONSTANT,
- type IConfigMigrationDefinition,
- type TDynamicEntity,
-} from "../../dist/index";
+import type { IConfigMigrationDefinition, TDynamicEntity } from "../../src/index";
+import { BUILT_PACKAGE } from "./built-package";
+
+const { CrudConfigModule, CrudConfigService, TOKEN_CONSTANT } = BUILT_PACKAGE;
 
 const MIGRATION: IConfigMigrationDefinition = {
  description: "Seeds one value inside the crud-config-migrations owner",
  name: "001_sqlite_seed",
- async up(configService: CrudConfigService, entityManager?: EntityManager): Promise<void> {
+ async up(
+  configService: InstanceType<typeof CrudConfigService>,
+  entityManager?: EntityManager,
+ ): Promise<void> {
   await configService.set({
    environment: "test",
    eventManager: entityManager,
@@ -91,7 +91,7 @@ describe.each(DRIVERS)(
    await app.getHttpAdapter().getInstance().ready();
 
    const dataSource: DataSource = app.get(DataSource);
-   const configService: CrudConfigService = app.get(CrudConfigService);
+   const configService: InstanceType<typeof CrudConfigService> = app.get(CrudConfigService);
 
    expect(dataSource.options.type).toBe(type);
 
