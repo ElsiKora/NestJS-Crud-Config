@@ -2,6 +2,8 @@ import { createConfig } from "@elsikora/eslint-config";
 
 const config = {
  ignores: [
+  // Copied byte for byte from @elsikora/nestjs-crud-automator; it must stay identical across the packages
+  "scripts/check-declaration-imports.cjs",
   "**/*.spec.ts",
   "**/*.e2e-spec.ts",
   "package-lock.json",
