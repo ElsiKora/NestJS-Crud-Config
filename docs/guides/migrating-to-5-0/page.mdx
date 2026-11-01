@@ -1,6 +1,6 @@
 # Migrating to 5.0
 
-CrudConfig 5 moves to Automator 5, NestJS 12, Swagger 12 and TypeORM 1, and ships as ES modules only. The module options, `CrudConfigService`, the generated routes, the database schema, the migration system and the transaction contract do not change.
+CrudConfig 5 moves to Automator 5, NestJS 12, Swagger 12 and TypeORM 1, and ships as ES modules only. The module options, `CrudConfigService`, the generated routes, the PostgreSQL database schema, the migration system and the transaction contract do not change.
 
 ## Requirements
 
@@ -89,22 +89,54 @@ import { ConfigModule } from "@nestjs/config";
 export class AppModule {}
 ```
 
-or start Node.js with `node --env-file=.env dist/main.js`. Without `NCC_LOG_LEVEL`, CrudConfig logs nothing, as before.
+or start Node.js with `node --env-file=.env dist/main.js`.
+
+Every package log goes through `LoggerUtility`, so without `NCC_LOG_LEVEL` CrudConfig logs nothing. CrudConfig 4 logged the migration service's messages, such as `Migration service initialized`, through the NestJS logger at every level; set `NCC_LOG_LEVEL=log` to keep them.
 
 Importing the package has no side effects: it loads no `.env` file and writes nothing to the console. The build fails if the published output uses the global `console`, `process.stdout` or `process.stderr`, loads a `.env` file, imports a TypeORM path other than the package root, or ships source maps.
 
 ## TypeORM 1
 
 - Migration participation now checks the owner manager through `manager.dataSource` and `queryRunner.dataSource`. TypeORM 1 deprecates `connection` on `EntityManager` and `QueryRunner`. Pass the manager the migration callback receives, as before.
-- TypeORM 1 removes the `sqlite` driver. Applications that store configuration in SQLite use `type: "better-sqlite3"` with the `better-sqlite3` package. `sqljs` keeps working.
+- TypeORM 1 removes the `sqlite` driver. Applications that store configuration in SQLite use `type: "better-sqlite3"` with the `better-sqlite3` package, or `sqljs`. With the 5.0 column defaults below, both start with the default entity options.
 - Application code that reads `.connection` on a manager, query runner or driver should move to `.dataSource`.
+
+## Database schema
+
+CrudConfig 4 created every temporal column as `timestamp` and the migration `status` column as a native `enum`. Neither type exists on SQLite or SQL.js, so applications on those drivers failed at startup with `DataTypeNotSupportedError` unless they set `timestampColumnType: "datetime"`, and the migration entity failed on them in any case. CrudConfig 5 uses types that every TypeORM driver supports:
+
+- `entityOptions.timestampColumnType` defaults to `Date`, which TypeORM maps to `timestamp` on PostgreSQL and to `datetime` on MySQL, MariaDB, SQLite and SQL.js;
+- the migration `status` column is a `simple-enum`: a native enum on PostgreSQL, MySQL and MariaDB, and a `varchar` with a `CHECK` constraint on SQLite and SQL.js.
+
+Applications that set `timestampColumnType` keep their columns.
+
+**PostgreSQL:** the schema does not change. TypeORM resolves both defaults to the same `timestamp without time zone` columns and the same enum type as before, so `synchronize` and `migration:generate` find nothing to do.
+
+**MySQL and MariaDB:** the temporal columns change from `timestamp` to `datetime`. `synchronize: true` would drop and re-add them, which loses their values, so convert them in place before the 5.0 deployment starts (the statements below use the default table names; add your `tablePrefix` and custom table names):
+
+```sql copy
+ALTER TABLE `config_section`
+  MODIFY `createdAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY `updatedAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE `config_data`
+  MODIFY `createdAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY `updatedAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE `config_migrations`
+  MODIFY `createdAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY `updatedAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY `startedAt` datetime NULL,
+  MODIFY `executedAt` datetime NULL,
+  MODIFY `failedAt` datetime NULL;
+```
+
+`MODIFY` keeps the stored values, and TypeORM then finds nothing to change. The `status` column stays as it is.
 
 ## What does not change
 
 - the module options of `register()` and `registerAsync()`, including `staticOptions`;
 - `CrudConfigService` inputs and return values, encryption and caching;
 - generated route paths, payloads and `generation.isEnabled` overrides;
-- the database schema, the `crud-config-set` and `crud-config-migrations` transaction owners, `eventManager` join-only behavior and `409 CONFIGDATA_DUPLICATE_KEY` mapping.
+- the PostgreSQL database schema, the `crud-config-set` and `crud-config-migrations` transaction owners, `eventManager` join-only behavior and `409 CONFIGDATA_DUPLICATE_KEY` mapping.
 
 ## Verify the upgrade
 

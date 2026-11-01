@@ -19,4 +19,5 @@ export class LoggerUtility {
 
 ## Migration Notes
 
+- **5.0:** every package log goes through `LoggerUtility`. CrudConfig 4 logged the migration service's messages, such as `Migration service initialized`, through the NestJS logger whatever `NCC_LOG_LEVEL` said; CrudConfig 5 prints them only when `NCC_LOG_LEVEL` enables their level.
 - **5.0:** the package no longer imports `dotenv/config` and never loads a `.env` file. Set `NCC_LOG_LEVEL` in the host environment, or load `.env` in the application (for example `ConfigModule.forRoot()` or `node --env-file=.env`). See [Migrating to 5.0](/docs/nestjs-crud-config/guides/migrating-to-5-0).

@@ -26,7 +26,7 @@ CrudConfigModule.register({
 });
 ```
 
-`timestampColumnType` is passed to all nine temporal columns in `ConfigSection`, `ConfigData`, and `ConfigMigration`, including their TypeORM create/update date decorators. It defaults to `"timestamp"`. Select a TypeORM `ColumnType` supported by the configured driver, for example `"timestamptz"` with PostgreSQL or `"datetime"` with SQL.js/SQLite. Changing it for an existing database still requires the corresponding schema migration.
+`timestampColumnType` is passed to all nine temporal columns in `ConfigSection`, `ConfigData`, and `ConfigMigration`, including their TypeORM create/update date decorators. It defaults to `Date`, which TypeORM maps to the timestamp type of each driver: `timestamp` on PostgreSQL and `datetime` on MySQL, MariaDB, SQLite (`better-sqlite3`) and SQL.js, so the default entities work on every one of them. Set a driver-specific type, such as `"timestamptz"` for PostgreSQL, only when the application needs it. Changing it for an existing database still requires the corresponding schema migration.
 
 In async registration, provide entity customization, including `timestampColumnType`, via `staticOptions.entityOptions` (and `staticOptions.migrationEntityOptions` for migration tracking table settings) so controllers and providers use the same entities.
 
@@ -60,5 +60,11 @@ CREATE TABLE config_data (
   UNIQUE(name, environment, section_id)
 );
 ```
+
+The migration `status` column is a TypeORM `simple-enum`: a native enum on PostgreSQL, MySQL and MariaDB, and a `varchar` with a `CHECK` constraint on SQLite and SQL.js.
+
+## Migration Notes
+
+- **5.0:** `timestampColumnType` defaults to `Date` instead of `"timestamp"`, and the migration `status` column is a `simple-enum` instead of an `enum`. PostgreSQL schemas do not change. MySQL and MariaDB schemas created with the old default need their temporal columns converted to `datetime` before the upgrade. See [Migrating to 5.0](/docs/nestjs-crud-config/guides/migrating-to-5-0#database-schema).
 
 See: [TypeORM Integration](/docs/nestjs-crud-config/guides/typeorm-integration)

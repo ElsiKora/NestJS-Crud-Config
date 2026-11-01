@@ -175,7 +175,7 @@ import { CrudConfigModule, TOKEN_CONSTANT } from "@elsikora/nestjs-crud-config";
    // Entity customization
    entityOptions: {
     tablePrefix: "app_",
-    timestampColumnType: "timestamptz", // PostgreSQL; defaults to "timestamp"
+    timestampColumnType: "timestamptz", // PostgreSQL; defaults to Date, the timestamp type of the driver
     configSection: {
      tableName: "config_sections",
      maxNameLength: 128,
@@ -1024,7 +1024,7 @@ CrudConfigModule.register({
 });
 ```
 
-`timestampColumnType` applies to all nine temporal columns in the section, data, and migration entities. It defaults to `"timestamp"`; choose a TypeORM `ColumnType` supported by your database driver, such as `"timestamptz"` for PostgreSQL or `"datetime"` for SQL.js/SQLite. Changing it for an existing database still requires the corresponding schema migration.
+`timestampColumnType` applies to all nine temporal columns in the section, data, and migration entities. It defaults to `Date`, which TypeORM maps to the timestamp type of each driver: `timestamp` on PostgreSQL and `datetime` on MySQL, MariaDB, SQLite (`better-sqlite3`) and SQL.js, so the default entities work on every one of them. Set a driver-specific type, such as `"timestamptz"` for PostgreSQL, only when the application needs it. Changing it for an existing database still requires the corresponding schema migration.
 
 ### What happens if the database is unavailable?
 
