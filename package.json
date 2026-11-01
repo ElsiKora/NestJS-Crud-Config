@@ -55,7 +55,6 @@
  "dependencies": {
   "@nestjs/cache-manager": "^3.1.2",
   "cache-manager": "^7.2.8",
-  "dotenv": "^17.4.2",
   "keyv": "^5.6.0",
   "lru-cache": "^11.5.2"
  },
