@@ -32,7 +32,7 @@ describe("createConfigDataEntity", () => {
   const instance = new ConfigDataEntity();
   expect(instance).toBeDefined();
   expect(instance.constructor.name).toBe("ConfigData");
-  expectTimestampMetadata(ConfigDataEntity, "timestamp");
+  expectTimestampMetadata(ConfigDataEntity, Date);
   // Properties are defined via decorators at runtime
  });
 

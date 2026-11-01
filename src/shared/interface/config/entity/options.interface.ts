@@ -24,7 +24,8 @@ export interface ICrudConfigEntityOptions {
 
  /**
   * TypeORM column type used by all ConfigSection, ConfigData, and ConfigMigration timestamp fields.
-  * Defaults to `timestamp`.
+  * Defaults to `Date`, which TypeORM maps to the timestamp type of the driver: `timestamp` on PostgreSQL,
+  * `datetime` on MySQL, MariaDB and SQLite.
   */
  timestampColumnType?: ColumnType;
 }

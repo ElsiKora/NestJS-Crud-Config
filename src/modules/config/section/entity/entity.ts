@@ -11,7 +11,7 @@ import {
  EApiPropertyDescribeType,
  EApiPropertyStringType,
 } from "@elsikora/nestjs-crud-automator";
-import { API_PROPERTY_CONSTANT } from "@shared/constant";
+import { API_PROPERTY_CONSTANT, CONFIG_ENTITY_CONSTANT } from "@shared/constant";
 import { createDynamicEntityClass } from "@shared/utility";
 import { CreateDateColumn, UpdateDateColumn } from "typeorm";
 
@@ -21,7 +21,7 @@ import { CreateDateColumn, UpdateDateColumn } from "typeorm";
  * @param {number} options.maxDescriptionLength - Maximum length for description field
  * @param {number} options.maxNameLength - Maximum length for name field
  * @param {string} options.tableName - Name of the database table
- * @param {ColumnType} [options.timestampColumnType] - TypeORM type for timestamp fields; defaults to `timestamp`
+ * @param {ColumnType} [options.timestampColumnType] - TypeORM type for timestamp fields; defaults to `Date`, the timestamp type of the driver
  * @returns {TDynamicEntity} Dynamically created ConfigSection entity class
  */
 export function createConfigSectionEntity(options: {
@@ -30,7 +30,8 @@ export function createConfigSectionEntity(options: {
  tableName: string;
  timestampColumnType?: ColumnType;
 }): TDynamicEntity<IConfigSection> {
- const timestampColumnType: ColumnType = options.timestampColumnType ?? "timestamp";
+ const timestampColumnType: ColumnType =
+  options.timestampColumnType ?? CONFIG_ENTITY_CONSTANT.DEFAULT_TIMESTAMP_COLUMN_TYPE;
 
  return createDynamicEntityClass({
   columns: {

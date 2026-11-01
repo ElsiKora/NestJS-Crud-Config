@@ -28,7 +28,7 @@ describe("createConfigSectionEntity", () => {
   const instance = new ConfigSectionEntity();
   expect(instance).toBeDefined();
   expect(instance.constructor.name).toBe("ConfigSection");
-  expectTimestampMetadata(ConfigSectionEntity, "timestamp");
+  expectTimestampMetadata(ConfigSectionEntity, Date);
   // Properties are defined via decorators at runtime
  });
 

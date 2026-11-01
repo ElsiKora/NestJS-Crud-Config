@@ -23,13 +23,13 @@ function expectTimestampMetadata(entity: Function, expectedType: ColumnType): vo
 }
 
 describe("createConfigMigrationEntity", () => {
- it("should default every temporal column and date decorator to timestamp", () => {
+ it("should default every temporal column and date decorator to the driver-portable Date type", () => {
   const ConfigMigrationEntity = createConfigMigrationEntity({
    maxNameLength: CONFIG_MIGRATION_CONSTANT.MAX_NAME_LENGTH,
    tableName: CONFIG_MIGRATION_CONSTANT.DEFAULT_TABLE_NAME,
   });
 
-  expectTimestampMetadata(ConfigMigrationEntity, "timestamp");
+  expectTimestampMetadata(ConfigMigrationEntity, Date);
  });
 
  it("should use a custom timestamp column type for every temporal column and date decorator", () => {
@@ -40,5 +40,20 @@ describe("createConfigMigrationEntity", () => {
   });
 
   expectTimestampMetadata(ConfigMigrationEntity, "datetime");
+ });
+});
+
+describe("createConfigMigrationEntity status column", () => {
+ it("should store the status as a simple-enum, which every TypeORM driver supports", () => {
+  const ConfigMigrationEntity = createConfigMigrationEntity({
+   maxNameLength: CONFIG_MIGRATION_CONSTANT.MAX_NAME_LENGTH,
+   tableName: CONFIG_MIGRATION_CONSTANT.DEFAULT_TABLE_NAME,
+  });
+  const [status] = getMetadataArgsStorage().columns.filter(
+   (metadata) => metadata.target === ConfigMigrationEntity && metadata.propertyName === "status",
+  );
+
+  expect(status?.options.type).toBe("simple-enum");
+  expect(status?.options.enum).toEqual(["PENDING", "RUNNING", "COMPLETED", "FAILED", "STUCK"]);
  });
 });

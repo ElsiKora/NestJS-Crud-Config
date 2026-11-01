@@ -21,6 +21,7 @@ import { Global, Module } from "@nestjs/common";
 import { getDataSourceToken, getRepositoryToken } from "@nestjs/typeorm";
 import {
  CONFIG_DATA_CONSTANT,
+ CONFIG_ENTITY_CONSTANT,
  CONFIG_MIGRATION_CONSTANT,
  CONFIG_SECTION_CONSTANT,
  TOKEN_CONSTANT,
@@ -38,7 +39,8 @@ export class CrudConfigModule {
   const prefix: string = options.entityOptions?.tablePrefix ?? "";
 
   const timestampColumnType: NonNullable<ICrudConfigEntityOptions["timestampColumnType"]> =
-   options.entityOptions?.timestampColumnType ?? "timestamp";
+   options.entityOptions?.timestampColumnType ??
+   CONFIG_ENTITY_CONSTANT.DEFAULT_TIMESTAMP_COLUMN_TYPE;
 
   const sectionEntity: TDynamicEntity<IConfigSection> = createConfigSectionEntity({
    maxDescriptionLength:
@@ -246,7 +248,7 @@ export class CrudConfigModule {
   const prefix: string = staticEntityOptions?.tablePrefix ?? "";
 
   const timestampColumnType: NonNullable<ICrudConfigEntityOptions["timestampColumnType"]> =
-   staticEntityOptions?.timestampColumnType ?? "timestamp";
+   staticEntityOptions?.timestampColumnType ?? CONFIG_ENTITY_CONSTANT.DEFAULT_TIMESTAMP_COLUMN_TYPE;
 
   const sectionEntity: TDynamicEntity<IConfigSection> = createConfigSectionEntity({
    maxDescriptionLength:

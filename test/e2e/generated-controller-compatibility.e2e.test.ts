@@ -2,13 +2,14 @@ import type { ApiServiceBase, TApiControllerTargetMethod } from "@elsikora/nestj
 
 import { ApiFunctionTransactionScope } from "@elsikora/nestjs-crud-automator";
 import { createCache } from "cache-manager";
-import { DataSource, EntitySchema, type EntityManager } from "typeorm";
+import { DataSource, type EntityManager } from "typeorm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createDynamicDataController } from "../../src/modules/config/data/controller";
 import { createDynamicSectionController } from "../../src/modules/config/section/controller";
 import {
  createConfigDataEntity,
+ createConfigMigrationEntity,
  createConfigSectionEntity,
  createDynamicService,
  ConfigMigrationService,
@@ -23,26 +24,9 @@ import {
 const HEADERS: Record<string, string> = {};
 const IP_ADDRESS = "127.0.0.1";
 
-class ConfigMigrationHistory implements IConfigMigration {
- createdAt!: Date;
-
- executedAt?: Date;
-
- failedAt?: Date;
-
- id!: string;
-
- name!: string;
-
- startedAt?: Date;
-
- status!: EConfigMigrationStatus;
-
- updatedAt!: Date;
-}
-
 describe("Automator 4 generated controller compatibility", () => {
  let ConfigDataEntity: ReturnType<typeof createConfigDataEntity>;
+ let ConfigMigrationEntity: ReturnType<typeof createConfigMigrationEntity>;
  let dataController: InstanceType<TApiControllerTargetMethod<IConfigData>>;
  let dataService: ApiServiceBase<IConfigData>;
  let dataSource: DataSource;
@@ -71,31 +55,15 @@ describe("Automator 4 generated controller compatibility", () => {
    timestampColumnType: "datetime",
   });
 
-  // This SQLjs fixture exercises migration persistence; the public factory uses a native enum.
-  const migrationHistorySchema = new EntitySchema<ConfigMigrationHistory>({
-   columns: {
-    createdAt: { createDate: true, type: "datetime" },
-    executedAt: { nullable: true, type: "datetime" },
-    failedAt: { nullable: true, type: "datetime" },
-    id: { generated: "uuid", primary: true, type: String },
-    name: { length: 255, type: String },
-    startedAt: { nullable: true, type: "datetime" },
-    status: {
-     default: EConfigMigrationStatus.PENDING,
-     enum: Object.values(EConfigMigrationStatus),
-     type: "simple-enum",
-    },
-    updatedAt: { type: "datetime", updateDate: true },
-   },
-   name: "ConfigMigrationHistory",
+  ConfigMigrationEntity = createConfigMigrationEntity({
+   maxNameLength: 255,
    tableName: "automator_v4_config_migrations",
-   target: ConfigMigrationHistory,
-   uniques: [{ columns: ["name"] }],
+   timestampColumnType: "datetime",
   });
 
   dataSource = new DataSource({
    database: new Uint8Array(),
-   entities: [ConfigSectionEntity, ConfigDataEntity, migrationHistorySchema],
+   entities: [ConfigSectionEntity, ConfigDataEntity, ConfigMigrationEntity],
    synchronize: true,
    type: "sqljs",
   });
@@ -115,11 +83,11 @@ describe("Automator 4 generated controller compatibility", () => {
   ) as ApiServiceBase<IConfigSection>;
 
   const DynamicMigrationHistoryService = createDynamicService(
-   ConfigMigrationHistory,
+   ConfigMigrationEntity,
    "ConfigMigrationHistoryService",
   );
   migrationHistoryService = new DynamicMigrationHistoryService(
-   dataSource.getRepository(ConfigMigrationHistory),
+   dataSource.getRepository(ConfigMigrationEntity),
   ) as ApiServiceBase<IConfigMigration>;
   migrationCache = createCache();
   const migrationOptions = {
@@ -321,12 +289,12 @@ describe("Automator 4 generated controller compatibility", () => {
     ownerManager = eventManager;
     await migrationService.executeMigrations([migration], true, eventManager);
     expect(
-     (await eventManager.findOneByOrFail(ConfigMigrationHistory, { name: migration.name })).status,
+     (await eventManager.findOneByOrFail(ConfigMigrationEntity, { name: migration.name })).status,
     ).toBe(EConfigMigrationStatus.COMPLETED);
    },
   );
 
-  const history = await dataSource.getRepository(ConfigMigrationHistory).findOneByOrFail({
+  const history = await dataSource.getRepository(ConfigMigrationEntity).findOneByOrFail({
    name: migration.name,
   });
   expect(history.status).toBe(EConfigMigrationStatus.COMPLETED);
@@ -346,7 +314,7 @@ describe("Automator 4 generated controller compatibility", () => {
   );
 
   expect(upCalls).toBe(1);
-  expect(await dataSource.getRepository(ConfigMigrationHistory).count()).toBe(1);
+  expect(await dataSource.getRepository(ConfigMigrationEntity).count()).toBe(1);
  });
 
  it("rolls back completed participating work when the outer owner fails later", async () => {
@@ -382,7 +350,7 @@ describe("Automator 4 generated controller compatibility", () => {
       "uncommitted",
      );
      expect(
-      (await eventManager.findOneByOrFail(ConfigMigrationHistory, { name: migration.name })).status,
+      (await eventManager.findOneByOrFail(ConfigMigrationEntity, { name: migration.name })).status,
      ).toBe(EConfigMigrationStatus.COMPLETED);
      throw lateFailure;
     },
@@ -392,7 +360,7 @@ describe("Automator 4 generated controller compatibility", () => {
   expect(
    (await dataSource.getRepository(ConfigDataEntity).findOneByOrFail({ id: original.id })).value,
   ).toBe("original");
-  expect(await dataSource.getRepository(ConfigMigrationHistory).count()).toBe(0);
+  expect(await dataSource.getRepository(ConfigMigrationEntity).count()).toBe(0);
  });
 
  it("rolls back configuration and FAILED and STUCK history changes with the outer owner", async () => {
@@ -427,10 +395,10 @@ describe("Automator 4 generated controller compatibility", () => {
      await expect(migrationService.executeMigrations([migration], true, eventManager)).rejects.toBe(
       migrationFailure,
      );
-     const failed = await eventManager.findOneByOrFail(ConfigMigrationHistory, {
+     const failed = await eventManager.findOneByOrFail(ConfigMigrationEntity, {
       name: migration.name,
      });
-     const stuck = await eventManager.findOneByOrFail(ConfigMigrationHistory, { id: stale.id });
+     const stuck = await eventManager.findOneByOrFail(ConfigMigrationEntity, { id: stale.id });
      expect(failed.status).toBe(EConfigMigrationStatus.FAILED);
      expect(failed.failedAt).toBeInstanceOf(Date);
      expect(stuck.status).toBe(EConfigMigrationStatus.STUCK);
@@ -443,12 +411,12 @@ describe("Automator 4 generated controller compatibility", () => {
    ),
   ).rejects.toBe(migrationFailure);
 
-  const history = await dataSource.getRepository(ConfigMigrationHistory).findOneByOrFail({
+  const history = await dataSource.getRepository(ConfigMigrationEntity).findOneByOrFail({
    id: stale.id,
   });
   expect(history.status).toBe(EConfigMigrationStatus.RUNNING);
   expect(history.failedAt).toBeNull();
-  expect(await dataSource.getRepository(ConfigMigrationHistory).count()).toBe(1);
+  expect(await dataSource.getRepository(ConfigMigrationEntity).count()).toBe(1);
   expect(await dataSource.getRepository(ConfigDataEntity).count()).toBe(0);
  });
 
@@ -479,7 +447,7 @@ describe("Automator 4 generated controller compatibility", () => {
    },
   };
   await migrationService.executeMigrations([migration]);
-  const originalHistory = await dataSource.getRepository(ConfigMigrationHistory).findOneByOrFail({
+  const originalHistory = await dataSource.getRepository(ConfigMigrationEntity).findOneByOrFail({
    name: migration.name,
   });
   const originalConfig = await dataSource.getRepository(ConfigDataEntity).findOneByOrFail({
@@ -493,7 +461,7 @@ describe("Automator 4 generated controller compatibility", () => {
     async (eventManager) => {
      ownerManager = eventManager;
      await migrationService.rollbackMigration(migration.name, [migration], eventManager);
-     expect(await eventManager.count(ConfigMigrationHistory)).toBe(0);
+     expect(await eventManager.count(ConfigMigrationEntity)).toBe(0);
      expect(await eventManager.count(ConfigDataEntity)).toBe(0);
      throw lateFailure;
     },
@@ -501,7 +469,7 @@ describe("Automator 4 generated controller compatibility", () => {
   ).rejects.toBe(lateFailure);
 
   const restoredHistory = await dataSource
-   .getRepository(ConfigMigrationHistory)
+   .getRepository(ConfigMigrationEntity)
    .findOneByOrFail({ id: originalHistory.id });
   expect(restoredHistory.status).toBe(EConfigMigrationStatus.COMPLETED);
   expect(restoredHistory.failedAt).toBeNull();
@@ -521,7 +489,7 @@ describe("Automator 4 generated controller compatibility", () => {
   );
 
   expect(downCalls).toBe(2);
-  expect(await dataSource.getRepository(ConfigMigrationHistory).count()).toBe(0);
+  expect(await dataSource.getRepository(ConfigMigrationEntity).count()).toBe(0);
   expect(await dataSource.getRepository(ConfigDataEntity).count()).toBe(0);
  });
 });

@@ -130,6 +130,10 @@ describe("CrudConfigModule", () => {
    expect(configOptionsProvider?.useValue).toEqual(options);
   });
 
+  it("should default every entity timestamp column to the driver-portable Date type", () => {
+   expectAllEntityTimestampTypes(CrudConfigModule.register({}), Date);
+  });
+
   it("should propagate the common timestamp column type to all entities", () => {
    const dynamicModule = CrudConfigModule.register({
     entityOptions: { timestampColumnType: "timestamptz" },
@@ -363,6 +367,13 @@ describe("CrudConfigModule", () => {
 
    expect(migrationEntityProvider).toBeDefined();
    expect(migrationEntityProvider?.useValue).toBeDefined();
+  });
+
+  it("should default every async entity timestamp column to the driver-portable Date type", () => {
+   expectAllEntityTimestampTypes(
+    CrudConfigModule.registerAsync({ useFactory: () => ({ environment: "test" }) }),
+    Date,
+   );
   });
 
   it("should propagate the static timestamp column type to all async entities", () => {
