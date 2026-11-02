@@ -26,7 +26,7 @@ CrudConfigModule.register({
 });
 ```
 
-`timestampColumnType` is passed to all nine temporal columns in `ConfigSection`, `ConfigData`, and `ConfigMigration`, including their TypeORM create/update date decorators. It defaults to `Date`, which TypeORM maps to the timestamp type of each driver: `timestamp` on PostgreSQL and `datetime` on MySQL, MariaDB, SQLite (`better-sqlite3`) and SQL.js, so the default entities work on every one of them. Set a driver-specific type, such as `"timestamptz"` for PostgreSQL, only when the application needs it. Changing it for an existing database still requires the corresponding schema migration.
+`timestampColumnType` is passed to all nine temporal columns in `ConfigSection`, `ConfigData`, and `ConfigMigration`, including their TypeORM create/update date decorators. It defaults to `Date` ([`CONFIG_ENTITY_CONSTANT.DEFAULT_TIMESTAMP_COLUMN_TYPE`](/docs/nestjs-crud-config/api-reference/constants/config-entity-constant)), which TypeORM maps to the timestamp type of each driver: `timestamp` on PostgreSQL and `datetime` on MySQL, MariaDB, SQLite (`better-sqlite3`) and SQL.js, so the default entities work on every one of them. Set a driver-specific type, such as `"timestamptz"` for PostgreSQL, only when the application needs it. Changing it for an existing database still requires the corresponding schema migration.
 
 In async registration, provide entity customization, including `timestampColumnType`, via `staticOptions.entityOptions` (and `staticOptions.migrationEntityOptions` for migration tracking table settings) so controllers and providers use the same entities.
 
