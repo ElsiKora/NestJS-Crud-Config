@@ -17,7 +17,14 @@ import { LoggerUtility } from "../../../../src/shared/utility/logger.utility";
 const SOURCE_ROOT: string = path.resolve("src");
 const LOGGER_UTILITY_PATH: string = path.join(SOURCE_ROOT, "shared/utility/logger.utility.ts");
 const NEST_LOGGERS: ReadonlySet<string> = new Set(["ConsoleLogger", "Logger"]);
-const PROCESS_STREAMS: ReadonlySet<string> = new Set(["stderr", "stdout"]);
+// Outside src, so it is never scanned; its references define the symbols the guard rejects
+const TARGETS_PATH: string = path.resolve("__logging-targets__.ts");
+const TARGETS_SOURCE: string = [
+ 'import * as consoleModule from "console";',
+ 'import * as nodeConsoleModule from "node:console";',
+ "export const targets = [process.stdout, process.stderr, console, consoleModule, nodeConsoleModule];",
+ "",
+].join("\n");
 
 /**
  * Lists every TypeScript source file of the package.
@@ -37,19 +44,86 @@ function listSources(directory: string): Array<string> {
 }
 
 /**
- * Resolves an identifier to the declarations of the symbol it refers to, through import aliases.
+ * Resolves the symbol a node refers to, through import aliases.
  * @param {ts.TypeChecker} checker Type checker.
- * @param {ts.Identifier} node Identifier.
- * @returns {Array<ts.Declaration>} The declarations, empty for an unresolved name.
+ * @param {ts.Node} node Identifier, string literal or module specifier.
+ * @returns {ts.Symbol | undefined} The symbol, undefined for an unresolved name.
  */
-function getDeclarations(checker: ts.TypeChecker, node: ts.Identifier): Array<ts.Declaration> {
- let symbol: ts.Symbol | undefined = checker.getSymbolAtLocation(node);
+function resolveSymbol(checker: ts.TypeChecker, node: ts.Node): ts.Symbol | undefined {
+ const symbol: ts.Symbol | undefined = checker.getSymbolAtLocation(node);
 
- if (symbol && symbol.flags & ts.SymbolFlags.Alias) {
-  symbol = checker.getAliasedSymbol(symbol);
+ return symbol && symbol.flags & ts.SymbolFlags.Alias ? checker.getAliasedSymbol(symbol) : symbol;
+}
+
+/**
+ * Tells whether a node sits in a type position, which never logs.
+ * @param {ts.Node} node Node.
+ * @returns {boolean} True inside type annotations, type queries and type arguments.
+ */
+function isInTypePosition(node: ts.Node): boolean {
+ for (let current: ts.Node = node; !ts.isSourceFile(current); current = current.parent) {
+  if (ts.isExpressionWithTypeArguments(current) && ts.isHeritageClause(current.parent)) {
+   return current.parent.token === ts.SyntaxKind.ImplementsKeyword;
+  }
+
+  if (ts.isTypeNode(current)) {
+   return true;
+  }
  }
 
- return symbol?.declarations ?? [];
+ return false;
+}
+
+/**
+ * Collects the symbols of Node's process.stdout and process.stderr, the global console and the console modules from
+ * the targets file.
+ * @param {ts.Program} program Program that includes the targets file.
+ * @param {ts.TypeChecker} checker Type checker.
+ * @returns {Map<ts.Symbol, string>} Each rejected symbol with the reason reported for it.
+ */
+function collectTargets(program: ts.Program, checker: ts.TypeChecker): Map<ts.Symbol, string> {
+ const targets: Map<ts.Symbol, string> = new Map();
+ const sourceFile: ts.SourceFile | undefined = program.getSourceFile(TARGETS_PATH);
+
+ const visit = (node: ts.Node): void => {
+  if (ts.isStringLiteral(node) && ts.isImportDeclaration(node.parent)) {
+   const symbol: ts.Symbol | undefined = resolveSymbol(checker, node);
+
+   if (symbol) targets.set(symbol, `${node.text} module`);
+  }
+
+  if (ts.isArrayLiteralExpression(node)) {
+   for (const element of node.elements) {
+    const reference: ts.Node = ts.isPropertyAccessExpression(element) ? element.name : element;
+    const symbol: ts.Symbol | undefined = resolveSymbol(checker, reference);
+
+    // consoleModule and nodeConsoleModule resolve to the same export of the console module
+    if (symbol) {
+     targets.set(
+      symbol,
+      ts.isIdentifier(element) && element.text !== "console"
+       ? "console module"
+       : element.getText(sourceFile),
+     );
+    }
+   }
+  }
+
+  ts.forEachChild(node, visit);
+ };
+
+ if (sourceFile) visit(sourceFile);
+ expect([...new Set(targets.values())].sort(), "every logging target resolves").toEqual(
+  expect.arrayContaining([
+   "console",
+   "console module",
+   "node:console module",
+   "process.stderr",
+   "process.stdout",
+  ]),
+ );
+
+ return targets;
 }
 
 /**
@@ -78,8 +152,9 @@ function isTypeOrImport(node: ts.Identifier): boolean {
 
 /**
  * Finds every direct logging path outside LoggerUtility: a NestJS Logger or ConsoleLogger used as a value (new,
- * static calls such as Logger.log, extends, passing the class around), the global console and process.stdout or
- * process.stderr. Names are resolved with the type checker, so aliased imports and globalThis access count too.
+ * static calls such as Logger.log, extends, passing the class around), and any reference whose symbol is Node's
+ * process.stdout or process.stderr, the global console or the console module. Symbols are resolved with the type
+ * checker, so imports, renames, aliases, destructuring, element access and globalThis count too.
  * @param {Record<string, string>} [injected] Extra source files by absolute path, used to prove that each pattern is found.
  * @returns {Array<string>} One "file: reason" entry per finding.
  */
@@ -94,6 +169,7 @@ function findDirectLogging(injected: Record<string, string> = {}): Array<string>
  const getSourceFile: ts.CompilerHost["getSourceFile"] = host.getSourceFile.bind(host);
  const fileExists: ts.CompilerHost["fileExists"] = host.fileExists.bind(host);
 
+ injected = { ...injected, [TARGETS_PATH]: TARGETS_SOURCE };
  host.fileExists = (fileName: string): boolean => fileName in injected || fileExists(fileName);
  host.getSourceFile = (fileName: string, languageVersion, ...rest) =>
   fileName in injected
@@ -103,9 +179,10 @@ function findDirectLogging(injected: Record<string, string> = {}): Array<string>
  const program: ts.Program = ts.createProgram({
   host,
   options: { ...config.options, noEmit: true },
-  rootNames: [...listSources(SOURCE_ROOT), ...Object.keys(injected)],
+  rootNames: [...listSources(SOURCE_ROOT), ...Object.keys(injected), TARGETS_PATH],
  });
  const checker: ts.TypeChecker = program.getTypeChecker();
+ const targets: Map<ts.Symbol, string> = collectTargets(program, checker);
  const findings: Array<string> = [];
 
  for (const sourceFile of program.getSourceFiles()) {
@@ -115,37 +192,49 @@ function findDirectLogging(injected: Record<string, string> = {}): Array<string>
    continue;
   }
 
+  const report = (node: ts.Node, reason: string): void => {
+   const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
+
+   findings.push(`${path.relative(SOURCE_ROOT, fileName)}:${line + 1}: ${reason}`);
+  };
+
   const visit = (node: ts.Node): void => {
    if (ts.isIdentifier(node) && !isTypeOrImport(node)) {
-    const declarations: Array<ts.Declaration> = getDeclarations(checker, node);
-    const isExternal: boolean =
-     declarations.length > 0 &&
-     declarations.every((declaration: ts.Declaration) =>
-      declaration.getSourceFile().fileName.includes("/node_modules/"),
-     );
-    const isNestLogger: boolean = declarations.some(
+    const isNestLogger: boolean = (resolveSymbol(checker, node)?.declarations ?? []).some(
      (declaration: ts.Declaration) =>
       declaration.getSourceFile().fileName.includes("/node_modules/@nestjs/common/") &&
       ts.isClassDeclaration(declaration) &&
       NEST_LOGGERS.has(declaration.name?.text ?? ""),
     );
-    const reason: string | undefined = isNestLogger
-     ? `NestJS ${node.text} used as a value`
-     : isExternal && node.text === "console"
-       ? "global console"
-       : isExternal &&
-           node.text === "process" &&
-           ts.isPropertyAccessExpression(node.parent) &&
-           node.parent.expression === node &&
-           PROCESS_STREAMS.has(node.parent.name.text)
-         ? `process.${node.parent.name.text}`
-         : undefined;
 
-    if (reason) {
-     const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart());
+    if (isNestLogger) report(node, `NestJS ${node.text} used as a value`);
+   }
 
-     findings.push(`${path.relative(SOURCE_ROOT, fileName)}:${line + 1}: ${reason}`);
-    }
+   // Identifiers, element access keys such as process["stderr"] and module specifiers, by the symbol they resolve to
+   if (
+    (ts.isIdentifier(node) ||
+     (ts.isStringLiteral(node) &&
+      (ts.isElementAccessExpression(node.parent) ||
+       ts.isImportDeclaration(node.parent) ||
+       ts.isExportDeclaration(node.parent) ||
+       ts.isCallExpression(node.parent)))) &&
+    !isInTypePosition(node)
+   ) {
+    const symbol: ts.Symbol | undefined = resolveSymbol(checker, node);
+    const reason: string | undefined = symbol ? targets.get(symbol) : undefined;
+
+    if (reason) report(node, reason);
+   }
+
+   // const { stdout } = process binds the property without naming it at a reference
+   if (ts.isBindingElement(node) && ts.isObjectBindingPattern(node.parent)) {
+    const reason: string | undefined = targets.get(
+     checker
+      .getTypeAtLocation(node.parent)
+      .getProperty((node.propertyName ?? node.name).getText(sourceFile)) as ts.Symbol,
+    );
+
+    if (reason) report(node, reason);
    }
 
    ts.forEachChild(node, visit);
@@ -181,6 +270,21 @@ const INJECTED_PATTERNS: Record<string, string> = {
  "static-logger-log": `import { Logger } from "@nestjs/common";\nLogger.log("x");\n`,
  "static-logger-verbose": `import { Logger } from "@nestjs/common";\nLogger.verbose("x");\n`,
  "static-logger-warn": `import { Logger } from "@nestjs/common";\nLogger.warn("x");\n`,
+ "console-alias": `const out = console;\nout.info("x");\n`,
+ "console-module-named": `import { warn } from "console";\nwarn("x");\n`,
+ "destructured-process-stdout": `const { stdout } = process;\nstdout.write("x");\n`,
+ "dynamic-node-console": `const { log } = await import("node:console");\nlog("x");\n`,
+ "dynamic-node-process": `const { stderr } = await import("node:process");\nstderr.write("x");\n`,
+ "global-this-console-element": `globalThis["console"].log("x");\n`,
+ "global-this-process": `globalThis.process.stdout.write("x");\n`,
+ "node-console-default": `import nodeConsole from "node:console";\nnodeConsole.log("x");\n`,
+ "node-console-named": `import { log } from "node:console";\nlog("x");\n`,
+ "node-process-default": `import proc from "node:process";\nproc.stdout.write("x");\n`,
+ "node-process-named": `import { stdout } from "node:process";\nstdout.write("x");\n`,
+ "node-process-namespace": `import * as proc from "node:process";\nproc.stderr.write("x");\n`,
+ "process-alias": `const p = process;\np.stderr.write("x");\n`,
+ "process-element-access": `process["stderr"].write("x");\n`,
+ "renamed-destructured-process-stderr": `const { stderr: errors } = process;\nerrors.write("x");\n`,
 };
 
 describe("package logging", () => {
@@ -197,6 +301,9 @@ describe("package logging", () => {
    ),
    [injectedPath("type-only")]:
     `import type { ConsoleLogger, Logger } from "@nestjs/common";\nexport type Loggers = ConsoleLogger | Logger;\nexport const name: string = "process";\n`,
+   // Same names on other symbols: a guard that matches by spelling flags these
+   [injectedPath("same-names")]:
+    `const streams = { stderr: "", stdout: "" };\nconst console = { log: (value: string): string => value };\nexport const values: Array<string> = [streams.stdout, streams["stderr"], console.log("x")];\n`,
   });
 
   it("logs only through LoggerUtility in the package sources", () => {
@@ -212,6 +319,12 @@ describe("package logging", () => {
   it("allows NestJS logger types", () => {
    expect(
     findings.filter((finding: string) => finding.startsWith("__injected__/type-only")),
+   ).toEqual([]);
+  });
+
+  it("allows other symbols named console, stdout or stderr", () => {
+   expect(
+    findings.filter((finding: string) => finding.startsWith("__injected__/same-names")),
    ).toEqual([]);
   });
  });
