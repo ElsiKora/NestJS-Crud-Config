@@ -67,6 +67,8 @@ function typecheckSnippets(
   host,
   options: {
    ...config.options,
+   // Every block is pasted into a file of its own, so a block without imports must not see another block's globals
+   moduleDetection: ts.ModuleDetectionKind.Force,
    noEmit: true,
    paths: { ...config.options.paths, "@elsikora/nestjs-crud-config": ["./src/index.ts"] },
   },
@@ -100,6 +102,15 @@ describe("Migrating to 5.0 guide snippets", () => {
 
  it("has TypeScript snippets", () => {
   expect(snippets.length).toBeGreaterThan(0);
+ });
+
+ it("checks each snippet as its own module, so one cannot use another's declarations", () => {
+  const pair: Map<number, Array<string>> = typecheckSnippets([
+   { code: "const sharedValue: number = 1;\n", line: 1 },
+   { code: "export const copiedValue: number = sharedValue;\n", line: 2 },
+  ]);
+
+  expect(pair.get(2)).toEqual([expect.stringContaining("Cannot find name 'sharedValue'")]);
  });
 
  it.each(snippets.map((snippet) => snippet.line))(
