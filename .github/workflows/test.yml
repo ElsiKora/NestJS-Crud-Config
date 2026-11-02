@@ -17,6 +17,17 @@ jobs:
     # supported line; the consumer-smoke job covers the exact engines floors
     node-version: ["22.x", "24.x", "26.x"]
 
+  # The date column e2e runs on SQLite and on this Postgres
+  services:
+   postgres:
+    image: postgres:17-alpine
+    env:
+     POSTGRES_PASSWORD: postgres
+    ports:
+     - 5432:5432
+    options: >-
+     --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+
   steps:
    - name: Checkout Code
      uses: actions/checkout@v4
@@ -39,6 +50,8 @@ jobs:
      run: npm run test:unit
 
    - name: Run E2E tests
+     env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
      run: npm run test:e2e
 
    - name: Archive test results
