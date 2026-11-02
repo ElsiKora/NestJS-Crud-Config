@@ -135,7 +135,7 @@ ALTER TABLE `config_migrations`
   MODIFY `failedAt` datetime NULL;
 ```
 
-`MODIFY` keeps the stored values, and TypeORM then finds nothing to change. The `status` column stays as it is.
+Run the statements in a session with the same `time_zone` as the application's connections, because `MODIFY` stores each `timestamp` value as that session reads it. The application then reads the same values, and TypeORM finds nothing to change. The `status` column stays as it is.
 
 A schema created by `5.0.0-dev.2` or `5.0.0-dev.3` already has `datetime` columns and needs no statements. There `synchronize` only adds `ON UPDATE CURRENT_TIMESTAMP` to the three `updatedAt` columns, in place, and keeps the stored values.
 
