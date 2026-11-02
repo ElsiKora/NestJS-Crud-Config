@@ -22,7 +22,7 @@ const TARGETS_PATH: string = path.resolve("__logging-targets__.ts");
 const TARGETS_SOURCE: string = [
  'import * as consoleModule from "console";',
  'import * as nodeConsoleModule from "node:console";',
- "export const targets = [process.stdout, process.stderr, console, consoleModule, nodeConsoleModule];",
+ "export const targets = [process.stdout, process.stderr, process.emitWarning, console, consoleModule, nodeConsoleModule];",
  "",
 ].join("\n");
 
@@ -56,9 +56,36 @@ function resolveSymbol(checker: ts.TypeChecker, node: ts.Node): ts.Symbol | unde
 }
 
 /**
+ * Tells whether an import or export declaration brings in types only, so it loads no value.
+ * @param {ts.ExportDeclaration | ts.ImportDeclaration} node Declaration.
+ * @returns {boolean} True for import type, export type and declarations whose specifiers are all marked type.
+ */
+function isTypeOnlyDeclaration(node: ts.ExportDeclaration | ts.ImportDeclaration): boolean {
+ const clause: ts.ImportClause | undefined = ts.isImportDeclaration(node)
+  ? node.importClause
+  : undefined;
+ const specifiers: ts.NamedExportBindings | ts.NamedImportBindings | undefined =
+  ts.isImportDeclaration(node) ? clause?.namedBindings : node.exportClause;
+
+ if ((ts.isExportDeclaration(node) && node.isTypeOnly) || clause?.isTypeOnly) {
+  return true;
+ }
+
+ return (
+  !clause?.name &&
+  specifiers !== undefined &&
+  (ts.isNamedImports(specifiers) || ts.isNamedExports(specifiers)) &&
+  specifiers.elements.length > 0 &&
+  specifiers.elements.every(
+   (element: ts.ExportSpecifier | ts.ImportSpecifier) => element.isTypeOnly,
+  )
+ );
+}
+
+/**
  * Tells whether a node sits in a type position, which never logs.
  * @param {ts.Node} node Node.
- * @returns {boolean} True inside type annotations, type queries and type arguments.
+ * @returns {boolean} True inside type annotations, type queries, type arguments and type-only imports and exports.
  */
 function isInTypePosition(node: ts.Node): boolean {
  for (let current: ts.Node = node; !ts.isSourceFile(current); current = current.parent) {
@@ -69,14 +96,25 @@ function isInTypePosition(node: ts.Node): boolean {
   if (ts.isTypeNode(current)) {
    return true;
   }
+
+  if ((ts.isImportSpecifier(current) || ts.isExportSpecifier(current)) && current.isTypeOnly) {
+   return true;
+  }
+
+  if (
+   (ts.isImportDeclaration(current) || ts.isExportDeclaration(current)) &&
+   isTypeOnlyDeclaration(current)
+  ) {
+   return true;
+  }
  }
 
  return false;
 }
 
 /**
- * Collects the symbols of Node's process.stdout and process.stderr, the global console and the console modules from
- * the targets file.
+ * Collects the symbols of Node's process.stdout, process.stderr and process.emitWarning, the global console and the
+ * console modules from the targets file.
  * @param {ts.Program} program Program that includes the targets file.
  * @param {ts.TypeChecker} checker Type checker.
  * @returns {Map<ts.Symbol, string>} Each rejected symbol with the reason reported for it.
@@ -118,6 +156,7 @@ function collectTargets(program: ts.Program, checker: ts.TypeChecker): Map<ts.Sy
    "console",
    "console module",
    "node:console module",
+   "process.emitWarning",
    "process.stderr",
    "process.stdout",
   ]),
@@ -153,7 +192,7 @@ function isTypeOrImport(node: ts.Identifier): boolean {
 /**
  * Finds every direct logging path outside LoggerUtility: a NestJS Logger or ConsoleLogger used as a value (new,
  * static calls such as Logger.log, extends, passing the class around), and any reference whose symbol is Node's
- * process.stdout or process.stderr, the global console or the console module. Symbols are resolved with the type
+ * process.stdout, process.stderr or process.emitWarning, the global console or the console module. Symbols are resolved with the type
  * checker, so imports, renames, aliases, destructuring, element access and globalThis count too.
  * @param {Record<string, string>} [injected] Extra source files by absolute path, used to prove that each pattern is found.
  * @returns {Array<string>} One "file: reason" entry per finding.
@@ -285,6 +324,13 @@ const INJECTED_PATTERNS: Record<string, string> = {
  "process-alias": `const p = process;\np.stderr.write("x");\n`,
  "process-element-access": `process["stderr"].write("x");\n`,
  "renamed-destructured-process-stderr": `const { stderr: errors } = process;\nerrors.write("x");\n`,
+ "node-console-mixed-type-import": `import { type Console, log } from "node:console";\nlog("x");\n`,
+ "node-console-reexport": `export { log } from "node:console";\n`,
+ "process-emit-warning": `process.emitWarning("x");\n`,
+ "process-emit-warning-destructured": `const { emitWarning } = process;\nemitWarning("x");\n`,
+ "process-emit-warning-element": `process["emitWarning"]("x");\n`,
+ "process-emit-warning-global-this": `globalThis.process.emitWarning("x");\n`,
+ "process-emit-warning-named": `import { emitWarning } from "node:process";\nemitWarning("x");\n`,
 };
 
 describe("package logging", () => {
@@ -301,6 +347,13 @@ describe("package logging", () => {
    ),
    [injectedPath("type-only")]:
     `import type { ConsoleLogger, Logger } from "@nestjs/common";\nexport type Loggers = ConsoleLogger | Logger;\nexport const name: string = "process";\n`,
+   [injectedPath("type-only-console")]:
+    `import type { Console } from "node:console";\nexport type ConsoleClass = typeof Console;\n`,
+   [injectedPath("type-only-stdout")]:
+    `import type { stdout } from "node:process";\nexport type Stdout = typeof stdout;\n`,
+   [injectedPath("type-only-inline")]:
+    `import { type Console } from "node:console";\nexport type ConsoleClass = typeof Console;\n`,
+   [injectedPath("type-only-reexport")]: `export type { Console } from "node:console";\n`,
    // Same names on other symbols: a guard that matches by spelling flags these
    [injectedPath("same-names")]:
     `const streams = { stderr: "", stdout: "" };\nconst console = { log: (value: string): string => value };\nexport const values: Array<string> = [streams.stdout, streams["stderr"], console.log("x")];\n`,
@@ -318,9 +371,18 @@ describe("package logging", () => {
 
   it("allows NestJS logger types", () => {
    expect(
-    findings.filter((finding: string) => finding.startsWith("__injected__/type-only")),
+    findings.filter((finding: string) => finding.startsWith("__injected__/type-only.ts:")),
    ).toEqual([]);
   });
+
+  it.each(["console", "stdout", "inline", "reexport"])(
+   "allows the type-only %s import of a logging module",
+   (name: string) => {
+    expect(
+     findings.filter((finding: string) => finding.startsWith(`__injected__/type-only-${name}.ts:`)),
+    ).toEqual([]);
+   },
+  );
 
   it("allows other symbols named console, stdout or stderr", () => {
    expect(
