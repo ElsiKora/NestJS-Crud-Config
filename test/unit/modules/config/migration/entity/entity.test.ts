@@ -3,22 +3,24 @@ import { createConfigMigrationEntity } from "../../../../../../src/modules/confi
 import { CONFIG_MIGRATION_CONSTANT } from "../../../../../../src/shared/constant";
 import { getMetadataArgsStorage, type ColumnType } from "typeorm";
 
-const TEMPORAL_COLUMN_DECORATOR_COUNTS: Record<string, number> = {
- createdAt: 2,
- executedAt: 1,
- failedAt: 1,
- startedAt: 1,
- updatedAt: 2,
+// One column per property; createdAt and updatedAt are in TypeORM's create and update date modes
+const TEMPORAL_COLUMN_MODES: Record<string, string> = {
+ createdAt: "createDate",
+ executedAt: "regular",
+ failedAt: "regular",
+ startedAt: "regular",
+ updatedAt: "updateDate",
 };
 
 function expectTimestampMetadata(entity: Function, expectedType: ColumnType): void {
- for (const [propertyName, expectedCount] of Object.entries(TEMPORAL_COLUMN_DECORATOR_COUNTS)) {
+ for (const [propertyName, expectedMode] of Object.entries(TEMPORAL_COLUMN_MODES)) {
   const columns = getMetadataArgsStorage().columns.filter(
    (metadata) => metadata.target === entity && metadata.propertyName === propertyName,
   );
 
-  expect(columns).toHaveLength(expectedCount);
-  expect(columns.every((column) => column.options.type === expectedType)).toBe(true);
+  expect(columns.map((column) => [column.mode, column.options.type])).toEqual([
+   [expectedMode, expectedType],
+  ]);
  }
 }
 

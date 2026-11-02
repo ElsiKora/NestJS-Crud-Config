@@ -9,8 +9,10 @@ function expectTimestampMetadata(entity: Function, expectedType: ColumnType): vo
    (metadata) => metadata.target === entity && metadata.propertyName === propertyName,
   );
 
-  expect(columns).toHaveLength(2);
-  expect(columns.map((column) => column.options.type)).toEqual([expectedType, expectedType]);
+  // One column per property, in TypeORM's create or update date mode
+  expect(columns.map((column) => [column.mode, column.options.type])).toEqual([
+   [propertyName === "createdAt" ? "createDate" : "updateDate", expectedType],
+  ]);
  }
 }
 

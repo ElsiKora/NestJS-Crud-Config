@@ -1,3 +1,4 @@
+import { Column, CreateDateColumn, getMetadataArgsStorage, Index, UpdateDateColumn } from "typeorm";
 import { describe, expect, it } from "vitest";
 import { createDynamicEntityClass } from "../../../../../src/shared/utility/create-dynamic/entity.utility";
 
@@ -160,5 +161,64 @@ describe("createDynamicEntityClass", () => {
   const instance = new DynamicEntity();
   expect(instance).toBeDefined();
   expect(DynamicEntity.name).toBe("CustomPrimaryEntity");
+ });
+ it("should let a column decorator set the column mode and merge the column options into it", () => {
+  const timestampOptions = {
+   default: () => "CURRENT_TIMESTAMP",
+   nullable: false,
+   type: Date,
+  } as const;
+  const DynamicEntity = createDynamicEntityClass({
+   columns: {
+    createdAt: timestampOptions,
+    label: { type: "varchar" },
+    updatedAt: timestampOptions,
+   },
+   decorators: {
+    createdAt: [CreateDateColumn({ type: Date })],
+    updatedAt: [UpdateDateColumn({ precision: null, type: Date })],
+   },
+   name: "DatedEntity",
+   tableName: "dated_table",
+  });
+  const columns = getMetadataArgsStorage().columns.filter(
+   (column) => column.target === DynamicEntity,
+  );
+  const byProperty = (propertyName: string) =>
+   columns.filter((column) => column.propertyName === propertyName);
+
+  expect(byProperty("createdAt")).toHaveLength(1);
+  expect(byProperty("createdAt")[0]?.mode).toBe("createDate");
+  expect(byProperty("createdAt")[0]?.options).toEqual({ ...timestampOptions, type: Date });
+  expect(byProperty("updatedAt")).toHaveLength(1);
+  expect(byProperty("updatedAt")[0]?.mode).toBe("updateDate");
+  expect(byProperty("updatedAt")[0]?.options).toEqual({ ...timestampOptions, precision: null });
+  expect(byProperty("label")).toHaveLength(1);
+  expect(byProperty("label")[0]?.mode).toBe("regular");
+ });
+
+ it("should let a Column in decorators win over the columns options it shares", () => {
+  const DynamicEntity = createDynamicEntityClass({
+   columns: {
+    slug: { length: 64, nullable: false, type: "varchar" },
+    title: { length: 128, type: "varchar" },
+   },
+   decorators: {
+    slug: [Column({ length: 128, type: "varchar" })],
+    title: [Index()],
+   },
+   name: "DecoratedColumnEntity",
+   tableName: "decorated_column_table",
+  });
+  const columns = getMetadataArgsStorage().columns.filter(
+   (column) => column.target === DynamicEntity,
+  );
+  const byProperty = (propertyName: string) =>
+   columns.filter((column) => column.propertyName === propertyName);
+
+  expect(byProperty("slug")).toHaveLength(1);
+  expect(byProperty("slug")[0]?.options).toEqual({ length: 128, nullable: false, type: "varchar" });
+  expect(byProperty("title")).toHaveLength(1);
+  expect(byProperty("title")[0]?.options).toEqual({ length: 128, type: "varchar" });
  });
 });

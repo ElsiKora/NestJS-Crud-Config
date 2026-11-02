@@ -45,6 +45,8 @@ export function createConfigDataEntity(options: {
    createdAt: {
     default: () => "CURRENT_TIMESTAMP",
     nullable: false,
+    // Without it TypeORM gives MySQL create and update date columns datetime(6), which no CURRENT_TIMESTAMP default fits
+    precision: null,
     type: timestampColumnType,
    },
    description: {
@@ -70,6 +72,8 @@ export function createConfigDataEntity(options: {
    updatedAt: {
     default: () => "CURRENT_TIMESTAMP",
     nullable: false,
+    onUpdate: "CURRENT_TIMESTAMP",
+    precision: null,
     type: timestampColumnType,
    },
    value: {
