@@ -65,6 +65,7 @@ The migration `status` column is a TypeORM `simple-enum`: a native enum on Postg
 
 ## Migration Notes
 
+- **5.0:** `createdAt` and `updatedAt` are TypeORM create and update date columns, so `updatedAt` changes on every save and update; in CrudConfig 4 it kept the insert time. On MySQL and MariaDB `updatedAt` gains `ON UPDATE CURRENT_TIMESTAMP`; other schemas do not change.
 - **5.0:** `timestampColumnType` defaults to `Date` instead of `"timestamp"`, and the migration `status` column is a `simple-enum` instead of an `enum`. PostgreSQL schemas do not change. MySQL and MariaDB schemas created with the old default need their temporal columns converted to `datetime` before the upgrade. See [Migrating to 5.0](/docs/nestjs-crud-config/guides/migrating-to-5-0#database-schema).
 
 See: [TypeORM Integration](/docs/nestjs-crud-config/guides/typeorm-integration)

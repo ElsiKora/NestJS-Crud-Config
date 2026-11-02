@@ -12,3 +12,33 @@ _Defined in: `src/shared/utility/create-dynamic/entity.utility.ts`_
 export default createDynamicEntityClass`,
  })}
 />
+
+## `decorators`
+
+`decorators` maps a property name to its property decorators. They run before the property's column is registered, and they apply to the properties in `columns` and `relations`, and to the generated `id` column.
+
+```ts copy
+import { createDynamicEntityClass } from "@elsikora/nestjs-crud-config";
+import { Column, Index, UpdateDateColumn } from "typeorm";
+
+export const Article = createDynamicEntityClass({
+ columns: {
+  editedAt: { type: Date },
+  slug: { length: 64, type: "varchar" },
+  title: { length: 128, type: "varchar" },
+ },
+ decorators: {
+  editedAt: [UpdateDateColumn()],
+  slug: [Column({ length: 128, type: "varchar" })],
+  title: [Index()],
+ },
+ name: "Article",
+ tableName: "article",
+});
+```
+
+- A decorator that registers no column, such as `Index`, runs next to the column that `columns` describes. `title` is a plain `varchar(128)` column with an index.
+- A TypeORM column decorator, such as `Column`, `CreateDateColumn` or `UpdateDateColumn`, registers the column itself, and it keeps its mode. `editedAt` is an update date column of type `Date`.
+- The property's `columns` options are merged into that column, and the decorator's options win over them. `slug` is a `varchar(128)` column, not `varchar(64)`.
+
+CrudConfig 4 registered the `columns` entry first. TypeORM keeps the first column of a property, so a column decorator in `decorators` had no effect. This changed in 5.0: see [Migrating to 5.0](/docs/nestjs-crud-config/guides/migrating-to-5-0#database-schema).

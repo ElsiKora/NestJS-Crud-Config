@@ -109,30 +109,35 @@ Importing the package has no side effects: it loads no `.env` file and writes no
 CrudConfig 4 created every temporal column as `timestamp` and the migration `status` column as a native `enum`. Neither type exists on SQLite or SQL.js, so applications on those drivers failed at startup with `DataTypeNotSupportedError` unless they set `timestampColumnType: "datetime"`, and the migration entity failed on them in any case. CrudConfig 5 uses types that every TypeORM driver supports:
 
 - `entityOptions.timestampColumnType` defaults to `Date`, which TypeORM maps to `timestamp` on PostgreSQL and to `datetime` on MySQL, MariaDB, SQLite and SQL.js;
-- the migration `status` column is a `simple-enum`: a native enum on PostgreSQL, MySQL and MariaDB, and a `varchar` with a `CHECK` constraint on SQLite and SQL.js.
+- the migration `status` column is a `simple-enum`: a native enum on PostgreSQL, MySQL and MariaDB, and a `varchar` with a `CHECK` constraint on SQLite and SQL.js;
+- `createdAt` and `updatedAt` of the three entities are TypeORM create and update date columns, so every save and update sets `updatedAt`. CrudConfig 4 registered them as plain columns, which kept `updatedAt` at the insert time.
 
-Applications that set `timestampColumnType` keep their columns.
+Applications that set `timestampColumnType` keep their column types and skip the `MODIFY` statements below. On MySQL and MariaDB their `updatedAt` columns still gain `ON UPDATE CURRENT_TIMESTAMP`, which `synchronize` applies in place.
 
 **PostgreSQL:** the schema does not change. TypeORM resolves both defaults to the same `timestamp without time zone` columns and the same enum type as before, so `synchronize` and `migration:generate` find nothing to do.
 
-**MySQL and MariaDB:** the temporal columns change from `timestamp` to `datetime`. `synchronize: true` would drop and re-add them, which loses their values, so convert them in place before the 5.0 deployment starts (the statements below use the default table names; add your `tablePrefix` and custom table names):
+**MySQL and MariaDB:** the default temporal columns change from `timestamp` to `datetime`, and `updatedAt` gains `ON UPDATE CURRENT_TIMESTAMP`, which TypeORM gives every update date column.
+
+Schemas created by CrudConfig 4 or `5.0.0-dev.1` have `timestamp` columns. **On these schemas `synchronize: true` drops and re-adds the nine temporal columns, and every stored value in them is lost.** A migration from `migration:generate` does the same. Convert the columns in place before the 5.0 deployment starts (the statements below use the default table names; add your `tablePrefix` and custom table names):
 
 ```sql copy
 ALTER TABLE `config_section`
   MODIFY `createdAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  MODIFY `updatedAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP;
+  MODIFY `updatedAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
 ALTER TABLE `config_data`
   MODIFY `createdAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  MODIFY `updatedAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP;
+  MODIFY `updatedAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
 ALTER TABLE `config_migrations`
   MODIFY `createdAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  MODIFY `updatedAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  MODIFY `updatedAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   MODIFY `startedAt` datetime NULL,
   MODIFY `executedAt` datetime NULL,
   MODIFY `failedAt` datetime NULL;
 ```
 
 `MODIFY` keeps the stored values, and TypeORM then finds nothing to change. The `status` column stays as it is.
+
+A schema created by `5.0.0-dev.2` or `5.0.0-dev.3` already has `datetime` columns and needs no statements. There `synchronize` only adds `ON UPDATE CURRENT_TIMESTAMP` to the three `updatedAt` columns, in place, and keeps the stored values.
 
 ## What does not change
 
