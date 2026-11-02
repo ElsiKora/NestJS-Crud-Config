@@ -48,6 +48,8 @@ Automator 5, like Automator 4.7, adds `ApiAuthorizationGuard` to every generated
 
 ```typescript copy
 import { ApiAuthorizationModule } from "@elsikora/nestjs-crud-automator";
+import { CrudConfigModule } from "@elsikora/nestjs-crud-config";
+import { Module } from "@nestjs/common";
 
 @Module({
  imports: [
@@ -81,6 +83,7 @@ CrudConfig 4 imported `dotenv/config`, so loading the package read the `.env` fi
 If the application relied on CrudConfig to load `.env`, load it in the application:
 
 ```typescript copy
+import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 
 @Module({
