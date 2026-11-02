@@ -22,4 +22,4 @@ export const CONFIG_ENTITY_CONSTANT: {
 ## Notes
 
 - `DEFAULT_TIMESTAMP_COLUMN_TYPE` is the fallback for `entityOptions.timestampColumnType`, used by all nine temporal columns of `ConfigSection`, `ConfigData` and `ConfigMigration`. See [Dynamic Entities](/docs/nestjs-crud-config/core-concepts/dynamic-entities#entity-customization).
-- Use it for an application entity or a hand-written TypeORM migration that must match the CrudConfig temporal columns.
+- Use it as the `type` of an application entity column that must match the CrudConfig temporal columns. A hand-written TypeORM migration takes the driver's type name instead, because `TableColumnOptions.type` is a string: `timestamp` on PostgreSQL and `datetime` on MySQL, MariaDB and SQLite.
