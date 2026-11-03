@@ -1,3 +1,23 @@
+# [5.0.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v4.1.0...v5.0.0) (2026-11-03)
+
+### Bug Fixes
+
+- **entity:** boot the default entities on sqlite and sql.js ([7feac93](https://github.com/ElsiKora/NestJS-Crud-Config/commit/7feac932a5d11a957698d078c2735434bc127d19))
+- **entity:** register the entity timestamps as typeorm date columns ([1b99195](https://github.com/ElsiKora/NestJS-Crud-Config/commit/1b991950f56fccc4d718ddf6247e77d809dad9d8))
+- **logger:** stop loading the consumer .env on import ([fd509fe](https://github.com/ElsiKora/NestJS-Crud-Config/commit/fd509fef8b66904012e37925a2994989bae63938))
+- **migration:** log the migration service through the package logger ([fa65a40](https://github.com/ElsiKora/NestJS-Crud-Config/commit/fa65a40e1e3e96e8cb6752868e432543311cd250))
+
+### Build System
+
+- **package:** publish an esm-only build on automator 5, nestjs 12 and typeorm 1 ([9f352ee](https://github.com/ElsiKora/NestJS-Crud-Config/commit/9f352ee0ebf690903263f2fd03419ac8a8ae69e1))
+
+### BREAKING CHANGES
+
+- **entity:** updatedAt now changes on every save and update. On MySQL and MariaDB the three updatedAt columns gain ON UPDATE CURRENT_TIMESTAMP, which synchronize applies in place; PostgreSQL and SQLite schemas do not change. A TypeORM column decorator in the decorators option of createDynamicEntityClass now registers the column and wins over the options of the same property in columns.
+- **entity:** on MySQL and MariaDB the default temporal columns are datetime instead of timestamp. Convert them with ALTER TABLE MODIFY before the upgrade, as the Migrating to 5.0 guide shows, because synchronize would drop and re-add them.
+- **package:** the package is ESM only. dist/esm, dist/cjs and the require and import export conditions are removed; CommonJS applications load the package through require(esm). The peers are @elsikora/nestjs-crud-automator ^5.0.0-dev.5, @nestjs/common, @nestjs/core and @nestjs/platform-fastify ^12.3.2, @nestjs/passport ^12.0.0, @nestjs/swagger ^12.0.0, @nestjs/typeorm ^12.0.1, @nestjs/throttler ^6.7.1, typeorm ^1.1.2, fastify ^5.12.7, class-transformer ^0.5.1, class-validator ^0.15.1 and lodash ^4.18.1, and Node.js must be ^22.13.0 or >=24.11.0. The @nestjs/cache-manager dependency is now ^12.0.2.
+- **logger:** importing @elsikora/nestjs-crud-config no longer loads a .env file. Applications that relied on it set NCC_LOG_LEVEL in the environment or load .env themselves, for example with ConfigModule.forRoot() or node --env-file.
+
 # [4.1.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v4.0.3...v4.1.0) (2026-10-02)
 
 ### Features
