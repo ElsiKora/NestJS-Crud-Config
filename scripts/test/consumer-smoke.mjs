@@ -166,6 +166,27 @@ function createManifest(tarball) {
 }
 
 /**
+ * Installs fastify at the exact version the installed @nestjs/platform-fastify declares, when it pins one.
+ * @param {string} directory - Directory with the installed project.
+ * @returns {void}
+ */
+function alignFastifyWithPlatform(directory) {
+ const readManifest = (name) =>
+  JSON.parse(readFileSync(path.join(directory, "node_modules", name, "package.json"), "utf8"));
+ const pinned = readManifest("@nestjs/platform-fastify").dependencies?.fastify;
+
+ if (!pinned || !/^\d+\.\d+\.\d+$/.test(pinned) || readManifest("fastify").version === pinned) {
+  return;
+ }
+
+ run(
+  "npm",
+  ["install", "--no-audit", "--no-fund", "--loglevel=error", "--save-exact", `fastify@${pinned}`],
+  { cwd: directory },
+ );
+}
+
+/**
  * Fails when npm installed more than one copy of a peer, which would split class identity between the package and the app.
  * @param {string} directory - Directory with the installed project.
  * @returns {void}
@@ -274,6 +295,8 @@ try {
 
  writeFileSync(path.join(workDirectory, "package.json"), createManifest(tarball));
  run("npm", ["install", "--no-audit", "--no-fund", "--loglevel=error"], { cwd: workDirectory });
+ // @nestjs/platform-fastify pins fastify exactly, so the latest fastify in the peer range would install a second copy
+ alignFastifyWithPlatform(workDirectory);
 
  if (ARGS.has("--peer-floors")) {
   for (const [name, floor] of Object.entries(getPeerFloors(REPOSITORY_MANIFEST.peerDependencies))) {

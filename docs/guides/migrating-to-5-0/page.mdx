@@ -40,6 +40,8 @@ npm ls @elsikora/nestjs-crud-automator @nestjs/common @nestjs/core typeorm
 
 `npm ls` must show one copy of each package. Automator and Nest resolve decorators, providers and metadata by class, so a nested second copy breaks the generated controllers and the injection at startup.
 
+Install `fastify` at the exact version that `@nestjs/platform-fastify` pins, shown by `npm view @nestjs/platform-fastify dependencies.fastify`, because a newer `fastify` in the peer range installs a second copy under `@nestjs/platform-fastify`.
+
 CrudConfig now depends on `@nestjs/cache-manager` 12. Version 3.x declares NestJS 11 or older as its peer, so `npm ci` failed with `ERESOLVE` on NestJS 12. If the application uses `@nestjs/cache-manager` itself, upgrade it to `^12.0.2` as well.
 
 ## Import `ApiAuthorizationModule` for generated routes
