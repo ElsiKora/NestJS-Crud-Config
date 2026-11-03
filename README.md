@@ -81,7 +81,7 @@ The package ships as ES modules only. CommonJS applications keep `require("@elsi
 
 ### Automator 5 compatibility
 
-CrudConfig 5 requires `@elsikora/nestjs-crud-automator ^5.0.0-dev.5`. Automator 4 and older are not supported.
+CrudConfig 5 requires `@elsikora/nestjs-crud-automator ^5.0.0`. Automator 4 and older are not supported.
 
 Generated routes run Automator's `ApiAuthorizationGuard`. When the section or data controllers are enabled, import Automator's global `ApiAuthorizationModule` once in the root module, as the examples below do; without it the application fails at startup with `Nest can't resolve dependencies of the ApiAuthorizationGuard`. Headless mode does not need it.
 

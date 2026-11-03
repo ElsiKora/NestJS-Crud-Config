@@ -69,6 +69,8 @@ describe("ConfigMigrationService", () => {
 
   mockDataSource = {
    createQueryRunner: vi.fn().mockReturnValue(mockQueryRunner),
+   // Automator reads the driver type to queue SQLite transactions
+   options: { type: "postgres" },
   } as any;
 
   mockConfigService = {} as any;

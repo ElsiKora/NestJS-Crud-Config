@@ -82,6 +82,8 @@ describe("CrudConfigService", () => {
 
   dataSource = {
    createQueryRunner: vi.fn().mockReturnValue(queryRunner),
+   // Automator reads the driver type to queue SQLite transactions
+   options: { type: "postgres" },
   } as any;
 
   configOptions = {
