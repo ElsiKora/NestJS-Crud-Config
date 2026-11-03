@@ -1,4 +1,8 @@
-import type { ApiServiceBase, TApiControllerMethodMap } from "@elsikora/nestjs-crud-automator";
+import type {
+ ApiServiceBase,
+ TApiControllerMethodMap,
+ TApiControllerTargetMethod,
+} from "@elsikora/nestjs-crud-automator";
 
 import { ApiFunctionTransactionScope } from "@elsikora/nestjs-crud-automator";
 import { createCache } from "cache-manager";
@@ -24,9 +28,6 @@ const {
  CrudConfigService,
  EConfigMigrationStatus,
 } = BUILT_PACKAGE;
-
-// Automator 5 types the generated method names as `${string}Create`, but names them after EApiRouteType at runtime
-type TGeneratedController<E> = new (...arguments_: Array<unknown>) => TApiControllerMethodMap<E>;
 
 const HEADERS: Record<string, string> = {};
 const IP_ADDRESS = "127.0.0.1";
@@ -118,10 +119,10 @@ describe("Automator 4 generated controller compatibility", () => {
 
   const DynamicConfigSectionController = createDynamicSectionController(
    ConfigSectionEntity,
-  ) as TGeneratedController<IConfigSection>;
+  ) as TApiControllerTargetMethod<IConfigSection>;
   const DynamicConfigDataController = createDynamicDataController(
    ConfigDataEntity,
-  ) as TGeneratedController<IConfigData>;
+  ) as TApiControllerTargetMethod<IConfigData>;
 
   sectionController = new DynamicConfigSectionController(sectionService);
   dataController = new DynamicConfigDataController(dataService, sectionService);
@@ -142,12 +143,7 @@ describe("Automator 4 generated controller compatibility", () => {
    IP_ADDRESS,
   );
   const fetched = await sectionController.get({ id: created.id }, HEADERS, IP_ADDRESS);
-  // IApiBaseEntity extends ObjectLiteral, so Automator types every query key as a filter
-  const listed = await sectionController.getList(
-   { limit: 10, page: 1 } as Parameters<TApiControllerMethodMap<IConfigSection>["getList"]>[0],
-   HEADERS,
-   IP_ADDRESS,
-  );
+  const listed = await sectionController.getList({ limit: 10, page: 1 }, HEADERS, IP_ADDRESS);
   const updated = await sectionController.update(
    { id: created.id },
    { description: "updated", name: "application" },
