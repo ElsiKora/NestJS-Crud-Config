@@ -1,3 +1,9 @@
+# [5.1.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v5.0.0...v5.1.0) (2026-11-04)
+
+### Features
+
+- **entity:** name every constraint and index explicitly ([d716e37](https://github.com/ElsiKora/NestJS-Crud-Config/commit/d716e37d151f0388de687a89114508e88df67f0d))
+
 # [5.0.0](https://github.com/ElsiKora/NestJS-Crud-Config/compare/v4.1.0...v5.0.0) (2026-11-03)
 
 ### Bug Fixes
