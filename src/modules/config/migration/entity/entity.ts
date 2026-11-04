@@ -145,12 +145,13 @@ export function createConfigMigrationEntity(options: {
    ],
   },
   indexes: [
-   { columns: ["status"], name: "idx_config_migration_status" },
-   { columns: ["startedAt"], name: "idx_config_migration_started_at" },
-   { columns: ["createdAt"], name: "idx_config_migration_created_at" },
+   { columns: ["status"], name: `IDX_${options.tableName}_status` },
+   { columns: ["startedAt"], name: `IDX_${options.tableName}_started_at` },
+   { columns: ["createdAt"], name: `IDX_${options.tableName}_created_at` },
   ],
   name: "ConfigMigration",
+  primaryKeyConstraintName: `PK_${options.tableName}`,
   tableName: options.tableName,
-  uniques: [["name"]],
+  uniques: [{ columns: ["name"], name: `UQ_${options.tableName}_name` }],
  });
 }

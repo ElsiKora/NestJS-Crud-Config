@@ -63,8 +63,27 @@ CREATE TABLE config_data (
 
 The migration `status` column is a TypeORM `simple-enum`: a native enum on PostgreSQL, MySQL and MariaDB, and a `varchar` with a `CHECK` constraint on SQLite and SQL.js.
 
+## Constraint and index names
+
+Every constraint and index has an explicit name, built from the table name. With the default table names they are:
+
+| Table | Name | Kind |
+| --- | --- | --- |
+| `config_section` | `PK_config_section` | primary key |
+| `config_data` | `PK_config_data` | primary key |
+| `config_data` | `FK_config_data_section` | foreign key to `config_section` |
+| `config_data` | `UQ_config_data_name_environment_section` | unique (`name`, `environment`, section) |
+| `config_migrations` | `PK_config_migrations` | primary key |
+| `config_migrations` | `UQ_config_migrations_name` | unique (`name`) |
+| `config_migrations` | `IDX_config_migrations_status` | index (`status`) |
+| `config_migrations` | `IDX_config_migrations_started_at` | index (`startedAt`) |
+| `config_migrations` | `IDX_config_migrations_created_at` | index (`createdAt`) |
+
+A custom table name replaces the table part: `tableName: "app_data"` gives `PK_app_data`, `FK_app_data_section` and `UQ_app_data_name_environment_section`. PostgreSQL cuts names longer than 63 bytes, so keep custom table names short enough.
+
 ## Migration Notes
 
+- **5.1:** the constraints and indexes have the explicit names above instead of TypeORM hash names (`PK_5d278b2c9701f26df2db108b10a`) and `idx_config_migration_*`. Rename them in an existing schema with a migration (`ALTER TABLE … RENAME CONSTRAINT`, `ALTER INDEX … RENAME TO`), or write the new names into a fresh baseline. `createDynamicEntityClass` takes `uniques` as `{ columns, name }` entries instead of column lists.
 - **5.0:** `createdAt` and `updatedAt` are TypeORM create and update date columns, so `updatedAt` changes on every save and update; in CrudConfig 4 it kept the insert time. On MySQL and MariaDB `updatedAt` gains `ON UPDATE CURRENT_TIMESTAMP`; other schemas do not change.
 - **5.0:** `timestampColumnType` defaults to `Date` instead of `"timestamp"`, and the migration `status` column is a `simple-enum` instead of an `enum`. PostgreSQL schemas do not change. MySQL and MariaDB schemas created with the old default need their temporal columns converted to `datetime` before the upgrade. See [Migrating to 5.0](/docs/nestjs-crud-config/guides/migrating-to-5-0#database-schema).
 

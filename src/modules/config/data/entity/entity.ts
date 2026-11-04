@@ -163,16 +163,23 @@ export function createConfigDataEntity(options: {
    ],
   },
   name: "ConfigData",
+  primaryKeyConstraintName: `PK_${options.tableName}`,
   relations: {
    section: {
     decorator: { target: options.configSectionEntity },
     eager: false,
+    foreignKeyConstraintName: `FK_${options.tableName}_section`,
     nullable: false,
     onDelete: "CASCADE",
     type: "ManyToOne",
    },
   },
   tableName: options.tableName,
-  uniques: [["name", "environment", "section"]],
+  uniques: [
+   {
+    columns: ["name", "environment", "section"],
+    name: `UQ_${options.tableName}_name_environment_section`,
+   },
+  ],
  });
 }

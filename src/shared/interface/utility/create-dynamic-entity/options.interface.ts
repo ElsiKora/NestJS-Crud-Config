@@ -11,7 +11,9 @@ export interface ICreateDynamicEntityOptions {
  decorators?: Record<string, Array<PropertyDecorator>>;
  indexes?: Array<{ columns: Array<string>; name: string }>;
  name: string;
+ /** Name of the primary key constraint of the generated `id` column; a declared `id` column names its own. */
+ primaryKeyConstraintName?: string;
  relations?: Record<string, ICreateDynamicEntityRelationOptions>;
  tableName: string;
- uniques?: Array<Array<string>>;
+ uniques?: Array<{ columns: Array<string>; name: string }>;
 }

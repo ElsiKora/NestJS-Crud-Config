@@ -33,6 +33,7 @@ export function createDynamicEntityClass<T extends IApiBaseEntity = IApiBaseEnti
   decorators = {},
   indexes = [],
   name,
+  primaryKeyConstraintName,
   relations = {},
   tableName,
   uniques = [],
@@ -47,8 +48,8 @@ export function createDynamicEntityClass<T extends IApiBaseEntity = IApiBaseEnti
 
  for (const decorator of classDecorators) decorator(DynamicEntity);
 
- for (const uniqueColumns of uniques) {
-  Unique(uniqueColumns)(DynamicEntity);
+ for (const unique of uniques) {
+  Unique(unique.name, unique.columns)(DynamicEntity);
  }
 
  for (const index of indexes) {
@@ -57,7 +58,7 @@ export function createDynamicEntityClass<T extends IApiBaseEntity = IApiBaseEnti
 
  if (!columns.id) {
   // eslint-disable-next-line @elsikora/typescript/no-unsafe-argument
-  PrimaryGeneratedColumn("uuid")(DynamicEntity.prototype, "id");
+  PrimaryGeneratedColumn("uuid", { primaryKeyConstraintName })(DynamicEntity.prototype, "id");
 
   if (decorators.id) {
    // eslint-disable-next-line @elsikora/typescript/no-unsafe-argument
@@ -96,7 +97,13 @@ export function createDynamicEntityClass<T extends IApiBaseEntity = IApiBaseEnti
 
  for (const [propertyKey, relationOptions] of Object.entries(relations)) {
   const extendedOptions: ICreateDynamicEntityRelationOptions = relationOptions;
-  const { decorator, type, ...options }: ICreateDynamicEntityRelationOptions = extendedOptions;
+
+  const {
+   decorator,
+   foreignKeyConstraintName,
+   type,
+   ...options
+  }: ICreateDynamicEntityRelationOptions = extendedOptions;
 
   if (type === "ManyToOne" && decorator) {
    // eslint-disable-next-line @elsikora/typescript/no-unsafe-argument
@@ -104,7 +111,7 @@ export function createDynamicEntityClass<T extends IApiBaseEntity = IApiBaseEnti
 
    if (options.hasJoinColumn !== false) {
     // eslint-disable-next-line @elsikora/typescript/no-unsafe-argument
-    JoinColumn()(DynamicEntity.prototype, propertyKey);
+    JoinColumn({ foreignKeyConstraintName })(DynamicEntity.prototype, propertyKey);
    }
   }
 

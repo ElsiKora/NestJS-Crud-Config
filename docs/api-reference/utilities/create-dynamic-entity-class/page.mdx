@@ -13,6 +13,27 @@ export default createDynamicEntityClass`,
  })}
 />
 
+## Constraint names
+
+`primaryKeyConstraintName` names the primary key of the generated `id` column; a declared `id` column names its own through its column options. Each entry of `uniques` and `indexes` takes its columns and a `name`, and a `ManyToOne` relation takes `foreignKeyConstraintName` for the constraint of its join column.
+
+```ts copy
+import { createDynamicEntityClass } from "@elsikora/nestjs-crud-config";
+
+export const Tag = createDynamicEntityClass({
+ columns: {
+  slug: { length: 64, type: "varchar" },
+ },
+ indexes: [{ columns: ["slug"], name: "IDX_tag_slug" }],
+ name: "Tag",
+ primaryKeyConstraintName: "PK_tag",
+ tableName: "tag",
+ uniques: [{ columns: ["slug"], name: "UQ_tag_slug" }],
+});
+```
+
+In 5.0 `uniques` was a list of column lists (`[["slug"]]`), and TypeORM gave each constraint a hash name.
+
 ## `decorators`
 
 `decorators` maps a property name to its property decorators. They run before the property's column is registered, and they apply to the properties in `columns` and `relations`, and to the generated `id` column.

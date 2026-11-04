@@ -77,7 +77,10 @@ describe("createDynamicEntityClass", () => {
      length: 100,
     },
    },
-   uniques: [["email"], ["username"]],
+   uniques: [
+    { columns: ["email"], name: "UQ_unique_table_email" },
+    { columns: ["username"], name: "UQ_unique_table_username" },
+   ],
   });
 
   expect(DynamicEntity).toBeDefined();

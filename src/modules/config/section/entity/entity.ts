@@ -107,6 +107,7 @@ export function createConfigSectionEntity(options: {
    ],
   },
   name: "ConfigSection",
+  primaryKeyConstraintName: `PK_${options.tableName}`,
   tableName: options.tableName,
  });
 }
